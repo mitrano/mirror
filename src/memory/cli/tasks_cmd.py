@@ -29,9 +29,15 @@ def cmd_list(mem: MemoryClient, args: argparse.Namespace) -> None:
         key = t.journey or "(no journey)"
         by_journey.setdefault(key, []).append(t)
 
+    if args.all:
+        label = "all"
+    elif args.status:
+        label = args.status
+    else:
+        label = "open"
     total_open = sum(1 for t in tasks if t.status in ("todo", "doing", "blocked"))
-    label = "all" if args.all else "open"
-    print(f"📋 Tasks {label}: {len(tasks)} ({total_open} open)\n")
+    open_note = f" ({total_open} open)" if not args.status else ""
+    print(f"📋 Tasks {label}: {len(tasks)}{open_note}\n")
 
     for journey, journey_tasks in by_journey.items():
         print(f"🧭 {journey}")
