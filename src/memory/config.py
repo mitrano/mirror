@@ -37,16 +37,47 @@ def _bool_from_env(name: str, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+_DEFAULT_USER_HOMES_DIR_NAME = ".mirror-minds"
+_LEGACY_USER_HOMES_DIR_NAME = ".mirror"
+_legacy_warning_emitted: set[str] = set()
+
+
 def _default_memory_dir(home: Path) -> Path:
-    return home / ".mirror"
+    return home / _DEFAULT_USER_HOMES_DIR_NAME
 
 
 def _default_user_homes_dir(home: Path) -> Path:
-    return home / ".mirror"
+    return home / _DEFAULT_USER_HOMES_DIR_NAME
 
 
 def _default_user_home(home: Path, user: str) -> Path:
     return _default_user_homes_dir(home) / user
+
+
+def _legacy_user_home(home: Path, user: str) -> Path:
+    return home / _LEGACY_USER_HOMES_DIR_NAME / user
+
+
+def _warn_legacy_path_once(legacy_path: Path, new_path: Path) -> None:
+    """Emit a one-time stderr warning per legacy path in use.
+
+    The legacy ``~/.mirror/<user>`` layout is permanently supported (see
+    ``docs/project/decisions.md`` — "Default mirror home directory renamed"),
+    but a warning is emitted to surface that the install can be migrated to
+    the new ``~/.mirror-minds/<user>`` location with a single ``mv``.
+    """
+    key = str(legacy_path)
+    if key in _legacy_warning_emitted:
+        return
+    _legacy_warning_emitted.add(key)
+    import sys
+
+    print(
+        f"warning: using legacy mirror home at {legacy_path}. "
+        f"To migrate: mv {legacy_path} {new_path}. "
+        "The legacy path remains supported indefinitely.",
+        file=sys.stderr,
+    )
 
 
 def resolve_mirror_home(
@@ -69,6 +100,14 @@ def resolve_mirror_home(
     if resolved_home:
         return resolved_home
     if derived_home:
+        # Legacy path compatibility: if the new default location does not
+        # exist but the legacy ``~/.mirror/<user>`` does, use the legacy
+        # path and emit a one-time warning. Permanent support; no sunset.
+        if not derived_home.exists() and explicit_user:
+            legacy_home = _legacy_user_home(selected_home, explicit_user)
+            if legacy_home.exists():
+                _warn_legacy_path_once(legacy_home, derived_home)
+                return legacy_home
         return derived_home
     raise ValueError("Mirror home is not configured. Set MIRROR_HOME or MIRROR_USER.")
 
@@ -100,7 +139,7 @@ def default_transcript_export_dir_for_home(home: Path) -> Path:
 # Directories by environment.
 _HOME = Path.home()
 DEFAULT_USER_HOMES_DIR = _default_user_homes_dir(_HOME)
-DEFAULT_MIRROR_DIR = _HOME / ".mirror"
+DEFAULT_MIRROR_DIR = _HOME / ".mirror-minds"
 DEFAULT_MEMORY_DIR = _default_memory_dir(_HOME)
 
 try:

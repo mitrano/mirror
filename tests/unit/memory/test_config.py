@@ -53,7 +53,7 @@ def test_resolve_mirror_home_prefers_mirror_home(tmp_path):
 
 def test_resolve_mirror_home_derives_from_mirror_user():
     with _config_with_env(MIRROR_USER="testuser") as cfg:
-        assert cfg.resolve_mirror_home() == Path.home() / ".mirror" / "testuser"
+        assert cfg.resolve_mirror_home() == Path.home() / ".mirror-minds" / "testuser"
 
 
 def test_resolve_mirror_home_accepts_matching_home_and_user(tmp_path):
@@ -170,13 +170,13 @@ def test_memory_dir_defaults_from_mirror_home_in_production(tmp_path):
         assert cfg.MUTE_FLAG_PATH == mirror_home / "mute"
 
 
-def test_default_memory_dir_uses_mirror_dir_for_new_installs(tmp_path):
+def test_default_memory_dir_uses_mirror_minds_dir_for_new_installs(tmp_path):
     with _config_with_env() as cfg:
-        assert cfg._default_memory_dir(tmp_path) == tmp_path / ".mirror"
+        assert cfg._default_memory_dir(tmp_path) == tmp_path / ".mirror-minds"
 
 
 def test_default_memory_dir_ignores_existing_legacy_espelho_dir(tmp_path):
-    mirror_dir = tmp_path / ".mirror"
+    mirror_dir = tmp_path / ".mirror-minds"
     legacy_dir = tmp_path / ".espelho"
     legacy_dir.mkdir()
 
@@ -186,8 +186,8 @@ def test_default_memory_dir_ignores_existing_legacy_espelho_dir(tmp_path):
 
 def test_default_directory_constants_are_english_only():
     with _config_with_env() as cfg:
-        assert cfg.DEFAULT_MIRROR_DIR.name == ".mirror"
-        assert cfg.DEFAULT_USER_HOMES_DIR.name == ".mirror"
+        assert cfg.DEFAULT_MIRROR_DIR.name == ".mirror-minds"
+        assert cfg.DEFAULT_USER_HOMES_DIR.name == ".mirror-minds"
         assert not hasattr(cfg, "LEGACY_ESPELHO_DIR")
         assert not hasattr(cfg, "DEFAULT_ESPELHO_DIR")
 
@@ -253,7 +253,54 @@ def test_db_path_defaults_from_mirror_home_in_production(tmp_path):
 
 def test_db_path_defaults_from_mirror_user_in_production(tmp_path):
     with _config_with_env(MIRROR_USER="testuser") as cfg:
-        assert cfg.DB_PATH == Path.home() / ".mirror" / "testuser" / "memory.db"
+        assert cfg.DB_PATH == Path.home() / ".mirror-minds" / "testuser" / "memory.db"
+
+
+# ---------------------------------------------------------------------------
+# Legacy path compatibility (~/.mirror/<user>)
+# ---------------------------------------------------------------------------
+# The default container was renamed from ``~/.mirror`` to ``~/.mirror-minds``
+# in 2026-05. The legacy location remains supported indefinitely (see
+# ``docs/project/decisions.md``).
+
+
+def test_resolve_mirror_home_falls_back_to_legacy_path_when_only_legacy_exists(tmp_path, capsys):
+    legacy_home = tmp_path / ".mirror" / "testuser"
+    legacy_home.mkdir(parents=True)
+
+    with _config_with_env(MIRROR_USER="testuser") as cfg:
+        resolved = cfg.resolve_mirror_home(home=tmp_path)
+
+    assert resolved == legacy_home
+    warning = capsys.readouterr().err
+    assert "legacy mirror home" in warning
+    assert str(legacy_home) in warning
+
+
+def test_resolve_mirror_home_prefers_new_path_when_both_exist(tmp_path, capsys):
+    legacy_home = tmp_path / ".mirror" / "testuser"
+    new_home = tmp_path / ".mirror-minds" / "testuser"
+    legacy_home.mkdir(parents=True)
+    new_home.mkdir(parents=True)
+
+    with _config_with_env(MIRROR_USER="testuser") as cfg:
+        resolved = cfg.resolve_mirror_home(home=tmp_path)
+
+    assert resolved == new_home
+    assert "legacy mirror home" not in capsys.readouterr().err
+
+
+def test_legacy_path_warning_emitted_once_per_legacy_path(tmp_path, capsys):
+    legacy_home = tmp_path / ".mirror" / "testuser"
+    legacy_home.mkdir(parents=True)
+
+    with _config_with_env(MIRROR_USER="testuser") as cfg:
+        cfg.resolve_mirror_home(home=tmp_path)
+        cfg.resolve_mirror_home(home=tmp_path)
+        cfg.resolve_mirror_home(home=tmp_path)
+
+    warning = capsys.readouterr().err
+    assert warning.count("legacy mirror home") == 1
 
 
 def test_db_path_can_be_configured_from_environment(tmp_path):

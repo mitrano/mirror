@@ -99,7 +99,7 @@ DB_PATH=/tmp/mirror-embedding-resilience-smoke.db uv run python -m memory memori
 ```
 
 The exact smoke command may change depending on the touched CLI path. The
-important invariant is that production `~/.mirror/<user>/memory.db` is not used
+important invariant is that production `~/.mirror-minds/<user>/memory.db` is not used
 for failure-mode validation.
 
 ---

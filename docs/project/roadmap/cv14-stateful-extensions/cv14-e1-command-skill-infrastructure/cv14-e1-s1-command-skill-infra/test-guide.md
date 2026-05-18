@@ -29,7 +29,7 @@ The story closed against the following acceptance evidence:
 - CI on the post-implementation push: green on Python 3.10 and 3.12,
   run id `25668728695`.
 - Manual smoke test against the real user mirror home
-  (`~/.mirror/alisson-vale/`): install the fixture, exercise `ping`,
+  (`~/.mirror-minds/alisson-vale/`): install the fixture, exercise `ping`,
   `list`, `bindings`, `bind --persona tesoureira`, `bindings` again,
   `uninstall`; verify post-uninstall that the binding rows were swept and
   the extension's data table was preserved. Cleaned up the smoke artifacts

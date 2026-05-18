@@ -46,7 +46,7 @@ The extension model needs a concrete way to answer:
 Recommended default location:
 
 ```text
-~/.mirror/<user>/extensions/
+~/.mirror-minds/<user>/extensions/
 ```
 
 This keeps the ownership model explicit:
@@ -58,7 +58,7 @@ This keeps the ownership model explicit:
 Each extension lives in its own directory, for example:
 
 ```text
-~/.mirror/<user>/extensions/review-copy/
+~/.mirror-minds/<user>/extensions/review-copy/
   skill.yaml
   SKILL.md
 ```
@@ -66,7 +66,7 @@ Each extension lives in its own directory, for example:
 or
 
 ```text
-~/.mirror/<user>/extensions/xdigest/
+~/.mirror-minds/<user>/extensions/xdigest/
   skill.yaml
   run.py
   README.md
@@ -189,7 +189,7 @@ an external prompt-skill in spirit:
 Under this model, its likely eventual home would be something like:
 
 ```text
-~/.mirror/<user>/extensions/review-copy/
+~/.mirror-minds/<user>/extensions/review-copy/
   skill.yaml
   SKILL.md
 ```
@@ -202,7 +202,7 @@ with runtime-visible names such as:
 
 ## Questions This Story Should Settle
 
-1. Is `~/.mirror/<user>/extensions/` the right canonical first location?
+1. Is `~/.mirror-minds/<user>/extensions/` the right canonical first location?
 2. What are the minimum required manifest fields for v1?
 3. Should the command namespace be `ext:` / `ext-`, or something else?
 4. Should prompt-skill and command-skill be the first two supported kinds?

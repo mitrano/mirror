@@ -42,7 +42,7 @@ Current state:
 
 | Runtime | External extension skill visibility | Status |
 |---|---:|---|
-| Pi | Reads `~/.mirror/<user>/runtime/skills/pi/extensions.json` and contributes installed `SKILL.md` paths | First-class |
+| Pi | Reads `~/.mirror-minds/<user>/runtime/skills/pi/extensions.json` and contributes installed `SKILL.md` paths | First-class |
 | Claude Code | Uses explicit `expose-claude --target-root <project>` projection into `.claude/skills/` | First-class, manual projection |
 | Gemini CLI | Uses the shared `.agents/skills/` surface for core skills | Missing external projection |
 | Codex | Uses the shared `.agents/skills/` surface for core skills | Missing external projection |
@@ -62,15 +62,15 @@ already share `.agents/skills/` for core Mirror skills.
 Likely installed/runtime shape:
 
 ```text
-~/.mirror/<user>/runtime/skills/agents/ext-google-workspace/SKILL.md
-~/.mirror/<user>/runtime/skills/agents/extensions.json
+~/.mirror-minds/<user>/runtime/skills/agents/ext-google-workspace/SKILL.md
+~/.mirror-minds/<user>/runtime/skills/agents/extensions.json
 ```
 
 Likely project projection command:
 
 ```bash
 uv run python -m memory extensions expose-agents \
-  --mirror-home ~/.mirror/<user> \
+  --mirror-home ~/.mirror-minds/<user> \
   --target-root /path/to/project
 ```
 
@@ -164,8 +164,8 @@ breaking current extensions such as `google-workspace`.
 - Prefer one shared `agents` runtime over separate `gemini` and `codex` runtimes
   unless their external-skill formats diverge. The discovery mechanism is shared,
   so the projection should be shared.
-- Keep extension source under `~/.mirror/<user>/extensions/<id>/` and runtime
-  materialization under `~/.mirror/<user>/runtime/skills/<runtime>/`.
+- Keep extension source under `~/.mirror-minds/<user>/extensions/<id>/` and runtime
+  materialization under `~/.mirror-minds/<user>/runtime/skills/<runtime>/`.
 - Project-local `.agents/skills/ext-*/` entries should be treated as generated
   overlays, not framework source.
 - The projection must not disturb existing core `.agents/skills/mm-*` symlinks.
@@ -191,7 +191,7 @@ breaking current extensions such as `google-workspace`.
 1. Validate the `.agents/skills/ext-*` naming and invocation behavior in both
    Gemini CLI and Codex, or document any runtime-specific limitation found.
 2. Add or derive a shared `agents` runtime surface for installed extensions:
-   `~/.mirror/<user>/runtime/skills/agents/` plus `extensions.json`.
+   `~/.mirror-minds/<user>/runtime/skills/agents/` plus `extensions.json`.
 3. Add `extensions expose-agents --mirror-home ... --target-root ...` to copy
    installed agents runtime skills into `<project>/.agents/skills/`.
 4. Add `extensions clean-agents --target-root ...` to remove only catalog-listed

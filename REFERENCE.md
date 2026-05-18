@@ -64,10 +64,17 @@ Two starter files live at the repo root:
 | Variable | Default | Role |
 |----------|---------|------|
 | `MIRROR_HOME` | (unset) | Explicit path to the user's mirror home. Takes precedence over `MIRROR_USER`. |
-| `MIRROR_USER` | (unset) | Short user name; resolves to `~/.mirror/<user>`. |
+| `MIRROR_USER` | (unset) | Short user name; resolves to `~/.mirror-minds/<user>`. |
 
 In production, one of the two must be set. Setting both is only valid when
 they agree (`MIRROR_HOME` ends with the same user name).
+
+**Legacy path compatibility.** The default container was renamed from
+`~/.mirror` to `~/.mirror-minds` in 2026-05. When `MIRROR_USER` resolution
+is used and `~/.mirror-minds/<user>` does not exist but `~/.mirror/<user>`
+does, the legacy path is resolved and a one-time warning is emitted. This
+is permanent supported behavior. To stop the warning, run
+`mv ~/.mirror ~/.mirror-minds` once.
 
 ### API Keys
 
@@ -88,7 +95,7 @@ override the default layout.
 
 | Variable | Default | Role |
 |----------|---------|------|
-| `MEMORY_DIR` | `MIRROR_HOME` (prod) or `~/.mirror` | Runtime working dir for `mute` and `.bootstrap.lock`. |
+| `MEMORY_DIR` | `MIRROR_HOME` (prod) or `~/.mirror-minds` | Runtime working dir for `mute` and `.bootstrap.lock`. |
 | `MEMORY_PROD_DIR` | `MEMORY_DIR` | Production-only override. |
 | `DB_PATH` | `<MIRROR_HOME>/memory.db` | Full SQLite path. |
 | `DB_BACKUP_PATH` | `<DB_PATH parent>/backups` | Legacy alias for `BACKUP_DIR`. |
@@ -136,12 +143,12 @@ Rejected explicitly:
 ```bash
 uv run python -m memory migrate-legacy validate \
   --source ~/.espelho/memoria.db \
-  --target-home ~/.mirror/<user> \
+  --target-home ~/.mirror-minds/<user> \
   --report /tmp/mirror-migration-validate.json
 
 uv run python -m memory migrate-legacy run \
   --source ~/.espelho/memoria.db \
-  --target-home ~/.mirror/<user> \
+  --target-home ~/.mirror-minds/<user> \
   --report /tmp/mirror-migration-run.json
 ```
 

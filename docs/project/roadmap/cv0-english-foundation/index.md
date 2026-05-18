@@ -35,7 +35,7 @@ Across all layers:
 | Layer | Change |
 |-------|--------|
 | Python package | `memoria` → `memory` |
-| Database directory | `~/.espelho/` → `~/.mirror/` |
+| Database directory | `~/.espelho/` → `~/.mirror-minds/` |
 | Database filenames | `memoria*.db` → `memory*.db` |
 | Service names | `TravessiaService` → `JourneyService`, etc. |
 | CLI commands | Portuguese aliases removed |

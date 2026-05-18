@@ -19,7 +19,7 @@ This epic turns that path into a documented and testable workflow.
 Completed outcome:
 - `docs/getting-started.md` covers install, bootstrap, identity editing,
   seeding, verification, and the extension flow
-- onboarding docs point users at `~/.mirror/<user>/identity/` and the
+- onboarding docs point users at `~/.mirror-minds/<user>/identity/` and the
   database/runtime model instead of repo-local personal artifacts
 - starter templates now seed meaningful defaults instead of placeholder records:
   `writer`, `thinker`, `engineer`, and `personal-growth`

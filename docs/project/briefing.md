@@ -47,7 +47,7 @@ stays in Python.
 **Decision:** Identity, journeys, personas, memories, conversations, and tasks
 are all stored in and read from the user's mirror home, with `memory.db` as the
 runtime source of truth. During CV4 the target layout becomes:
-`~/.mirror/<user>/memory.db` for runtime state and `~/.mirror/<user>/identity/`
+`~/.mirror-minds/<user>/memory.db` for runtime state and `~/.mirror-minds/<user>/identity/`
 for user-owned seed YAMLs. The repository will keep only generic templates under
 `templates/identity/` — not live user identity.
 
@@ -60,7 +60,7 @@ framework without baking one person's identity into the repo.
 **Consequence:** After editing a user-owned YAML file, `/mm:seed` must be run to
 propagate changes. The database can evolve (via migrations) without touching
 those YAML files. New installs will bootstrap from `templates/identity/` into a
-user home under `~/.mirror/<user>/` before seeding. Legacy migration tooling
+user home under `~/.mirror-minds/<user>/` before seeding. Legacy migration tooling
 must target the user-home layout rather than the old in-repo identity model.
 
 ---

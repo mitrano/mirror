@@ -32,7 +32,7 @@ Confirm the docs clearly define:
    - stable core commands instead of private internal imports
 
 5. **Concrete installation flow**
-   - copy into `~/.mirror/<user>/extensions/review-copy/`
+   - copy into `~/.mirror-minds/<user>/extensions/review-copy/`
    - validate and inspect from the user home
    - sync into explicit runtime target roots for Pi and Claude
 

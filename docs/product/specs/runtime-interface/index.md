@@ -177,13 +177,13 @@ processes the prompt.
 Hook files are registered in `.claude/settings.json`.
 
 Current external-skill surfacing path:
-- keep the installed source/runtime artifacts under `~/.mirror/<user>/...`
+- keep the installed source/runtime artifacts under `~/.mirror-minds/<user>/...`
 - explicitly project installed Claude external skills into a project-local
   `.claude/skills/` surface with:
 
 ```bash
 uv run python -m memory extensions expose-claude \
-  --mirror-home ~/.mirror/<user> \
+  --mirror-home ~/.mirror-minds/<user> \
   --target-root /path/to/project
 ```
 
@@ -261,27 +261,27 @@ shared native skill surface at `.agents/skills/mm-*/SKILL.md` (symlinked from
 External skills are installed into a user-owned source tree under:
 
 ```text
-~/.mirror/<user>/extensions/<id>/
+~/.mirror-minds/<user>/extensions/<id>/
 ```
 
 Runtime-facing materialization happens separately under:
 
 ```text
-~/.mirror/<user>/runtime/skills/<runtime>/
+~/.mirror-minds/<user>/runtime/skills/<runtime>/
 ```
 
 For prompt-skills, the materialized shape is:
 
 ```text
-~/.mirror/<user>/runtime/skills/pi/ext-review-copy/SKILL.md
-~/.mirror/<user>/runtime/skills/pi/extensions.json
+~/.mirror-minds/<user>/runtime/skills/pi/ext-review-copy/SKILL.md
+~/.mirror-minds/<user>/runtime/skills/pi/extensions.json
 ```
 
 or, for Claude:
 
 ```text
-~/.mirror/<user>/runtime/skills/claude/ext:review-copy/SKILL.md
-~/.mirror/<user>/runtime/skills/claude/extensions.json
+~/.mirror-minds/<user>/runtime/skills/claude/ext:review-copy/SKILL.md
+~/.mirror-minds/<user>/runtime/skills/claude/extensions.json
 ```
 
 ### `extensions.json` v1
@@ -292,7 +292,7 @@ Each runtime root contains an explicit catalog with this shape:
 {
   "schema_version": "1",
   "runtime": "pi",
-  "target_root": "~/.mirror/<user>/runtime/skills/pi",
+  "target_root": "~/.mirror-minds/<user>/runtime/skills/pi",
   "generated_at": "2026-04-21T18:00:00+00:00",
   "extensions": [
     {
@@ -303,10 +303,10 @@ Each runtime root contains an explicit catalog with this shape:
       "summary": "Multi-LLM copy review workflow that generates a structured HTML report",
       "runtime": "pi",
       "command_name": "ext-review-copy",
-      "source_extension_dir": "~/.mirror/<user>/extensions/review-copy",
-      "manifest_path": "~/.mirror/<user>/extensions/review-copy/skill.yaml",
-      "source_skill_path": "~/.mirror/<user>/extensions/review-copy/SKILL.md",
-      "installed_skill_path": "~/.mirror/<user>/runtime/skills/pi/ext-review-copy/SKILL.md"
+      "source_extension_dir": "~/.mirror-minds/<user>/extensions/review-copy",
+      "manifest_path": "~/.mirror-minds/<user>/extensions/review-copy/skill.yaml",
+      "source_skill_path": "~/.mirror-minds/<user>/extensions/review-copy/SKILL.md",
+      "installed_skill_path": "~/.mirror-minds/<user>/runtime/skills/pi/ext-review-copy/SKILL.md"
     }
   ]
 }
@@ -316,7 +316,7 @@ Each runtime root contains an explicit catalog with this shape:
 
 Runtimes should treat `runtime/skills/<runtime>/` plus `extensions.json` as the
 canonical installed external skill surface. They should not inspect
-`~/.mirror/<user>/extensions/` directly during execution.
+`~/.mirror-minds/<user>/extensions/` directly during execution.
 
 This keeps:
 - authoring/source files separate from runtime materialization
@@ -329,7 +329,7 @@ Pi should prepare to consume the installed external skill surface with this
 algorithm:
 
 1. Resolve the active mirror home
-2. Read `~/.mirror/<user>/runtime/skills/pi/extensions.json`
+2. Read `~/.mirror-minds/<user>/runtime/skills/pi/extensions.json`
 3. Validate:
    - `schema_version == "1"`
    - `runtime == "pi"`

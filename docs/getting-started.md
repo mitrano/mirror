@@ -86,7 +86,7 @@ cp .env.example .env
 Edit `.env` with your keys:
 
 ```
-MIRROR_USER=your-name              # resolves to ~/.mirror/<user>
+MIRROR_USER=your-name              # resolves to ~/.mirror-minds/<user>
 OPENROUTER_API_KEY=sk-or-...       # embeddings, memory extraction, /mm-consult
 ```
 
@@ -102,7 +102,7 @@ REFERENCE.md](../REFERENCE.md#configuration).
 uv run python -m memory init your-name
 ```
 
-This copies the identity templates into `~/.mirror/your-name/identity/` and
+This copies the identity templates into `~/.mirror-minds/your-name/identity/` and
 substitutes your name into the template files automatically. No manual editing
 required — the templates ship with real, opinionated content that works from
 session one.
@@ -252,7 +252,7 @@ What to check:
 
 ### Success checklist
 
-- `~/.mirror/your-name/identity/` exists with your name substituted in templates
+- `~/.mirror-minds/your-name/identity/` exists with your name substituted in templates
 - `uv run python -m memory seed` completes without errors
 - 12 personas appear in `uv run python -m memory list personas --verbose`
 - `personal-growth` appears in `uv run python -m memory list journeys`

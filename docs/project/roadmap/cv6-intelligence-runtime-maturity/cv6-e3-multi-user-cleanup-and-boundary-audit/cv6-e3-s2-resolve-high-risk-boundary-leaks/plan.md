@@ -83,7 +83,7 @@ This story should establish the following explicit wording direction:
 
 ### In onboarding language
 New users should learn:
-- edit user identity under `~/.mirror/<user>/identity/`
+- edit user identity under `~/.mirror-minds/<user>/identity/`
 - do not treat `meta/` as user identity
 - not every shipped skill is automatically part of Mirror Mind core forever
 - specialized workflows may live as extensions or reference extensions

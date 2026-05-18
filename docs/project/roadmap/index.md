@@ -146,7 +146,7 @@ recent persistence failures to the user without breaking the
 fail-quietly contract. Possible shapes, in increasing weight:
 
 - A health subcommand: `uv run python -m memory conversation-logger health` that
-  scans `~/.mirror/mirror-logger.log` for recent WARN/ERROR lines and reports
+  scans `~/.mirror-minds/mirror-logger.log` for recent WARN/ERROR lines and reports
   a green/yellow/red status with the last error message.
 - An automatic one-line note at the top of `mm-mirror` output when the
   health check is non-green, e.g. `⚠️ Mirror logger has 47 errors in the

@@ -85,7 +85,7 @@ IdentityService.load_mirror_context(journey="product-launch", ...)
    │
    ├─ For each matching binding:
    │     ├─ loads installed extension runtime from
-   │     │     ~/.mirror/<user>/extensions/<extension_id>/
+   │     │     ~/.mirror-minds/<user>/extensions/<extension_id>/
    │     ├─ looks up the registered provider by capability_id
    │     ├─ builds ContextRequest(journey_id="product-launch", ...)
    │     └─ safely calls provider(api, ctx)
@@ -113,7 +113,7 @@ folders:
 | Role | Example | Purpose |
 |---|---|---|
 | Extension source | `~/Code/mirror-extensions/maestro` | Where the extension author edits code. |
-| Installed runtime | `~/.mirror/<user>/extensions/<extension_id>` | Copy loaded by Pi/Mirror at runtime. |
+| Installed runtime | `~/.mirror-minds/<user>/extensions/<extension_id>` | Copy loaded by Pi/Mirror at runtime. |
 | Journey target project | `~/Code/<project>` | Project observed or enriched by the extension. |
 
 The mirror loads extension code from the installed runtime, not from the source

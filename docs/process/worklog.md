@@ -97,7 +97,7 @@ Removed an accidentally generated Claude external-skill overlay from the mirror
 repository and hardened the extension CLI so `expose-claude` and `clean-claude`
 now require `--target-root`. Claude projection remains an explicit
 project-local operation; Pi continues to consume installed external skills from
-`~/.mirror/<user>/runtime/skills/pi/`. Added gitignore guards for generated
+`~/.mirror-minds/<user>/runtime/skills/pi/`. Added gitignore guards for generated
 Claude extension overlays.
 
 ### 2026-05-09 — Initial Mirror Web Console docs browser
@@ -977,7 +977,7 @@ ran `/mm-mirror`, extension logged all turns via `mirror-logger.ts`, `session-st
 triggered extraction, 1 memory extracted from `journal=mirror` conversation.
 Production DB untouched (confirmed by checksum). 0 ERROR lines in mirror-logger.log.
 
-Fixed bug: `mirror-logger.ts` hardcoded `~/.mirror/` instead of reading
+Fixed bug: `mirror-logger.ts` hardcoded `~/.mirror-minds/` instead of reading
 `MEMORY_DIR` from environment — corrected with `_resolveMemoryDir()`.
 
 CV1 done condition met: dual-interface (Claude Code + Pi), shared Python core,

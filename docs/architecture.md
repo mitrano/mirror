@@ -43,10 +43,10 @@ evals/                       — LLM behavioral evaluations (not in CI)
 **User home (outside the repo):**
 
 ```text
-~/.mirror/<user>/identity/   — real user-owned identity YAML files
-~/.mirror/<user>/extensions/ — user-installed extensions
-~/.mirror/<user>/memory.db   — runtime database (source of truth)
-~/.mirror/<user>/backups/    — database backups
+~/.mirror-minds/<user>/identity/   — real user-owned identity YAML files
+~/.mirror-minds/<user>/extensions/ — user-installed extensions
+~/.mirror-minds/<user>/memory.db   — runtime database (source of truth)
+~/.mirror-minds/<user>/backups/    — database backups
 ```
 
 ---
@@ -98,7 +98,7 @@ activation condition.
 
 **User-home YAML → database flow:**
 
-1. `memory init your-name` copies templates into `~/.mirror/your-name/identity/`
+1. `memory init your-name` copies templates into `~/.mirror-minds/your-name/identity/`
    and substitutes the user's name.
 2. `memory seed` reads those YAML files and writes rows into the `identity` table.
 3. At runtime, the mirror reads exclusively from the database — never from YAML
@@ -184,10 +184,17 @@ injection models, see:
 
 ## 7. Database Schema
 
-**Default location:** `~/.mirror/<user>/memory.db`
+**Default location:** `~/.mirror-minds/<user>/memory.db`
 
-Set via `MIRROR_USER=<user>` (resolves to `~/.mirror/<user>`) or
-`MIRROR_HOME=~/.mirror/<user>`. Override with `DB_PATH` when needed.
+Set via `MIRROR_USER=<user>` (resolves to `~/.mirror-minds/<user>`) or
+`MIRROR_HOME=~/.mirror-minds/<user>`. Override with `DB_PATH` when needed.
+
+**Legacy path compatibility.** The default container was renamed from
+`~/.mirror` to `~/.mirror-minds` in 2026-05. Installs that still keep data
+at `~/.mirror/<user>` are resolved automatically when `MIRROR_USER` is used
+and the new path does not exist; a one-time warning is emitted per process.
+This is permanent supported behavior. See
+[Decisions — Default mirror home directory renamed](project/decisions.md).
 
 ### Main Tables
 

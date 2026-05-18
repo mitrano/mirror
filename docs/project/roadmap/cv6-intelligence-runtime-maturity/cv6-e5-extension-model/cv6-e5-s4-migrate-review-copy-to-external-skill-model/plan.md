@@ -19,7 +19,7 @@ CV6.E5.S2 establishes `review-copy` as the first reference extension path. CV6.E
 Target shape:
 
 ```text
-~/.mirror/<user>/extensions/review-copy/
+~/.mirror-minds/<user>/extensions/review-copy/
   skill.yaml
   SKILL.md
 ```

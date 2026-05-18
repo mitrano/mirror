@@ -14,7 +14,7 @@ points, and the trust boundary.
 │         │                                                       │
 │         │  python -m memory extensions install                  │
 │         ▼                                                       │
-│   ~/.mirror/<user>/extensions/<id>/   ← runtime copy            │
+│   ~/.mirror-minds/<user>/extensions/<id>/   ← runtime copy            │
 │         │                                                       │
 │         │  imported at every CLI invocation                     │
 │         ▼                                                       │
@@ -90,7 +90,7 @@ invoked:
 
 Concretely, loading runs these steps in order:
 
-1. **Resolve.** Find `~/.mirror/<user>/extensions/<id>/skill.yaml`.
+1. **Resolve.** Find `~/.mirror-minds/<user>/extensions/<id>/skill.yaml`.
 2. **Validate.** Parse the manifest, check `kind: command-skill`, validate the
    `ext_<id>_*` prefix matches `id`.
 3. **Migrate.** Run any pending files in `migrations/` (idempotent; tracked

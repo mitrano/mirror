@@ -3,7 +3,7 @@
 # CV4 — Framework/User Separation
 
 **Status:** Done
-**Goal:** Turn Mirror Mind into a reusable framework whose repository contains only generic templates, while real user identity and runtime state live in per-user homes under `~/.mirror/<user>/`.
+**Goal:** Turn Mirror Mind into a reusable framework whose repository contains only generic templates, while real user identity and runtime state live in per-user homes under `~/.mirror-minds/<user>/`.
 
 ---
 
@@ -15,9 +15,9 @@ repository checkout.
 
 CV4 separates those concerns cleanly:
 - the repository ships framework code and generic identity templates only
-- each real user gets a mirror home under `~/.mirror/<user>/`
-- identity YAMLs live under `~/.mirror/<user>/identity/`
-- runtime state lives beside them, centered on `~/.mirror/<user>/memory.db`
+- each real user gets a mirror home under `~/.mirror-minds/<user>/`
+- identity YAMLs live under `~/.mirror-minds/<user>/identity/`
+- runtime state lives beside them, centered on `~/.mirror-minds/<user>/memory.db`
 - user-owned export artifacts, including transcripts, live outside the repo and use configurable paths
 - legacy Portuguese-era data migrates into that user-home structure
 
@@ -29,7 +29,7 @@ Mind reusable by multiple users without baking private identity into the repo.
 ## Target Layout
 
 ```text
-~/.mirror/<user>/
+~/.mirror-minds/<user>/
   identity/
     self/
     ego/
@@ -54,7 +54,7 @@ Notes:
 
 | Code | Epic | User-visible outcome | Status |
 |------|------|----------------------|--------|
-| CV4.E1 | User Home Layout | Mirror Mind has a documented canonical per-user home under `~/.mirror/<user>/` |
+| CV4.E1 | User Home Layout | Mirror Mind has a documented canonical per-user home under `~/.mirror-minds/<user>/` |
 | CV4.E2 | Template Identity in Repo | The repo ships only generic templates under `templates/identity/` |
 | CV4.E3 | External Identity Loading and Seeding | Seed/load reads from the user home instead of repo-owned identity files |
 | CV4.E4 | Multi-User Foundation | More than one user home can coexist cleanly on one machine |
@@ -68,8 +68,8 @@ Notes:
 CV4 is done when:
 - the repository no longer contains live user identity data
 - generic templates exist under `templates/identity/`
-- runtime identity loading and seeding operate against `~/.mirror/<user>/identity/`
-- the canonical runtime database location is `~/.mirror/<user>/memory.db`
+- runtime identity loading and seeding operate against `~/.mirror-minds/<user>/identity/`
+- the canonical runtime database location is `~/.mirror-minds/<user>/memory.db`
 - multiple user homes are a first-class supported layout
 - legacy `memoria.db`-era data has a documented and tested migration path into the new structure
 - transcript exports are configurable, optional, and stored outside the repository
@@ -97,7 +97,7 @@ a user-owned configurable artifact rather than a repo-tracked file.
 
 Initial configuration direction for E6:
 - `TRANSCRIPT_EXPORT_AUTOMATIC=false`
-- `TRANSCRIPT_EXPORT_DIR=~/.mirror/<user>/exports/transcripts`
+- `TRANSCRIPT_EXPORT_DIR=~/.mirror-minds/<user>/exports/transcripts`
 
 Manual transcript export remains explicit. Automatic transcript export is opt-in.
 

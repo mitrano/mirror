@@ -36,7 +36,7 @@ skills run fine. But the conversation history is never persisted:
 - `mm-recall`, `mm-conversations`, and any feature that depends on the message history return as if the session never happened
 
 The only visible signal that something is wrong is buried in
-`~/.mirror/mirror-logger.log`, which accumulates lines like:
+`~/.mirror-minds/mirror-logger.log`, which accumulates lines like:
 
 ```
 2026-05-10T23:22:26.518Z [WARN] stderr from [-m memory conversation-logger]:
@@ -52,7 +52,7 @@ Three checks confirm the issue:
 
 1. Tail the extension log:
    ```bash
-   tail -50 ~/.mirror/mirror-logger.log
+   tail -50 ~/.mirror-minds/mirror-logger.log
    ```
    If you see repeated `No module named memory` warnings, you are hitting this bug.
 
@@ -138,7 +138,7 @@ Three avenues are worth considering:
 1. **Surface persistence failures.** The current design swallows errors to
    keep Pi responsive. Consider adding a visible indicator (e.g. a one-line
    note in `mm-mirror` output or a status check on `mm-help`) when
-   `~/.mirror/mirror-logger.log` shows recent `WARN`/`ERROR` lines.
+   `~/.mirror-minds/mirror-logger.log` shows recent `WARN`/`ERROR` lines.
 2. **Document the convention.** The project already mandates `uv run` for
    Python invocations. Any new Pi extension should follow the same rule;
    it is worth calling this out explicitly in the extension author guide

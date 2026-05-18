@@ -302,7 +302,7 @@ The `mm:build` hybrid illustrates the pattern: `python -m memory build load <slu
 
 ---
 
-### CV4 direction: framework/user separation with user homes under `~/.mirror/<user>`
+### CV4 direction: framework/user separation with user homes under `~/.mirror-minds/<user>`
 
 **Date:** 2026-04-18
 
@@ -310,8 +310,8 @@ The next roadmap capability after CV3 is **CV4 — Framework/User Separation**. 
 
 Target direction:
 - the repository keeps only generic identity templates under `templates/identity/`
-- real user identity lives under `~/.mirror/<user>/identity/`
-- runtime state lives beside it in `~/.mirror/<user>/memory.db`
+- real user identity lives under `~/.mirror-minds/<user>/identity/`
+- runtime state lives beside it in `~/.mirror-minds/<user>/memory.db`
 - default subdirectories `backups/` and `exports/` also live under the user home, but remain configurable to other locations
 - legacy Portuguese-era assets (for example `memoria.db`) migrate into this user-home layout
 
@@ -363,6 +363,47 @@ Final direction:
 This closes the earlier open discussion about user-home selection/profile
 bootstrap details as a CV4 planning question. Future work may refine the UX,
 but the architectural and operational direction is no longer open.
+
+---
+
+### Default mirror home directory renamed from `~/.mirror` to `~/.mirror-minds`
+
+**Date:** 2026-05-18
+**Reference:** [Architecture — Database Schema](../architecture.md#7-database-schema), [REFERENCE — Identity (CV4 user home)](../../REFERENCE.md)
+
+The default container for user mirror homes was renamed from `~/.mirror` to
+`~/.mirror-minds`. Two motivations:
+
+1. **Disambiguation.** The personal install of the framework typically lives
+   at `~/mirror`. Having data at `~/.mirror` (visible vs hidden, same root
+   word) creates persistent visual collision when reading the home tree.
+2. **Plural matches structure.** The directory is a container of user homes
+   (`alisson-vale/`, `veronica/`, …) — semantically plural. The singular
+   name was a vestige; `~/.mirror-minds` says what the directory actually is.
+
+The corresponding pair becomes coherent: **the mirror (singular program)
+reflects the minds (plural data)**. This pairs with the convention of keeping
+authored code under `~/Code/` and used-but-not-edited installs at `~/`.
+
+**Legacy path compatibility (permanent, not deprecated).**
+
+To avoid silently breaking installs that relied on the old default through
+`MIRROR_USER` resolution, the framework permanently supports the legacy path
+under a clear contract:
+
+- If `MIRROR_USER` is used, `~/.mirror-minds/<user>/` does not exist, and
+  `~/.mirror/<user>/` does, the legacy path is resolved and used.
+- A one-time warning per legacy path is emitted to stderr identifying the
+  path in use and the migration command (`mv ~/.mirror ~/.mirror-minds`).
+- This is supported behavior, not deprecated. There is no sunset date. The
+  cost is a single fallback check in `resolve_mirror_home`; the gain is that
+  a default rename never breaks a working install.
+
+**Not affected:**
+
+- Anyone setting `MIRROR_HOME` explicitly (path is absolute, unaffected).
+- Installs with explicit homes outside the default container (for example,
+  demo and dev installs under `~/.mirror-demo/<user>` or `~/.mirror-dev`).
 
 ---
 

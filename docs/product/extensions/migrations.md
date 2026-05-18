@@ -165,7 +165,7 @@ extensions are free to ignore it.
   Other extensions may not be installed.
 - **Storing secrets in migrations.** Migrations are versioned in the
   extension's repo. API keys, tokens, and personal data belong in
-  `~/.mirror/<user>/...` outside the repo.
+  `~/.mirror-minds/<user>/...` outside the repo.
 
 ## Rollback
 

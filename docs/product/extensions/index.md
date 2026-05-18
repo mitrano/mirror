@@ -65,8 +65,8 @@ See the [API Reference](api-reference.md) for the full contract.
 
 ```
 <extensions-root>/<id>/                # source (user repo, versioned)
-~/.mirror/<user>/extensions/<id>/      # installed (runtime copy)
-~/.mirror/<user>/memory.db             # shared database with ext_<id>_* tables
+~/.mirror-minds/<user>/extensions/<id>/      # installed (runtime copy)
+~/.mirror-minds/<user>/memory.db             # shared database with ext_<id>_* tables
 ```
 
 `<extensions-root>` is any directory the user chooses to host their

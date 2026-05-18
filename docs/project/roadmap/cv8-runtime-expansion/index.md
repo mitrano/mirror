@@ -50,7 +50,7 @@ honestly rather than pretending parity exists.
 A user can open Gemini CLI or Codex in a Mirror Mind project and use the mirror
 with continuity:
 
-- conversations are persisted under the active `~/.mirror/<user>/memory.db`
+- conversations are persisted under the active `~/.mirror-minds/<user>/memory.db`
 - user and assistant turns are logged with `interface='gemini_cli'` or
   `interface='codex'`
 - Mirror Mode can load identity, persona, journey, memories, and attachments
