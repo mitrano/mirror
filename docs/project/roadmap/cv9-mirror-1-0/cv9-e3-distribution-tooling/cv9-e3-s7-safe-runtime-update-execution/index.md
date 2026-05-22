@@ -1,6 +1,6 @@
 [< CV9.E3 Distribution & Tooling](../index.md)
 
-# CV9.E3.S6 — Safe Runtime Update Execution
+# CV9.E3.S7 — Safe Runtime Update Execution
 
 **Status:** 🟡 Planned  
 **Epic:** CV9.E3 Distribution & Tooling

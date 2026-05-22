@@ -10,6 +10,8 @@ Diagnosis comes before repair. Backup comes before database mutation. No command
 
 A clean status is only meaningful when the route to that cleanliness is documented. Preserve historical evidence until provenance is understood.
 
+Development does not happen in `production` clones. Mirror Mind clones declare their role through `.mirror-clone-role` at the repository root, with default `production`. Builder Mode refuses to start in `production` clones unless explicitly overridden with `--ignore-production-role`. Production clones are updated through controlled paths (`git pull` today, `runtime update` later), not through direct edits.
+
 ## Drift Classes
 
 ### Generated Pi HTML exports

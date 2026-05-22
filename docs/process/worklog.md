@@ -9,6 +9,24 @@ Update when a meaningful milestone is reached.
 
 ## Done
 
+### 2026-05-22 — Clone role guard added
+
+Introduced an explicit clone role marker (`.mirror-clone-role`) at the repository root, with values `production` and `dev`. Default is `production` when the file is missing, unreadable, or unknown. `runtime status` and `runtime version` now report the clone role on a dedicated line. `python -m memory build load <slug>` refuses to start Builder Mode in clones marked `production`, exiting with a clear message and an override hint. The override is `--ignore-production-role`, which proceeds with a visible warning to the user.
+
+This matters because development work had been landing in the production clone (`~/mirror`) by accident, with no signal to the user. The role marker, the runtime surfaces, and the Builder Mode guard turn the production/dev boundary into something the system enforces instead of something humans must remember.
+
+Verification:
+
+```bash
+PYTHONPATH=src uv run pytest tests/unit/memory/cli/test_runtime.py tests/unit/memory/cli/test_build.py
+uv run --extra dev ruff check src/ tests/
+uv run --extra dev ruff format --check src/ tests/
+uv run python -m memory runtime status
+uv run python -m memory build load mirror-mind
+```
+
+Result: targeted runtime and build tests pass. Manual smoke confirms the dev clone reports `Clone role: dev` and Builder Mode proceeds; flipping the marker to `production` and rerunning `build load` exits with the expected refusal; `--ignore-production-role` overrides with a visible warning.
+
 ### 2026-05-22 — Runtime version and update availability added
 
 Added `python -m memory runtime version` for offline local version visibility and `python -m memory runtime update --check` for explicit remote update discovery. The check uses the configured upstream branch and `git ls-remote`, so it may contact the network but does not fetch, pull, change refs, create backups, run migrations, or touch the database.

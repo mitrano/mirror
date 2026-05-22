@@ -11,6 +11,22 @@ resolved.
 
 ## Completed Decisions
 
+### Mirror Mind clones declare a role
+
+**Date:** 2026-05-22
+**Reference:** [CV9.E3.S6 Clone Role Guard](roadmap/cv9-mirror-1-0/cv9-e3-distribution-tooling/cv9-e3-s6-clone-role-guard/index.md)
+
+Mirror Mind code is run from at least two kinds of clones: a production clone used in daily work, and a dev clone used to build the framework. Without an explicit marker, these clones are indistinguishable, and development work can land in the production clone by accident.
+
+Each Mirror Mind clone now declares its role through `.mirror-clone-role` at the repository root. Valid values are `production` and `dev`. The file is local to each clone and ignored by git. When the file is missing, unreadable, or carries an unknown value, the role defaults to `production`.
+
+Consequences:
+
+- Production is the safe default. Dev is the explicit opt-in.
+- Builder Mode (`python -m memory build load <slug>`) refuses to start in `production` clones unless the user passes `--ignore-production-role`. The override exists for real-life exceptions and is logged in the command output, not hidden.
+- Runtime status and runtime version both report the current clone role, so the boundary is visible in every read-only inspection.
+- Production clones receive code through `git pull` today and through `runtime update` later. They are not edited directly.
+
 ### Mirror self-update begins with runtime status
 
 **Date:** 2026-05-22

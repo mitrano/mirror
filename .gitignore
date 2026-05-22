@@ -16,3 +16,4 @@ conversas/
 node_modules/
 
 pi_exports/
+.mirror-clone-role

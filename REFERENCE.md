@@ -45,7 +45,7 @@ To inspect the local runtime state before an operational update:
 uv run python -m memory runtime status
 ```
 
-The command reports version, repository, git state, mirror home, database, core migration health, installed extensions, extension health, Python version, and environment. It exits with attention needed when the current state is not safe enough for update planning, for example when the git tree is dirty, the mirror home is not configured, core migrations are missing or unknown, or installed extension migrations have pending, drifted, or unknown files.
+The command reports version, repository, git state, mirror home, database, core migration health, installed extensions, extension health, clone role, Python version, and environment. It exits with attention needed when the current state is not safe enough for update planning, for example when the git tree is dirty, the mirror home is not configured, core migrations are missing or unknown, or installed extension migrations have pending, drifted, or unknown files.
 
 To classify attention-needed drift into repair routes without mutating files or the database:
 
@@ -69,6 +69,8 @@ To inspect the installed runtime version without contacting the network:
 ```bash
 uv run python -m memory runtime version
 ```
+
+Mirror Mind clones declare a role through a `.mirror-clone-role` file at the repository root. Valid values are `production` and `dev`. The file is local to each clone and ignored by git. When the file is missing, unreadable, or contains an unknown value, the role defaults to `production`. Builder Mode (`python -m memory build load <slug>`) refuses to start in a clone marked `production` unless `--ignore-production-role` is passed. Runtime status and runtime version both report the current clone role.
 
 To explicitly check the configured upstream for an available update without fetching or changing local refs:
 

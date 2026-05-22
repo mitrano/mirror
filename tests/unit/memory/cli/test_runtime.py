@@ -6,6 +6,7 @@ from pathlib import Path
 
 from memory.cli.runtime import (
     BackupVerification,
+    CloneRole,
     CoreMigrationHealth,
     ExtensionHealth,
     GitStatus,
@@ -18,6 +19,7 @@ from memory.cli.runtime import (
     check_runtime_update_availability,
     cmd_runtime,
     diagnose_runtime,
+    inspect_clone_role,
     inspect_core_migrations,
     inspect_extension_health,
     inspect_git_update_plan,
@@ -49,6 +51,7 @@ def _report(**overrides) -> RuntimeStatusReport:
         "core_migrations": CoreMigrationHealth(True, len(MIGRATIONS), len(MIGRATIONS), ()),
         "extensions": ("maestro",),
         "extension_health": (ExtensionHealth("maestro", True),),
+        "clone_role": CloneRole("dev", Path("/repo/.mirror-clone-role")),
         "python_version": "3.12.0",
         "memory_env": "production",
     }
@@ -385,11 +388,71 @@ def test_cmd_runtime_status_returns_nonzero_when_attention_needed(monkeypatch, c
     assert "Status: attention needed" in out
 
 
+def test_inspect_clone_role_defaults_to_production_when_marker_missing(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("memory.cli.runtime._resolve_repo_root", lambda start: Path(tmp_path))
+
+    role = inspect_clone_role(Path(tmp_path))
+
+    assert role.value == "production"
+    assert role.source is None
+    assert role.note is None
+
+
+def test_inspect_clone_role_reads_dev_marker(tmp_path, monkeypatch):
+    (tmp_path / ".mirror-clone-role").write_text("dev\n", encoding="utf-8")
+    monkeypatch.setattr("memory.cli.runtime._resolve_repo_root", lambda start: Path(tmp_path))
+
+    role = inspect_clone_role(Path(tmp_path))
+
+    assert role.value == "dev"
+    assert role.source == tmp_path / ".mirror-clone-role"
+    assert role.note is None
+
+
+def test_inspect_clone_role_normalizes_whitespace_and_case(tmp_path, monkeypatch):
+    (tmp_path / ".mirror-clone-role").write_text("  Production  \n", encoding="utf-8")
+    monkeypatch.setattr("memory.cli.runtime._resolve_repo_root", lambda start: Path(tmp_path))
+
+    role = inspect_clone_role(Path(tmp_path))
+
+    assert role.value == "production"
+
+
+def test_inspect_clone_role_falls_back_to_production_for_unknown_value(tmp_path, monkeypatch):
+    (tmp_path / ".mirror-clone-role").write_text("staging\n", encoding="utf-8")
+    monkeypatch.setattr("memory.cli.runtime._resolve_repo_root", lambda start: Path(tmp_path))
+
+    role = inspect_clone_role(Path(tmp_path))
+
+    assert role.value == "production"
+    assert role.note is not None
+    assert "staging" in role.note
+
+
+def test_inspect_clone_role_returns_production_outside_git(tmp_path, monkeypatch):
+    monkeypatch.setattr("memory.cli.runtime._resolve_repo_root", lambda start: None)
+
+    role = inspect_clone_role(Path(tmp_path))
+
+    assert role.value == "production"
+    assert role.note == "no repository"
+
+
+def test_render_runtime_status_includes_clone_role():
+    rendered = render_runtime_status(
+        _report(clone_role=CloneRole("production", Path("/repo/.mirror-clone-role")))
+    )
+
+    assert "Clone role: production" in rendered
+
+
 def test_render_runtime_version():
     rendered = render_runtime_version(
         RuntimeVersionReport(
             "0.7.0",
             GitStatus(Path("/repo"), "main", "abc1234", False),
+            CloneRole("dev", Path("/repo/.mirror-clone-role")),
         )
     )
 
@@ -397,6 +460,7 @@ def test_render_runtime_version():
     assert "Version: 0.7.0" in rendered
     assert "Git branch: main" in rendered
     assert "Git commit: abc1234" in rendered
+    assert "Clone role: dev" in rendered
 
 
 def test_check_runtime_update_availability_reports_up_to_date(monkeypatch):
@@ -613,7 +677,9 @@ def test_cmd_runtime_version_dispatches(monkeypatch, capsys):
     monkeypatch.setattr(
         "memory.cli.runtime.build_runtime_version_report",
         lambda start=None: RuntimeVersionReport(
-            "0.7.0", GitStatus(Path("/repo"), "main", "abc1234", False)
+            "0.7.0",
+            GitStatus(Path("/repo"), "main", "abc1234", False),
+            CloneRole("dev", Path("/repo/.mirror-clone-role")),
         ),
     )
 

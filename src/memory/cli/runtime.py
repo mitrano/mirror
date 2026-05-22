@@ -22,6 +22,21 @@ from memory.config import (
 from memory.db.migrations import MIGRATIONS
 from memory.extensions.migrations import ExtensionMigrationError, inspect_migration_files
 
+_CLONE_ROLE_FILENAME = ".mirror-clone-role"
+_DEFAULT_CLONE_ROLE = "production"
+_KNOWN_CLONE_ROLES = frozenset({"production", "dev"})
+
+
+@dataclass(frozen=True)
+class CloneRole:
+    value: str
+    source: Path | None
+    note: str | None = None
+
+    @property
+    def is_production(self) -> bool:
+        return self.value == "production"
+
 
 @dataclass(frozen=True)
 class BackupVerification:
@@ -80,6 +95,7 @@ class DriftFinding:
 class RuntimeVersionReport:
     version: str
     git: GitStatus
+    clone_role: CloneRole
 
 
 @dataclass(frozen=True)
@@ -123,6 +139,7 @@ class RuntimeStatusReport:
     core_migrations: CoreMigrationHealth
     extensions: tuple[str, ...]
     extension_health: tuple[ExtensionHealth, ...]
+    clone_role: CloneRole
     python_version: str
     memory_env: str
 
@@ -141,6 +158,35 @@ class RuntimeStatusReport:
         if any(not health.ready for health in self.extension_health):
             return "attention needed"
         return "ready"
+
+
+def _resolve_repo_root(start: Path) -> Path | None:
+    code, stdout, _stderr = _run_git(["rev-parse", "--show-toplevel"], cwd=start)
+    if code != 0 or not stdout:
+        return None
+    return Path(stdout).resolve()
+
+
+def inspect_clone_role(start: Path | None = None) -> CloneRole:
+    start_path = (start or Path.cwd()).expanduser().resolve()
+    repo_root = _resolve_repo_root(start_path)
+    if repo_root is None:
+        return CloneRole(_DEFAULT_CLONE_ROLE, None, note="no repository")
+    marker = repo_root / _CLONE_ROLE_FILENAME
+    if not marker.exists():
+        return CloneRole(_DEFAULT_CLONE_ROLE, None)
+    try:
+        raw = marker.read_text(encoding="utf-8")
+    except OSError as exc:
+        return CloneRole(_DEFAULT_CLONE_ROLE, marker, note=f"unreadable: {exc}")
+    value = raw.strip().lower()
+    if value in _KNOWN_CLONE_ROLES:
+        return CloneRole(value, marker)
+    return CloneRole(
+        _DEFAULT_CLONE_ROLE,
+        marker,
+        note=f"unknown role '{value}', defaulting to production",
+    )
 
 
 def package_version() -> str:
@@ -405,6 +451,7 @@ def build_runtime_status(
         core_migrations=inspect_core_migrations(db_path, db_exists),
         extensions=list_installed_extensions(mirror_home),
         extension_health=inspect_extension_health(mirror_home, db_path, db_exists),
+        clone_role=inspect_clone_role(start_path),
         python_version=sys.version.split()[0],
         memory_env=MEMORY_ENV,
     )
@@ -473,7 +520,12 @@ def render_runtime_backup_created(
 
 
 def build_runtime_version_report(start: Path | None = None) -> RuntimeVersionReport:
-    return RuntimeVersionReport(package_version(), inspect_git((start or Path.cwd()).resolve()))
+    start_path = (start or Path.cwd()).resolve()
+    return RuntimeVersionReport(
+        version=package_version(),
+        git=inspect_git(start_path),
+        clone_role=inspect_clone_role(start_path),
+    )
 
 
 def render_runtime_version(report: RuntimeVersionReport) -> str:
@@ -484,6 +536,9 @@ def render_runtime_version(report: RuntimeVersionReport) -> str:
     lines.append(f"Git commit: {report.git.commit or 'unknown'}")
     if report.git.error:
         lines.append(f"Git status note: {report.git.error}")
+    lines.append(f"Clone role: {report.clone_role.value}")
+    if report.clone_role.note:
+        lines.append(f"Clone role note: {report.clone_role.note}")
     return "\n".join(lines) + "\n"
 
 
@@ -929,6 +984,9 @@ def render_runtime_status(report: RuntimeStatusReport) -> str:
     else:
         lines.append("Installed extensions: 0")
     lines.extend(_render_extension_health(report.extension_health))
+    lines.append(f"Clone role: {report.clone_role.value}")
+    if report.clone_role.note:
+        lines.append(f"Clone role note: {report.clone_role.note}")
     lines.append(f"Python: {report.python_version}")
     lines.append(f"MEMORY_ENV: {report.memory_env}")
     lines.append("")

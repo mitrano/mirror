@@ -6,6 +6,7 @@ import argparse
 import sys
 
 from memory.cli.conversation_logger import switch_conversation
+from memory.cli.runtime import inspect_clone_role
 from memory.client import MemoryClient
 from memory.skills.mirror import _persist_global_sticky_defaults
 
@@ -34,7 +35,29 @@ def _extract_query(journey_content: str, slug: str) -> str:
     return text[:500] if text else slug
 
 
-def cmd_load(slug: str) -> None:
+def _check_clone_role_guard(*, ignore_production_role: bool) -> None:
+    role = inspect_clone_role()
+    if not role.is_production:
+        return
+    if ignore_production_role:
+        print(
+            "\033[38;5;208m⚠️  Production clone override: --ignore-production-role passed.\033[0m",
+            file=sys.stderr,
+        )
+        return
+    source = role.source if role.source is not None else "<default: missing marker>"
+    print(
+        "Builder Mode refused: this clone is marked 'production'.\n"
+        f"  Clone role source: {source}\n"
+        "  Development should happen in a clone marked 'dev'.\n"
+        "  To proceed here anyway, pass --ignore-production-role.",
+        file=sys.stderr,
+    )
+    sys.exit(2)
+
+
+def cmd_load(slug: str, *, ignore_production_role: bool = False) -> None:
+    _check_clone_role_guard(ignore_production_role=ignore_production_role)
     mem = MemoryClient()
 
     journey_content = mem.get_identity("journey", slug)
@@ -84,8 +107,14 @@ def main(argv: list[str] | None = None) -> None:
 
     p_load = sub.add_parser("load", help="Load journey context from DB (emits project_path)")
     p_load.add_argument("slug", help="Journey ID")
+    p_load.add_argument(
+        "--ignore-production-role",
+        action="store_true",
+        dest="ignore_production_role",
+        help="Override the production clone role guard for this invocation",
+    )
 
     args = parser.parse_args(argv)
 
     if args.command == "load":
-        cmd_load(args.slug)
+        cmd_load(args.slug, ignore_production_role=args.ignore_production_role)
