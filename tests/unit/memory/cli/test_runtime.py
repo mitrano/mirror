@@ -25,8 +25,8 @@ from memory.cli.runtime import (
     render_runtime_diagnosis,
     render_runtime_status,
     render_runtime_update_availability,
-    render_runtime_version,
     render_runtime_update_dry_run,
+    render_runtime_version,
     verify_backup_archive,
 )
 from memory.db.migrations import MIGRATIONS
