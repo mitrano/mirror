@@ -3,7 +3,7 @@
 # CV9.E5.S2 — Documentation Information Architecture
 
 **Epic:** CV9.E5 Process & Versioning Alignment  
-**Status:** 🟡 Planned  
+**Status:** 🟢 In Progress
 **User-visible outcome:** The Web Console documentation tree has a clear home, section landing pages, and a structure aligned with process, project, and product.
 
 ---
@@ -22,15 +22,22 @@ Reading the docs through the Mirror Web Console exposed information architecture
 
 ---
 
-## Scope Candidate
+## Scope
 
-This story is planned but not designed yet. Candidate work:
+This story designs and applies a documentation information architecture suitable
+for the 1.0 public surface. It should clarify what each top-level section is for,
+make operational references discoverable, and avoid large moves unless they
+improve navigation without breaking known links.
+
+Candidate work:
 
 - Redesign `docs/index.md` as a real documentation home.
 - Add or refine folder cover pages for Process, Project, Product, and major subareas.
-- Move release notes under the Project dimension.
+- Move release notes under the Project dimension, or explicitly decide to keep
+  them as a top-level reference area.
 - Decide where Architecture and Python API should live.
-- Reclassify Troubleshooting.
+- Reclassify Troubleshooting and runtime repair docs if Process is not the right
+  long-term home.
 - Design a scalable worklog structure.
 - Separate Envisioning landing-page content from historical synthesis content.
 

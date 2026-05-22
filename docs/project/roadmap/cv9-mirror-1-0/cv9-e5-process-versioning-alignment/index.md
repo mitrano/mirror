@@ -40,7 +40,7 @@ This epic creates the process foundation needed before Mirror Mind 1.0:
 | Code | Story | Status |
 |------|-------|--------|
 | [CV9.E5.S1](cv9-e5-s1-adopt-development-process/index.md) | Adopt development process and prospective versioning | ✅ Done |
-| [CV9.E5.S2](cv9-e5-s2-documentation-information-architecture/index.md) | Documentation Information Architecture | 🟡 Planned |
+| [CV9.E5.S2](cv9-e5-s2-documentation-information-architecture/index.md) | Documentation Information Architecture | 🟢 In Progress |
 
 ---
 

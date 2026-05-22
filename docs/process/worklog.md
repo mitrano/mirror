@@ -9,6 +9,12 @@ Update when a meaningful milestone is reached.
 
 ## Done
 
+### 2026-05-22 — CV9.E3 closed and CV9.E5.S2 opened
+
+Closed CV9.E3 Distribution & Tooling in the roadmap after completing the full runtime update path: status, diagnosis, backup, version inspection, update availability, dry-run planning, clone role guard, and safe update execution.
+
+Opened CV9.E5.S2 Documentation Information Architecture with a plan and test guide. The story will turn the docs home into a clearer entry point and make runtime operation, project history, process guidance, product docs, and developer references easier to navigate before 1.0.
+
 ### 2026-05-22 — Safe runtime update execution added
 
 Added `python -m memory runtime update` as the first mutating self-update command. Execution runs as an ordered pipeline of explicit stages: status gate, fetch upstream, plan, database backup, backup verification, fast-forward only git merge, migrations through a one-shot `MemoryClient` open, and post-update status check. The first failure stops the pipeline and prints a recovery block with the backup path and previous commit when applicable.

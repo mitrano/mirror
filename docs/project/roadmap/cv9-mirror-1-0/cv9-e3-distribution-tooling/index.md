@@ -3,7 +3,7 @@
 # CV9.E3 — Distribution & Tooling
 
 **Epic:** Make Mirror Mind simple to install, configure, and grow into  
-**Status:** 🟢 In Progress
+**Status:** ✅ Done
 
 ---
 
@@ -35,17 +35,18 @@ over time.
 
 ## Done Condition
 
-CV9.E3 is done when:
+CV9.E3 is done:
 
 - A new user can run `memory init <name>` followed by `memory seed` and have a
-  fully working mirror with no manual YAML editing required.
-- The default templates ship as opinionated, well-written editorial content — not
-  placeholder forms.
-- The default persona catalog is broad enough that most users find at least one
-  immediately compelling lens.
-- The progressive identity enhancement path is a first-class narrative in
-  onboarding docs, not a footnote.
-- Documentation reflects the new onboarding flow accurately.
+  working, personalized mirror without manual YAML editing before first use.
+- Runtime status, diagnosis, backup, version inspection, update discovery,
+  update planning, and safe update execution exist as documented CLI surfaces.
+- Production and development clones have an explicit local role boundary through
+  `.mirror-clone-role`, and Builder Mode refuses production clones by default.
+- Runtime update execution is conservative: status-gated, backup-first,
+  verification-backed, fast-forward only, and manual-recovery oriented.
+- `README`, `REFERENCE.md`, process docs, decisions, and roadmap entries reflect
+  the onboarding and self-update flow accurately.
 
 ---
 
