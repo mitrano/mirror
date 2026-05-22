@@ -84,7 +84,7 @@ def test_welcome_has_version_stats_and_blank_before_invitation(monkeypatch, tmp_
     out = capsys.readouterr().out
     lines = out.splitlines()
     assert lines[0] == "◇ Mirror · alisson-vale"
-    assert lines[1] == "Version 0.7.0"
+    assert lines[1] == "Version 0.7.0 · channel stable"
     # Stats line is always present, even for an empty database.
     assert "journeys" in lines[2]
     assert lines[3] == ""
@@ -298,8 +298,9 @@ def test_welcome_renders_update_available_from_local_refs(monkeypatch, tmp_path,
     main(["--mirror-home", str(tmp_path / ".mirror" / "alisson-vale")])
 
     out = capsys.readouterr().out
-    assert "Version 0.7.0" in out
+    assert "Version 0.7.0 · channel stable" in out
     assert "Update available: 2 commits behind origin/main · run runtime update" in out
+    assert 'Ask Mirror: "What\'s new in the latest Mirror Mind release?"' in out
 
 
 def test_welcome_does_not_render_update_line_when_refs_are_current(monkeypatch, tmp_path, capsys):
@@ -319,5 +320,5 @@ def test_welcome_does_not_render_update_line_when_refs_are_current(monkeypatch, 
     main(["--mirror-home", str(tmp_path / ".mirror" / "alisson-vale")])
 
     out = capsys.readouterr().out
-    assert "Version 0.7.0" in out
+    assert "Version 0.7.0 · channel stable" in out
     assert "Update available" not in out

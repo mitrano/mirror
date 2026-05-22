@@ -17,3 +17,4 @@ node_modules/
 
 pi_exports/
 .mirror-clone-role
+.mirror-update-channel

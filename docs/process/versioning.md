@@ -74,6 +74,15 @@ Maintenance should not be inflated into a CV, epic, or story just to fit the roa
 
 ---
 
+## Release Channels
+
+Mirror Mind separates integration from published releases:
+
+- `main` is the integration and dogfooding channel.
+- `stable` is the user-facing release channel.
+
+A push to `main` is not a release. `stable` advances only through release promotion after the release arc is closed, validated, versioned, documented, and tagged. Local clones choose the channel through `.mirror-update-channel`; missing or invalid values default to `stable`.
+
 ## Release Notes Are Required for Future Releases
 
 Every future version after this adoption point should have a narrative release note under `docs/releases/vMAJOR.MINOR.PATCH.md`.

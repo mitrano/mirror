@@ -11,6 +11,23 @@ resolved.
 
 ## Completed Decisions
 
+### Release updates use stable/main channels
+
+**Date:** 2026-05-22
+**Reference:** [CV9.E3.S10 Stable Release Channel Management](roadmap/cv9-mirror-1-0/cv9-e3-distribution-tooling/cv9-e3-s10-stable-release-channel-management/index.md), [Versioning](../process/versioning.md), [Release Notes](../process/release-notes.md)
+
+Mirror Mind separates integration from published releases. `main` is the integration and dogfooding channel. `stable` is the user-facing release channel. A push to `main` is not a release.
+
+Each clone chooses its update channel through `.mirror-update-channel`, a local gitignored file with valid values `stable` and `main`. Missing, unreadable, or unknown values default to `stable`, because user-facing clones should follow published releases by default.
+
+Consequences:
+
+- `runtime update` uses the configured channel rather than assuming every `main` commit is user-facing.
+- `runtime status`, `runtime version`, and `welcome` surface the channel so the user can see whether they are on stable or dogfooding main.
+- `stable` should advance only through release promotion: version bump, release note, CI, smoke validation, tag, and fast-forward of the stable branch.
+- Release notes are exposed through `runtime release-notes` and the `mm-release-notes` skill, but the user-facing prompt is natural language: "What's new in the latest Mirror Mind release?"
+- A future Maestro release doctor can automate promotion checks.
+
 ### Documentation IA stays conservative before 1.0
 
 **Date:** 2026-05-22

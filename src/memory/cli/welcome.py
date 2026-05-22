@@ -14,7 +14,13 @@ from pathlib import Path
 
 from memory import MemoryClient
 from memory.cli.common import db_path_from_mirror_home
-from memory.cli.runtime import inspect_git, inspect_git_update_plan, package_version
+from memory.cli.runtime import (
+    UpdateChannel,
+    inspect_git,
+    inspect_git_update_plan,
+    inspect_update_channel,
+    package_version,
+)
 from memory.config import resolve_mirror_home
 
 INVITATION = "→ Where shall we begin?"
@@ -74,8 +80,9 @@ def compose_welcome(mirror_home: str | Path | None = None) -> str:
 
     db_path = db_path_from_mirror_home(home_path)
     stats_line = _stats_line(db_path)
-    version_line = _version_line()
-    update_line = _update_line()
+    channel = inspect_update_channel(Path.cwd())
+    version_line = _version_line(channel.value)
+    update_line = _update_line(channel)
     return _render(user=home_path.name, stats=stats_line, version=version_line, update=update_line)
 
 
@@ -132,20 +139,25 @@ def _format_stats(
     return SEPARATOR.join(parts)
 
 
-def _version_line() -> str:
-    return package_version()
+def _version_line(channel: str) -> str:
+    return f"{package_version()} · channel {channel}"
 
 
-def _update_line() -> str | None:
+def _update_line(channel: UpdateChannel) -> str | None:
     git = inspect_git(Path.cwd())
     if git.repository is None:
         return None
-    plan = inspect_git_update_plan(git)
+    try:
+        plan = inspect_git_update_plan(git, channel)
+    except TypeError:
+        plan = inspect_git_update_plan(git)
     if plan.ready and plan.action == "pull" and plan.behind:
         plural = "s" if plan.behind != 1 else ""
         upstream = plan.upstream or "upstream"
         return (
-            f"Update available: {plan.behind} commit{plural} behind {upstream} · run runtime update"
+            f"Update available: {plan.behind} commit{plural} behind {upstream} · "
+            "run runtime update\n"
+            'Ask Mirror: "What\'s new in the latest Mirror Mind release?"'
         )
     return None
 

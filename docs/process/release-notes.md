@@ -8,6 +8,23 @@ The version says which level of work collapsed into a release. The release note 
 
 ---
 
+## Runtime Access
+
+Users should not need to run a command to read release notes. Runtime skills can answer natural-language requests such as:
+
+```text
+What's new in the latest Mirror Mind release?
+What's new in Mirror Mind v0.8.0?
+O que mudou na versão mais recente do Mirror Mind?
+```
+
+Under the hood, the runtime reads release notes with:
+
+```bash
+python -m memory runtime release-notes latest
+python -m memory runtime release-notes vX.Y.Z
+```
+
 ## Location
 
 Future release notes live in:

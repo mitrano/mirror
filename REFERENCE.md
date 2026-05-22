@@ -36,7 +36,7 @@ Codex uses the `$mm-` prefix. All runtimes call the same Python core.
 | `/mm-shadow` | `$mm-shadow` | `/mm:shadow` | Surface and promote shadow-layer observations | `scan`, `apply`, `reject`, `list`, `show` |
 | `/mm-welcome` | `$mm-welcome` | `/mm:welcome` | Renders the state-aware welcome card on demand | no arguments |
 | `/mm-help` | `$mm-help` | `/mm:help` | Lists available commands | no arguments |
-| `python -m memory runtime` | — | — | Inspects Mirror runtime status, version, drift, backups, plans updates, and executes safe updates | `status [--mirror-home PATH]`, `version`, `diagnose [--mirror-home PATH]`, `backup [--mirror-home PATH]`, `backup --verify PATH`, `update --dry-run [--mirror-home PATH]`, `update --check`, `update [--no-fetch] [--skip-migrations] [--mirror-home PATH]`, `update --repair-updater [--no-fetch] [--mirror-home PATH]` |
+| `python -m memory runtime` | — | — | Inspects Mirror runtime status, version, drift, backups, release notes, plans updates, and executes safe updates | `status [--mirror-home PATH] [--channel stable|main]`, `version [--channel stable|main]`, `diagnose [--mirror-home PATH]`, `backup [--mirror-home PATH]`, `backup --verify PATH`, `release-notes [latest|vX.Y.Z]`, `update --dry-run [--mirror-home PATH] [--channel stable|main]`, `update --check [--channel stable|main]`, `update [--no-fetch] [--skip-migrations] [--mirror-home PATH] [--channel stable|main]`, `update --repair-updater [--no-fetch] [--mirror-home PATH] [--channel stable|main]` |
 | `ext-review-copy` | — | `ext:review-copy` | External multi-LLM copy review skill; install and expose it before use | skill-driven workflow |
 
 ## Runtime Self-Update
@@ -104,7 +104,7 @@ Runtime backup archives contain `memory.db` and SQLite sidecars (`memory.db-wal`
 #### `runtime update --check`
 
 ```bash
-uv run python -m memory runtime update --check
+uv run python -m memory runtime update --check [--channel stable|main]
 ```
 
 Queries the configured upstream branch through `git ls-remote`. May contact the network, but does not fetch, pull, change refs, back up, migrate, or modify files. Reports `up_to_date`, `update_available`, `local_ahead`, `diverged`, `no_upstream`, or `unknown`.
@@ -112,16 +112,24 @@ Queries the configured upstream branch through `git ls-remote`. May contact the 
 #### `runtime update --dry-run`
 
 ```bash
-uv run python -m memory runtime update --dry-run
+uv run python -m memory runtime update --dry-run [--channel stable|main]
 ```
 
 Plans an update from local refs only. Reuses `runtime status` as the safety gate. Reports whether a real update would be a no-op, pull known remote commits, or require manual reconciliation because the branch is ahead, diverged, dirty, or missing an upstream. Does not contact the network.
 
+### Release notes
+
+```bash
+uv run python -m memory runtime release-notes [latest|vX.Y.Z]
+```
+
+Reads narrative release notes from `docs/releases/`. This command exists so runtime skills can answer natural-language requests such as "What's new in the latest Mirror Mind release?" Users do not need to run it directly.
+
 ### Update execution
 
 ```bash
-uv run python -m memory runtime update [--no-fetch] [--skip-migrations] [--mirror-home PATH]
-uv run python -m memory runtime update --repair-updater [--no-fetch] [--mirror-home PATH]
+uv run python -m memory runtime update [--no-fetch] [--skip-migrations] [--mirror-home PATH] [--channel stable|main]
+uv run python -m memory runtime update --repair-updater [--no-fetch] [--mirror-home PATH] [--channel stable|main]
 ```
 
 Executes the safe update pipeline. Stages run in order and the first failure stops execution:
@@ -142,6 +150,8 @@ If the full status gate crashes before update planning, `runtime update` automat
 ### Clone role
 
 Each Mirror Mind clone declares its role through a `.mirror-clone-role` file at the repository root. Valid values are `production` and `dev`. The file is local to each clone and ignored by git. When the file is missing, unreadable, or contains an unknown value, the role defaults to `production`.
+
+Each clone also declares its update channel through `.mirror-update-channel`. Valid values are `stable` and `main`; missing, unreadable, or unknown values default to `stable`. `main` is the integration/dogfooding channel. `stable` is the user-facing release channel and should advance only through release promotion.
 
 - `runtime status` and `runtime version` report the current clone role.
 - `python -m memory build load <slug>` refuses to start Builder Mode in a clone marked `production` unless `--ignore-production-role` is passed.

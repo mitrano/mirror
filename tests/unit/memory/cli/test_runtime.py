@@ -498,6 +498,8 @@ def test_check_runtime_update_availability_reports_up_to_date(monkeypatch):
             return 0, "", ""
         if args[:2] == ["rev-parse", "--abbrev-ref"]:
             return 0, "origin/main", ""
+        if args == ["rev-parse", "--verify", "origin/main"]:
+            return 0, "origin/main", ""
         if args[:2] == ["rev-list", "--left-right"]:
             return 0, "0 0", ""
         if args[:3] == ["config", "--get", "remote.origin.url"]:
@@ -511,7 +513,7 @@ def test_check_runtime_update_availability_reports_up_to_date(monkeypatch):
     monkeypatch.setattr("memory.cli.runtime._run_git", fake_run_git)
     monkeypatch.setattr("memory.cli.runtime.package_version", lambda: "0.7.0")
 
-    report = check_runtime_update_availability(Path("/repo"))
+    report = check_runtime_update_availability(Path("/repo"), channel="main")
 
     assert report.status == "up_to_date"
     assert report.remote_commit == "abcdef1234567890"
@@ -529,6 +531,8 @@ def test_check_runtime_update_availability_reports_update_available(monkeypatch)
             return 0, "", ""
         if args[:2] == ["rev-parse", "--abbrev-ref"]:
             return 0, "origin/main", ""
+        if args == ["rev-parse", "--verify", "origin/main"]:
+            return 0, "origin/main", ""
         if args[:2] == ["rev-list", "--left-right"]:
             return 0, "0 1", ""
         if args[:3] == ["config", "--get", "remote.origin.url"]:
@@ -542,7 +546,7 @@ def test_check_runtime_update_availability_reports_update_available(monkeypatch)
     monkeypatch.setattr("memory.cli.runtime._run_git", fake_run_git)
     monkeypatch.setattr("memory.cli.runtime.package_version", lambda: "0.7.0")
 
-    report = check_runtime_update_availability(Path("/repo"))
+    report = check_runtime_update_availability(Path("/repo"), channel="main")
 
     assert report.status == "update_available"
     assert report.upstream == "origin/main"
@@ -1330,3 +1334,153 @@ def test_cmd_runtime_update_repair_updater_invokes_repair(monkeypatch, capsys):
     assert rc == 0
     assert captured == {"fetch": False, "mirror_home_arg": "/tmp/m"}
     assert "Update result: success" in capsys.readouterr().out
+
+
+# CV9.E3.S10 — Release Channel Update Management
+
+
+def test_inspect_update_channel_defaults_to_stable_outside_repo(monkeypatch, tmp_path):
+    monkeypatch.setattr("memory.cli.runtime._resolve_repo_root", lambda start: None)
+
+    from memory.cli.runtime import inspect_update_channel
+
+    channel = inspect_update_channel(tmp_path)
+
+    assert channel.value == "stable"
+    assert channel.note == "no repository"
+
+
+def test_inspect_update_channel_reads_local_marker(monkeypatch, tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / ".mirror-update-channel").write_text("main\n", encoding="utf-8")
+    monkeypatch.setattr("memory.cli.runtime._resolve_repo_root", lambda start: repo)
+
+    from memory.cli.runtime import inspect_update_channel
+
+    channel = inspect_update_channel(repo)
+
+    assert channel.value == "main"
+    assert channel.source == repo / ".mirror-update-channel"
+
+
+def test_inspect_update_channel_invalid_defaults_to_stable(monkeypatch, tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    marker = repo / ".mirror-update-channel"
+    marker.write_text("nightly\n", encoding="utf-8")
+    monkeypatch.setattr("memory.cli.runtime._resolve_repo_root", lambda start: repo)
+
+    from memory.cli.runtime import inspect_update_channel
+
+    channel = inspect_update_channel(repo)
+
+    assert channel.value == "stable"
+    assert channel.source == marker
+    assert "unknown channel" in (channel.note or "")
+
+
+def test_inspect_git_update_plan_uses_update_channel(monkeypatch, tmp_path):
+    calls: list[list[str]] = []
+
+    def fake_run_git(args, *, cwd):
+        calls.append(args)
+        if args == ["rev-parse", "--verify", "origin/stable"]:
+            return 0, "origin/stable", ""
+        if args == ["rev-list", "--left-right", "--count", "HEAD...origin/stable"]:
+            return 0, "0 2", ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr("memory.cli.runtime._run_git", fake_run_git)
+
+    from memory.cli.runtime import UpdateChannel
+
+    plan = inspect_git_update_plan(
+        GitStatus(tmp_path, "main", "abc1234", False), UpdateChannel("stable", None)
+    )
+
+    assert plan.upstream == "origin/stable"
+    assert plan.behind == 2
+    assert plan.action == "pull"
+    assert ["rev-parse", "--verify", "origin/stable"] in calls
+
+
+def test_render_runtime_version_includes_update_channel():
+    from memory.cli.runtime import UpdateChannel
+
+    rendered = render_runtime_version(
+        RuntimeVersionReport(
+            "0.7.0",
+            GitStatus(Path("/repo"), "main", "abc1234", False),
+            CloneRole("production", None),
+            UpdateChannel("stable", None),
+        )
+    )
+
+    assert "Update channel: stable" in rendered
+
+
+def test_render_runtime_status_includes_update_channel():
+    from memory.cli.runtime import UpdateChannel
+
+    rendered = render_runtime_status(_report(update_channel=UpdateChannel("main", None)))
+
+    assert "Update channel: main" in rendered
+
+
+def test_runtime_release_notes_latest_reads_digest_and_highlights(tmp_path, monkeypatch):
+    repo = tmp_path / "repo"
+    notes = repo / "docs" / "releases"
+    notes.mkdir(parents=True)
+    (notes / "v0.8.0.md").write_text(
+        """---
+digest: >
+  Release summary line one.
+  Release summary line two.
+---
+
+# v0.8.0 — Runtime Update Awareness
+
+## Highlights
+
+- Welcome shows the installed version.
+- Stable channel support.
+
+## What Changed
+
+Details.
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("memory.cli.runtime._resolve_repo_root", lambda start: repo)
+
+    from memory.cli.runtime import read_release_note, render_release_note
+
+    note = read_release_note("latest", start=repo)
+    assert note is not None
+    assert note.version == "v0.8.0"
+    assert note.title == "Runtime Update Awareness"
+    assert note.digest == "Release summary line one. Release summary line two."
+    assert note.highlights == (
+        "Welcome shows the installed version.",
+        "Stable channel support.",
+    )
+
+    rendered = render_release_note(note)
+    assert "Release: v0.8.0 — Runtime Update Awareness" in rendered
+    assert "Release summary line one. Release summary line two." in rendered
+    assert "- Stable channel support." in rendered
+
+
+def test_cmd_runtime_release_notes_dispatches(monkeypatch, tmp_path, capsys):
+    from memory.cli.runtime import RuntimeReleaseNote
+
+    monkeypatch.setattr(
+        "memory.cli.runtime.read_release_note",
+        lambda version: RuntimeReleaseNote("v0.8.0", "Runtime Update Awareness", tmp_path / "n.md"),
+    )
+
+    rc = cmd_runtime(["release-notes", "latest"])
+
+    assert rc == 0
+    assert "Release: v0.8.0 — Runtime Update Awareness" in capsys.readouterr().out

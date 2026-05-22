@@ -71,9 +71,10 @@ Commands:
                               python -m memory runtime backup [--mirror-home PATH]
                               python -m memory runtime backup --verify PATH
                               python -m memory runtime update --dry-run [--mirror-home PATH]
-                              python -m memory runtime update --check
-                              python -m memory runtime update [--no-fetch] [--skip-migrations] [--mirror-home PATH]
-                              python -m memory runtime update --repair-updater [--no-fetch] [--mirror-home PATH]
+                              python -m memory runtime update --check [--channel stable|main]
+                              python -m memory runtime update [--no-fetch] [--skip-migrations] [--mirror-home PATH] [--channel stable|main]
+                              python -m memory runtime update --repair-updater [--no-fetch] [--mirror-home PATH] [--channel stable|main]
+                              python -m memory runtime release-notes [latest|vX.Y.Z]
   welcome              Render the state-aware welcome card for the current Mirror home
                        Usage: python -m memory welcome [--mirror-home PATH]
 """

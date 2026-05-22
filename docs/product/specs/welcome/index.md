@@ -38,9 +38,10 @@ closing invitation:
 
 ```
 ◇ Mirror · <user>
-Version <version>
+Version <version> · channel <stable|main>
 <N> journeys · <N> personas · <N> memories · <N> conversations · since <Month YYYY>
 [Update available: <N> commits behind <upstream> · run runtime update]
+[Ask Mirror: "What's new in the latest Mirror Mind release?"]
 
 → Where shall we begin?
 ```
@@ -48,7 +49,7 @@ Version <version>
 | Line | When it appears | Source |
 |------|-----------------|--------|
 | Header (`◇ Mirror · <user>`) | Always, if a Mirror home is resolvable | `resolve_mirror_home().name` |
-| Version (`Version <version>`) | Always, when header renders | installed package / `pyproject.toml` fallback |
+| Version (`Version <version> · channel <channel>`) | Always, when header renders | installed package / `pyproject.toml` fallback plus local update channel |
 | Stats | Always, when header renders | counts from the database |
 | Update notice | Only when local git refs show the checkout is behind upstream | local `git rev-list`, no network |
 | Invitation (`→ Where shall we begin?`) | Always, when header renders | constant |
@@ -59,14 +60,14 @@ still shows the welcome, even when every counter is zero.
 
 ### Version and update notice
 
-The welcome shows the installed Mirror Mind version so the user can immediately
-see which runtime they are using.
+The welcome shows the installed Mirror Mind version and update channel so the user can immediately see which runtime they are using and whether it follows the stable release channel or the main dogfooding channel.
 
 The update notice is deliberately local. It does **not** call `git ls-remote`,
 fetch, or contact the network during startup. It appears only when the local
-branch is already known to be behind its configured upstream, usually because a
-previous `runtime update --check`, `runtime update`, or manual fetch refreshed
-refs. Fresh remote discovery remains the job of:
+branch is already known to be behind the configured update channel, usually
+because a previous `runtime update --check`, `runtime update`, or manual fetch
+refreshed refs. When an update is visible, the welcome invites the user to ask
+Mirror in natural language: `What's new in the latest Mirror Mind release?` Fresh remote discovery remains the job of:
 
 ```bash
 uv run python -m memory runtime update --check

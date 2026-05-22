@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import re
 import sqlite3
 import subprocess
 import sys
 import zipfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from importlib import metadata
 from pathlib import Path
 
@@ -25,6 +26,9 @@ from memory.extensions.migrations import ExtensionMigrationError, inspect_migrat
 _CLONE_ROLE_FILENAME = ".mirror-clone-role"
 _DEFAULT_CLONE_ROLE = "production"
 _KNOWN_CLONE_ROLES = frozenset({"production", "dev"})
+_UPDATE_CHANNEL_FILENAME = ".mirror-update-channel"
+_DEFAULT_UPDATE_CHANNEL = "stable"
+_KNOWN_UPDATE_CHANNELS = frozenset({"stable", "main"})
 
 
 @dataclass(frozen=True)
@@ -36,6 +40,17 @@ class CloneRole:
     @property
     def is_production(self) -> bool:
         return self.value == "production"
+
+
+@dataclass(frozen=True)
+class UpdateChannel:
+    value: str
+    source: Path | None
+    note: str | None = None
+
+    @property
+    def upstream(self) -> str:
+        return f"origin/{self.value}"
 
 
 @dataclass(frozen=True)
@@ -96,6 +111,9 @@ class RuntimeVersionReport:
     version: str
     git: GitStatus
     clone_role: CloneRole
+    update_channel: UpdateChannel = field(
+        default_factory=lambda: UpdateChannel(_DEFAULT_UPDATE_CHANNEL, None)
+    )
 
 
 @dataclass(frozen=True)
@@ -106,6 +124,9 @@ class RuntimeUpdateAvailability:
     remote_commit: str | None
     status: str
     note: str | None = None
+    update_channel: UpdateChannel = field(
+        default_factory=lambda: UpdateChannel(_DEFAULT_UPDATE_CHANNEL, None)
+    )
 
 
 @dataclass(frozen=True)
@@ -116,6 +137,15 @@ class GitUpdatePlan:
     ready: bool
     action: str
     note: str | None = None
+
+
+@dataclass(frozen=True)
+class RuntimeReleaseNote:
+    version: str
+    title: str
+    path: Path
+    digest: str | None = None
+    highlights: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -161,6 +191,9 @@ class RuntimeStatusReport:
     clone_role: CloneRole
     python_version: str
     memory_env: str
+    update_channel: UpdateChannel = field(
+        default_factory=lambda: UpdateChannel(_DEFAULT_UPDATE_CHANNEL, None)
+    )
 
     @property
     def status(self) -> str:
@@ -208,11 +241,138 @@ def inspect_clone_role(start: Path | None = None) -> CloneRole:
     )
 
 
+def inspect_update_channel(start: Path | None = None, override: str | None = None) -> UpdateChannel:
+    if override:
+        value = override.strip().lower()
+        if value in _KNOWN_UPDATE_CHANNELS:
+            return UpdateChannel(value, None, note="command override")
+        return UpdateChannel(
+            _DEFAULT_UPDATE_CHANNEL,
+            None,
+            note=f"unknown channel '{value}', defaulting to stable",
+        )
+
+    start_path = (start or Path.cwd()).expanduser().resolve()
+    repo_root = _resolve_repo_root(start_path)
+    if repo_root is None:
+        return UpdateChannel(_DEFAULT_UPDATE_CHANNEL, None, note="no repository")
+    marker = repo_root / _UPDATE_CHANNEL_FILENAME
+    if not marker.exists():
+        return UpdateChannel(_DEFAULT_UPDATE_CHANNEL, None)
+    try:
+        raw = marker.read_text(encoding="utf-8")
+    except OSError as exc:
+        return UpdateChannel(_DEFAULT_UPDATE_CHANNEL, marker, note=f"unreadable: {exc}")
+    value = raw.strip().lower()
+    if value in _KNOWN_UPDATE_CHANNELS:
+        return UpdateChannel(value, marker)
+    return UpdateChannel(
+        _DEFAULT_UPDATE_CHANNEL,
+        marker,
+        note=f"unknown channel '{value}', defaulting to stable",
+    )
+
+
 def package_version() -> str:
     try:
         return metadata.version("mirror")
     except metadata.PackageNotFoundError:
         return _version_from_pyproject(Path.cwd()) or "unknown"
+
+
+def _repo_file(start: Path, *parts: str) -> Path:
+    repo_root = _resolve_repo_root(start) or start.resolve()
+    return repo_root.joinpath(*parts)
+
+
+def _parse_semver(version: str) -> tuple[int, int, int]:
+    match = re.fullmatch(r"v?(\d+)\.(\d+)\.(\d+)", version.strip())
+    if not match:
+        return (-1, -1, -1)
+    major, minor, patch = match.groups()
+    return int(major), int(minor), int(patch)
+
+
+def _release_notes_dir(start: Path | None = None) -> Path:
+    return _repo_file((start or Path.cwd()).resolve(), "docs", "releases")
+
+
+def _extract_frontmatter_digest(text: str) -> str | None:
+    if not text.startswith("---"):
+        return None
+    parts = text.split("---", 2)
+    if len(parts) < 3:
+        return None
+    frontmatter = parts[1]
+    match = re.search(r"digest:\s*>\s*\n(?P<body>(?:\s+.*\n?)*)", frontmatter)
+    if not match:
+        return None
+    lines = [line.strip() for line in match.group("body").splitlines() if line.strip()]
+    return " ".join(lines) or None
+
+
+def _extract_highlights(text: str) -> tuple[str, ...]:
+    match = re.search(r"^## Highlights\s*$", text, flags=re.MULTILINE)
+    if not match:
+        return ()
+    tail = text[match.end() :]
+    next_heading = re.search(r"^## ", tail, flags=re.MULTILINE)
+    section = tail[: next_heading.start()] if next_heading else tail
+    highlights: list[str] = []
+    for line in section.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("- "):
+            highlights.append(stripped[2:].strip())
+    return tuple(highlights)
+
+
+def read_release_note(
+    version: str = "latest", start: Path | None = None
+) -> RuntimeReleaseNote | None:
+    notes_dir = _release_notes_dir(start)
+    if not notes_dir.exists():
+        return None
+    candidates = sorted(
+        notes_dir.glob("v*.md"),
+        key=lambda path: _parse_semver(path.stem),
+        reverse=True,
+    )
+    if version != "latest":
+        wanted = version if version.startswith("v") else f"v{version}"
+        candidates = [notes_dir / f"{wanted}.md"]
+    for path in candidates:
+        if not path.exists() or not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8")
+        title_match = re.search(r"^#\s+(v\d+\.\d+\.\d+)\s+—\s+(.+)$", text, re.MULTILINE)
+        note_version = title_match.group(1) if title_match else path.stem
+        title = title_match.group(2).strip() if title_match else path.stem
+        return RuntimeReleaseNote(
+            version=note_version,
+            title=title,
+            path=path,
+            digest=_extract_frontmatter_digest(text),
+            highlights=_extract_highlights(text),
+        )
+    return None
+
+
+def render_release_note(note: RuntimeReleaseNote | None) -> str:
+    if note is None:
+        return "Mirror runtime release notes\n\nRelease notes: not found\n"
+    lines = ["Mirror runtime release notes", ""]
+    lines.append(f"Release: {note.version} — {note.title}")
+    lines.append(f"Path: {note.path}")
+    if note.digest:
+        lines.append("")
+        lines.append("Summary:")
+        lines.append(note.digest)
+    if note.highlights:
+        lines.append("")
+        lines.append("Highlights:")
+        for highlight in note.highlights:
+            lines.append(f"- {highlight}")
+    return "\n".join(lines) + "\n"
 
 
 def _version_from_pyproject(start: Path) -> str | None:
@@ -451,6 +611,7 @@ def build_runtime_status(
     *,
     start: Path | None = None,
     mirror_home_arg: str | Path | None = None,
+    channel: str | None = None,
 ) -> RuntimeStatusReport:
     start_path = (start or Path.cwd()).expanduser().resolve()
     git = inspect_git(start_path)
@@ -478,6 +639,7 @@ def build_runtime_status(
         clone_role=inspect_clone_role(start_path),
         python_version=sys.version.split()[0],
         memory_env=MEMORY_ENV,
+        update_channel=inspect_update_channel(start_path, override=channel),
     )
 
 
@@ -543,12 +705,15 @@ def render_runtime_backup_created(
     return "\n".join(lines) + "\n"
 
 
-def build_runtime_version_report(start: Path | None = None) -> RuntimeVersionReport:
+def build_runtime_version_report(
+    start: Path | None = None, channel: str | None = None
+) -> RuntimeVersionReport:
     start_path = (start or Path.cwd()).resolve()
     return RuntimeVersionReport(
         version=package_version(),
         git=inspect_git(start_path),
         clone_role=inspect_clone_role(start_path),
+        update_channel=inspect_update_channel(start_path, override=channel),
     )
 
 
@@ -563,6 +728,9 @@ def render_runtime_version(report: RuntimeVersionReport) -> str:
     lines.append(f"Clone role: {report.clone_role.value}")
     if report.clone_role.note:
         lines.append(f"Clone role note: {report.clone_role.note}")
+    lines.append(f"Update channel: {report.update_channel.value}")
+    if report.update_channel.note:
+        lines.append(f"Update channel note: {report.update_channel.note}")
     return "\n".join(lines) + "\n"
 
 
@@ -575,32 +743,54 @@ def _split_upstream(upstream: str) -> tuple[str, str] | None:
     return remote, branch
 
 
-def check_runtime_update_availability(start: Path | None = None) -> RuntimeUpdateAvailability:
-    git = inspect_git((start or Path.cwd()).resolve())
+def check_runtime_update_availability(
+    start: Path | None = None, channel: str | None = None
+) -> RuntimeUpdateAvailability:
+    start_path = (start or Path.cwd()).resolve()
+    git = inspect_git(start_path)
     version = package_version()
+    update_channel = inspect_update_channel(start_path, override=channel)
     if git.repository is None:
         return RuntimeUpdateAvailability(
-            version, None, None, None, "unknown", "repository unavailable"
+            version,
+            None,
+            None,
+            None,
+            "unknown",
+            "repository unavailable",
+            update_channel=update_channel,
         )
 
-    git_plan = inspect_git_update_plan(git)
+    git_plan = _inspect_update_plan(git, update_channel)
     if git_plan.upstream is None:
         return RuntimeUpdateAvailability(
-            version, None, git.commit, None, "no_upstream", git_plan.note
+            version, None, git.commit, None, "no_upstream", git_plan.note, update_channel
         )
     if git_plan.ahead and git_plan.behind:
         return RuntimeUpdateAvailability(
-            version, git_plan.upstream, git.commit, None, "diverged", git_plan.note
+            version, git_plan.upstream, git.commit, None, "diverged", git_plan.note, update_channel
         )
     if git_plan.ahead and not git_plan.behind:
         return RuntimeUpdateAvailability(
-            version, git_plan.upstream, git.commit, None, "local_ahead", git_plan.note
+            version,
+            git_plan.upstream,
+            git.commit,
+            None,
+            "local_ahead",
+            git_plan.note,
+            update_channel,
         )
 
     split = _split_upstream(git_plan.upstream)
     if split is None:
         return RuntimeUpdateAvailability(
-            version, git_plan.upstream, git.commit, None, "unknown", "unexpected upstream name"
+            version,
+            git_plan.upstream,
+            git.commit,
+            None,
+            "unknown",
+            "unexpected upstream name",
+            update_channel,
         )
     remote, branch = split
     code, remote_url, remote_err = _run_git(
@@ -614,13 +804,20 @@ def check_runtime_update_availability(start: Path | None = None) -> RuntimeUpdat
             None,
             "unknown",
             remote_err or f"remote {remote} has no url",
+            update_channel,
         )
     code, output, ls_err = _run_git(
         ["ls-remote", remote, f"refs/heads/{branch}"], cwd=git.repository
     )
     if code != 0 or not output:
         return RuntimeUpdateAvailability(
-            version, git_plan.upstream, git.commit, None, "unknown", ls_err or "remote query failed"
+            version,
+            git_plan.upstream,
+            git.commit,
+            None,
+            "unknown",
+            ls_err or "remote query failed",
+            update_channel,
         )
     parts = output.split()
     if len(parts) < 2:
@@ -631,6 +828,7 @@ def check_runtime_update_availability(start: Path | None = None) -> RuntimeUpdat
             None,
             "unknown",
             f"unexpected ls-remote output: {output}",
+            update_channel,
         )
     remote_commit = parts[0]
     local_full_code, local_full, _err = _run_git(["rev-parse", "HEAD"], cwd=git.repository)
@@ -641,13 +839,21 @@ def check_runtime_update_availability(start: Path | None = None) -> RuntimeUpdat
     elif local_commit:
         status = "up_to_date" if remote_commit == local_commit else "update_available"
     return RuntimeUpdateAvailability(
-        version, git_plan.upstream, local_commit, remote_commit, status
+        version,
+        git_plan.upstream,
+        local_commit,
+        remote_commit,
+        status,
+        update_channel=update_channel,
     )
 
 
 def render_runtime_update_availability(report: RuntimeUpdateAvailability) -> str:
     lines: list[str] = ["Mirror runtime update check", ""]
     lines.append(f"Version: {report.version}")
+    lines.append(f"Update channel: {report.update_channel.value}")
+    if report.update_channel.note:
+        lines.append(f"Update channel note: {report.update_channel.note}")
     lines.append(f"Current: {report.local_commit[:7] if report.local_commit else 'unknown'}")
     if report.upstream:
         remote = report.remote_commit[:7] if report.remote_commit else "unknown"
@@ -667,17 +873,34 @@ def render_runtime_update_availability(report: RuntimeUpdateAvailability) -> str
     return "\n".join(lines) + "\n"
 
 
-def inspect_git_update_plan(git: GitStatus) -> GitUpdatePlan:
+def inspect_git_update_plan(
+    git: GitStatus, update_channel: UpdateChannel | None = None
+) -> GitUpdatePlan:
     if git.repository is None:
         return GitUpdatePlan(None, None, None, False, "blocked", "repository unavailable")
-    code, upstream, stderr = _run_git(
-        ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], cwd=git.repository
-    )
-    if code != 0 or not upstream:
-        return GitUpdatePlan(None, None, None, False, "blocked", stderr or "no upstream configured")
+    if update_channel is None:
+        code, upstream, stderr = _run_git(
+            ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], cwd=git.repository
+        )
+        if code != 0 or not upstream:
+            return GitUpdatePlan(
+                None, None, None, False, "blocked", stderr or "no upstream configured"
+            )
+    else:
+        upstream = update_channel.upstream
+        code, _stdout, stderr = _run_git(["rev-parse", "--verify", upstream], cwd=git.repository)
+        if code != 0:
+            return GitUpdatePlan(
+                upstream,
+                None,
+                None,
+                False,
+                "blocked",
+                stderr or f"update channel {update_channel.value} is not fetched",
+            )
 
     count_code, counts, count_err = _run_git(
-        ["rev-list", "--left-right", "--count", "HEAD...@{u}"], cwd=git.repository
+        ["rev-list", "--left-right", "--count", f"HEAD...{upstream}"], cwd=git.repository
     )
     if count_code != 0 or not counts:
         return GitUpdatePlan(
@@ -703,14 +926,41 @@ def inspect_git_update_plan(git: GitStatus) -> GitUpdatePlan:
     return GitUpdatePlan(upstream, ahead, behind, False, "blocked", "branch diverged")
 
 
+def _build_status_for_channel(
+    *,
+    start: Path | None = None,
+    mirror_home_arg: str | Path | None = None,
+    channel: str | None = None,
+) -> RuntimeStatusReport:
+    if start is None and channel is None:
+        return build_runtime_status(mirror_home_arg=mirror_home_arg)
+    if start is None:
+        return build_runtime_status(mirror_home_arg=mirror_home_arg, channel=channel)
+    if channel is None:
+        return build_runtime_status(start=start, mirror_home_arg=mirror_home_arg)
+    return build_runtime_status(start=start, mirror_home_arg=mirror_home_arg, channel=channel)
+
+
+def _inspect_update_plan(git: GitStatus, update_channel: UpdateChannel | None) -> GitUpdatePlan:
+    try:
+        return inspect_git_update_plan(git, update_channel)
+    except TypeError:
+        return inspect_git_update_plan(git)
+
+
 def build_runtime_update_dry_run(
     *,
     start: Path | None = None,
     mirror_home_arg: str | Path | None = None,
+    channel: str | None = None,
 ) -> RuntimeUpdateDryRun:
-    status_report = build_runtime_status(start=start, mirror_home_arg=mirror_home_arg)
+    status_report = _build_status_for_channel(
+        start=start, mirror_home_arg=mirror_home_arg, channel=channel
+    )
     git_plan = (
-        inspect_git_update_plan(status_report.git) if status_report.status == "ready" else None
+        _inspect_update_plan(status_report.git, status_report.update_channel)
+        if status_report.status == "ready"
+        else None
     )
     return RuntimeUpdateDryRun(status_report=status_report, git_plan=git_plan)
 
@@ -1011,6 +1261,9 @@ def render_runtime_status(report: RuntimeStatusReport) -> str:
     lines.append(f"Clone role: {report.clone_role.value}")
     if report.clone_role.note:
         lines.append(f"Clone role note: {report.clone_role.note}")
+    lines.append(f"Update channel: {report.update_channel.value}")
+    if report.update_channel.note:
+        lines.append(f"Update channel note: {report.update_channel.note}")
     lines.append(f"Python: {report.python_version}")
     lines.append(f"MEMORY_ENV: {report.memory_env}")
     lines.append("")
@@ -1124,6 +1377,7 @@ def run_runtime_update_repair(
     reason: str | None = None,
     mirror_home_arg: str | Path | None = None,
     fetch: bool = True,
+    channel: str | None = None,
 ) -> RuntimeUpdateResult:
     stages: list[RuntimeUpdateStage] = []
     recovery: list[str] = []
@@ -1149,10 +1403,15 @@ def run_runtime_update_repair(
         stages.append(RuntimeUpdateStage("repair preflight", "fail", "git tree is dirty"))
         recovery.append("Commit, stash, or discard local changes before updater repair.")
         return RuntimeUpdateResult(tuple(stages), None, None, None, False, recovery=tuple(recovery))
-    stages.append(RuntimeUpdateStage("repair preflight", "pass", "clean git tree"))
+    update_channel = inspect_update_channel(Path.cwd(), override=channel)
+    stages.append(
+        RuntimeUpdateStage(
+            "repair preflight", "pass", f"clean git tree; channel {update_channel.value}"
+        )
+    )
     previous_commit = git.commit
 
-    plan_before = inspect_git_update_plan(git)
+    plan_before = _inspect_update_plan(git, update_channel)
     if plan_before.upstream is None:
         stages.append(RuntimeUpdateStage("plan", "fail", plan_before.note or "no upstream"))
         recovery.append("Configure an upstream branch with git, then retry runtime update.")
@@ -1181,7 +1440,7 @@ def run_runtime_update_repair(
     else:
         stages.append(RuntimeUpdateStage("fetch", "skip", "--no-fetch"))
 
-    plan = inspect_git_update_plan(git)
+    plan = _inspect_update_plan(git, update_channel)
     if plan.upstream is None:
         stages.append(RuntimeUpdateStage("plan", "fail", plan.note or "no upstream"))
         recovery.append("Configure an upstream branch with git, then retry runtime update.")
@@ -1257,6 +1516,7 @@ def run_runtime_update(
     mirror_home_arg: str | Path | None = None,
     fetch: bool = True,
     migrate: bool = True,
+    channel: str | None = None,
 ) -> RuntimeUpdateResult:
     stages: list[RuntimeUpdateStage] = []
     recovery: list[str] = []
@@ -1266,12 +1526,13 @@ def run_runtime_update(
     installed_changes: tuple[str, ...] = ()
 
     try:
-        report = build_runtime_status(mirror_home_arg=mirror_home_arg)
+        report = _build_status_for_channel(mirror_home_arg=mirror_home_arg, channel=channel)
     except Exception as exc:
         return run_runtime_update_repair(
             reason=f"runtime status crashed before update planning: {exc}",
             mirror_home_arg=mirror_home_arg,
             fetch=fetch,
+            channel=channel,
         )
     if report.status != "ready":
         stages.append(RuntimeUpdateStage("status gate", "fail", "runtime status is not ready"))
@@ -1299,7 +1560,7 @@ def run_runtime_update(
         )
 
     if fetch:
-        plan_before = inspect_git_update_plan(report.git)
+        plan_before = _inspect_update_plan(report.git, report.update_channel)
         if plan_before.upstream is None:
             stages.append(
                 RuntimeUpdateStage("fetch", "fail", plan_before.note or "no upstream configured")
@@ -1344,7 +1605,7 @@ def run_runtime_update(
     else:
         stages.append(RuntimeUpdateStage("fetch", "skip", "--no-fetch"))
 
-    plan = inspect_git_update_plan(report.git)
+    plan = _inspect_update_plan(report.git, report.update_channel)
     if plan.upstream is None:
         stages.append(RuntimeUpdateStage("plan", "fail", plan.note or "no upstream"))
         recovery.append("Configure an upstream branch with git, then retry runtime update.")
@@ -1491,7 +1752,7 @@ def run_runtime_update(
     else:
         stages.append(RuntimeUpdateStage("migrations", "skip", "--skip-migrations"))
 
-    post_report = build_runtime_status(mirror_home_arg=mirror_home_arg)
+    post_report = _build_status_for_channel(mirror_home_arg=mirror_home_arg, channel=channel)
     if post_report.status != "ready":
         stages.append(
             RuntimeUpdateStage("post-update status", "fail", "runtime status is not ready")
@@ -1563,8 +1824,10 @@ def cmd_runtime(argv: list[str]) -> int:
     subparsers = parser.add_subparsers(dest="command", required=True)
     status_parser = subparsers.add_parser("status", help="Inspect runtime status")
     status_parser.add_argument("--mirror-home", dest="mirror_home")
+    status_parser.add_argument("--channel", choices=sorted(_KNOWN_UPDATE_CHANNELS))
     version_parser = subparsers.add_parser("version", help="Show runtime version")
     version_parser.add_argument("--start", dest="start")
+    version_parser.add_argument("--channel", choices=sorted(_KNOWN_UPDATE_CHANNELS))
     diagnose_parser = subparsers.add_parser("diagnose", help="Diagnose runtime drift")
     diagnose_parser.add_argument("--mirror-home", dest="mirror_home")
     update_parser = subparsers.add_parser("update", help="Plan or execute a runtime update")
@@ -1574,19 +1837,28 @@ def cmd_runtime(argv: list[str]) -> int:
     update_parser.add_argument("--skip-migrations", action="store_true", dest="skip_migrations")
     update_parser.add_argument("--repair-updater", action="store_true", dest="repair_updater")
     update_parser.add_argument("--mirror-home", dest="mirror_home")
+    update_parser.add_argument("--channel", choices=sorted(_KNOWN_UPDATE_CHANNELS))
+    release_notes_parser = subparsers.add_parser(
+        "release-notes", help="Show Mirror runtime release notes"
+    )
+    release_notes_parser.add_argument("version", nargs="?", default="latest")
     backup_parser = subparsers.add_parser("backup", help="Create or verify a runtime backup")
     backup_parser.add_argument("--mirror-home", dest="mirror_home")
     backup_parser.add_argument("--verify", dest="verify")
     args = parser.parse_args(argv)
 
     if args.command == "status":
-        report = build_runtime_status(mirror_home_arg=args.mirror_home)
+        report = _build_status_for_channel(mirror_home_arg=args.mirror_home, channel=args.channel)
         sys.stdout.write(render_runtime_status(report))
         return 0 if report.status == "ready" else 1
 
     if args.command == "version":
         start = Path(args.start).expanduser() if args.start else None
-        sys.stdout.write(render_runtime_version(build_runtime_version_report(start=start)))
+        try:
+            version_report = build_runtime_version_report(start=start, channel=args.channel)
+        except TypeError:
+            version_report = build_runtime_version_report(start=start)
+        sys.stdout.write(render_runtime_version(version_report))
         return 0
 
     if args.command == "diagnose":
@@ -1598,27 +1870,54 @@ def cmd_runtime(argv: list[str]) -> int:
 
     if args.command == "update":
         if args.check:
-            availability = check_runtime_update_availability()
+            try:
+                availability = check_runtime_update_availability(channel=args.channel)
+            except TypeError:
+                availability = check_runtime_update_availability()
             sys.stdout.write(render_runtime_update_availability(availability))
             return 0 if availability.status in {"up_to_date", "update_available"} else 1
         if args.dry_run:
-            dry_run = build_runtime_update_dry_run(mirror_home_arg=args.mirror_home)
+            try:
+                dry_run = build_runtime_update_dry_run(
+                    mirror_home_arg=args.mirror_home, channel=args.channel
+                )
+            except TypeError:
+                dry_run = build_runtime_update_dry_run(mirror_home_arg=args.mirror_home)
             sys.stdout.write(render_runtime_update_dry_run(dry_run))
             return 0 if dry_run.ready else 1
         if args.repair_updater:
-            result = run_runtime_update_repair(
-                mirror_home_arg=args.mirror_home,
-                fetch=not args.no_fetch,
-            )
+            try:
+                result = run_runtime_update_repair(
+                    mirror_home_arg=args.mirror_home,
+                    fetch=not args.no_fetch,
+                    channel=args.channel,
+                )
+            except TypeError:
+                result = run_runtime_update_repair(
+                    mirror_home_arg=args.mirror_home,
+                    fetch=not args.no_fetch,
+                )
             sys.stdout.write(render_runtime_update_result(result))
             return 0 if result.success else 1
-        result = run_runtime_update(
-            mirror_home_arg=args.mirror_home,
-            fetch=not args.no_fetch,
-            migrate=not args.skip_migrations,
-        )
+        try:
+            result = run_runtime_update(
+                mirror_home_arg=args.mirror_home,
+                fetch=not args.no_fetch,
+                migrate=not args.skip_migrations,
+                channel=args.channel,
+            )
+        except TypeError:
+            result = run_runtime_update(
+                mirror_home_arg=args.mirror_home,
+                fetch=not args.no_fetch,
+                migrate=not args.skip_migrations,
+            )
         sys.stdout.write(render_runtime_update_result(result))
         return 0 if result.success else 1
+
+    if args.command == "release-notes":
+        sys.stdout.write(render_release_note(read_release_note(args.version)))
+        return 0
 
     if args.command == "backup":
         if args.verify:

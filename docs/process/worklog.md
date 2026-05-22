@@ -12,6 +12,14 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-05-22 — Stable/main release channels added
+
+Added local update channel support through `.mirror-update-channel`. Missing or invalid channels default to `stable`; `main` is the integration/dogfooding channel. Runtime status, version, update check, dry-run, update execution, updater repair, and welcome can now surface or use the configured channel.
+
+Added `python -m memory runtime release-notes [latest|vX.Y.Z]` plus the `mm-release-notes` skill so users can ask Mirror: "What's new in the latest Mirror Mind release?" without knowing the underlying CLI command.
+
+Documented the release-management boundary: pushes to `main` are integration, while `stable` advances only through release promotion after versioning, release notes, CI, smoke validation, tagging, and fast-forward.
+
 ### 2026-05-22 — Updater self-recovery added
 
 Added a code-only updater repair lane for the case where `runtime update` cannot complete its full status gate because stale updater code crashes before planning. `runtime update` now catches status-gate crashes and falls back automatically; `runtime update --repair-updater` exposes the lane explicitly.

@@ -32,6 +32,7 @@ over time.
 | [CV9.E3.S7](cv9-e3-s7-safe-runtime-update-execution/index.md) | Safe Runtime Update Execution | ✅ Done |
 | [CV9.E3.S8](cv9-e3-s8-welcome-update-awareness/index.md) | Welcome Update Awareness | ✅ Done |
 | [CV9.E3.S9](cv9-e3-s9-updater-self-recovery/index.md) | Updater Self-Recovery | ✅ Done |
+| [CV9.E3.S10](cv9-e3-s10-stable-release-channel-management/index.md) | Stable Release Channel Management | ✅ Done |
 
 ---
 
@@ -53,6 +54,9 @@ CV9.E3 is done:
 - The updater has a code-only self-repair lane for status-gate crashes, so stale
   updater bugs can be fixed without asking end users to perform manual git
   recovery.
+- Update channels distinguish integration (`main`) from user-facing releases
+  (`stable`), and release notes are available through runtime surfaces and a
+  Mirror skill.
 - `README`, `REFERENCE.md`, process docs, decisions, and roadmap entries reflect
   the onboarding and self-update flow accurately.
 
