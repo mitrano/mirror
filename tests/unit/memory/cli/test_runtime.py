@@ -263,9 +263,7 @@ def test_inspect_extension_health_reports_pending_command_migration(tmp_path):
     health = inspect_extension_health(tmp_path, db_path, True)
 
     assert health == (
-        ExtensionHealth(
-            "hello", False, "pending migrations", pending_migrations=("001_init.sql",)
-        ),
+        ExtensionHealth("hello", False, "pending migrations", pending_migrations=("001_init.sql",)),
     )
 
 
@@ -372,9 +370,7 @@ def test_cmd_runtime_status_dispatches(monkeypatch, capsys):
 def test_cmd_runtime_status_returns_nonzero_when_attention_needed(monkeypatch, capsys):
     monkeypatch.setattr(
         "memory.cli.runtime.build_runtime_status",
-        lambda mirror_home_arg=None: _report(
-            git=GitStatus(Path("/repo"), "main", "abc1234", True)
-        ),
+        lambda mirror_home_arg=None: _report(git=GitStatus(Path("/repo"), "main", "abc1234", True)),
     )
 
     rc = cmd_runtime(["status"])

@@ -326,11 +326,7 @@ def inspect_extension_health(
                 pending, drifted = inspect_migration_files(
                     conn, extension_id=extension_id, migrations_dir=migrations_dir
                 )
-                known_files = {
-                    path.name
-                    for path in migrations_dir.glob("*.sql")
-                    if path.is_file()
-                }
+                known_files = {path.name for path in migrations_dir.glob("*.sql") if path.is_file()}
                 rows = conn.execute(
                     "SELECT filename FROM _ext_migrations WHERE extension_id = ?",
                     (extension_id,),
@@ -410,9 +406,7 @@ def verify_backup_archive(backup_path: Path) -> BackupVerification:
     for entry in entries:
         entry_path = Path(entry)
         if entry_path.is_absolute() or ".." in entry_path.parts:
-            return BackupVerification(
-                backup_path, False, entries, f"unsafe archive entry: {entry}"
-            )
+            return BackupVerification(backup_path, False, entries, f"unsafe archive entry: {entry}")
     if "memory.db" not in entries:
         return BackupVerification(backup_path, False, entries, "memory.db missing from backup")
     allowed = {"memory.db", "memory.db-wal", "memory.db-shm"}
@@ -469,9 +463,7 @@ def inspect_git_update_plan(git: GitStatus) -> GitUpdatePlan:
         ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], cwd=git.repository
     )
     if code != 0 or not upstream:
-        return GitUpdatePlan(
-            None, None, None, False, "blocked", stderr or "no upstream configured"
-        )
+        return GitUpdatePlan(None, None, None, False, "blocked", stderr or "no upstream configured")
 
     count_code, counts, count_err = _run_git(
         ["rev-list", "--left-right", "--count", "HEAD...@{u}"], cwd=git.repository
