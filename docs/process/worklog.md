@@ -12,6 +12,21 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-05-22 — Updater self-recovery added
+
+Added a code-only updater repair lane for the case where `runtime update` cannot complete its full status gate because stale updater code crashes before planning. `runtime update` now catches status-gate crashes and falls back automatically; `runtime update --repair-updater` exposes the lane explicitly.
+
+The repair lane uses a minimal safety gate: clean git tree, configured upstream, optional fetch, fast-forward only, optional database backup when the Mirror home and database are available, and migrations skipped. Successful repair prints the next step: rerun `python -m memory runtime update` with the repaired updater.
+
+Verification:
+
+```bash
+PYTHONPATH=src uv run pytest tests/unit/memory/cli/test_welcome.py tests/unit/memory/cli/test_runtime.py tests/unit/memory/cli/test_build.py tests/unit/memory/extensions/test_migrations.py
+uv run --extra dev ruff check src/ tests/
+uv run --extra dev ruff format --check src/ tests/
+uv run --extra dev mypy src/memory/cli/runtime.py
+```
+
 ### 2026-05-22 — Welcome version and update UX added
 
 Added installed version visibility to `python -m memory welcome`. The welcome now shows `Version <version>` and, when local git refs already show the checkout is behind upstream, renders a no-network update notice that points to `runtime update`.

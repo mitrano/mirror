@@ -36,7 +36,7 @@ Codex uses the `$mm-` prefix. All runtimes call the same Python core.
 | `/mm-shadow` | `$mm-shadow` | `/mm:shadow` | Surface and promote shadow-layer observations | `scan`, `apply`, `reject`, `list`, `show` |
 | `/mm-welcome` | `$mm-welcome` | `/mm:welcome` | Renders the state-aware welcome card on demand | no arguments |
 | `/mm-help` | `$mm-help` | `/mm:help` | Lists available commands | no arguments |
-| `python -m memory runtime` | — | — | Inspects Mirror runtime status, version, drift, backups, plans updates, and executes safe updates | `status [--mirror-home PATH]`, `version`, `diagnose [--mirror-home PATH]`, `backup [--mirror-home PATH]`, `backup --verify PATH`, `update --dry-run [--mirror-home PATH]`, `update --check`, `update [--no-fetch] [--skip-migrations] [--mirror-home PATH]` |
+| `python -m memory runtime` | — | — | Inspects Mirror runtime status, version, drift, backups, plans updates, and executes safe updates | `status [--mirror-home PATH]`, `version`, `diagnose [--mirror-home PATH]`, `backup [--mirror-home PATH]`, `backup --verify PATH`, `update --dry-run [--mirror-home PATH]`, `update --check`, `update [--no-fetch] [--skip-migrations] [--mirror-home PATH]`, `update --repair-updater [--no-fetch] [--mirror-home PATH]` |
 | `ext-review-copy` | — | `ext:review-copy` | External multi-LLM copy review skill; install and expose it before use | skill-driven workflow |
 
 ## Runtime Self-Update
@@ -121,6 +121,7 @@ Plans an update from local refs only. Reuses `runtime status` as the safety gate
 
 ```bash
 uv run python -m memory runtime update [--no-fetch] [--skip-migrations] [--mirror-home PATH]
+uv run python -m memory runtime update --repair-updater [--no-fetch] [--mirror-home PATH]
 ```
 
 Executes the safe update pipeline. Stages run in order and the first failure stops execution:
@@ -135,6 +136,8 @@ Executes the safe update pipeline. Stages run in order and the first failure sto
 8. **post-update status** — reruns `runtime status` and expects `ready`.
 
 Failures print a recovery block with the backup path and previous commit when relevant. Successful installs that move to a new commit include an `Installed changes` summary generated from `git log <previous>..<new>`. The pipeline does not roll back automatically: recovery is documented manual work.
+
+If the full status gate crashes before update planning, `runtime update` automatically falls back to updater self-repair. The repair lane uses a minimal safety gate: clean git tree, configured upstream, optional fetch, optional database backup when the Mirror home and database are available, fast-forward only code update, and migrations skipped. It then asks the user to rerun `runtime update` with the repaired updater. The same lane can be invoked explicitly with `runtime update --repair-updater`.
 
 ### Clone role
 

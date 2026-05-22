@@ -31,6 +31,7 @@ over time.
 | [CV9.E3.S6](cv9-e3-s6-clone-role-guard/index.md) | Clone Role Guard | ✅ Done |
 | [CV9.E3.S7](cv9-e3-s7-safe-runtime-update-execution/index.md) | Safe Runtime Update Execution | ✅ Done |
 | [CV9.E3.S8](cv9-e3-s8-welcome-update-awareness/index.md) | Welcome Update Awareness | ✅ Done |
+| [CV9.E3.S9](cv9-e3-s9-updater-self-recovery/index.md) | Updater Self-Recovery | ✅ Done |
 
 ---
 
@@ -49,6 +50,9 @@ CV9.E3 is done:
 - The welcome card shows the installed version and surfaces locally known update
   availability without contacting the network.
 - Successful runtime updates summarize installed changes after the fast-forward.
+- The updater has a code-only self-repair lane for status-gate crashes, so stale
+  updater bugs can be fixed without asking end users to perform manual git
+  recovery.
 - `README`, `REFERENCE.md`, process docs, decisions, and roadmap entries reflect
   the onboarding and self-update flow accurately.
 

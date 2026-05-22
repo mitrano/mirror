@@ -73,6 +73,7 @@ Commands:
                               python -m memory runtime update --dry-run [--mirror-home PATH]
                               python -m memory runtime update --check
                               python -m memory runtime update [--no-fetch] [--skip-migrations] [--mirror-home PATH]
+                              python -m memory runtime update --repair-updater [--no-fetch] [--mirror-home PATH]
   welcome              Render the state-aware welcome card for the current Mirror home
                        Usage: python -m memory welcome [--mirror-home PATH]
 """

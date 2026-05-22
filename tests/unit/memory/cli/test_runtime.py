@@ -33,6 +33,7 @@ from memory.cli.runtime import (
     render_runtime_update_result,
     render_runtime_version,
     run_runtime_update,
+    run_runtime_update_repair,
     verify_backup_archive,
 )
 from memory.db.migrations import MIGRATIONS
@@ -1189,3 +1190,143 @@ def test_cmd_runtime_update_passes_flag_overrides(monkeypatch, capsys):
     cmd_runtime(["update", "--no-fetch", "--skip-migrations"])
 
     assert captured == {"fetch": False, "migrate": False}
+
+
+# CV9.E3.S9 — Updater Self-Recovery
+
+
+def test_runtime_update_falls_back_to_repair_when_status_crashes(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        "memory.cli.runtime.build_runtime_status",
+        lambda mirror_home_arg=None: (_ for _ in ()).throw(RuntimeError("status exploded")),
+    )
+    monkeypatch.setattr(
+        "memory.cli.runtime.inspect_git",
+        lambda start: GitStatus(tmp_path, "main", "abc1234", False),
+    )
+    monkeypatch.setattr(
+        "memory.cli.runtime.inspect_git_update_plan",
+        lambda git: GitUpdatePlan("origin/main", 0, 1, True, "pull", "pull 1 commit"),
+    )
+    monkeypatch.setattr("memory.cli.runtime._git_fetch", lambda remote, branch, cwd: (True, ""))
+    backup_path = tmp_path / "backup.zip"
+    monkeypatch.setattr("memory.cli.runtime.resolve_mirror_home", lambda: tmp_path)
+    monkeypatch.setattr(
+        "memory.cli.runtime.default_db_path_for_home", lambda home: tmp_path / "memory.db"
+    )
+    (tmp_path / "memory.db").write_text("db", encoding="utf-8")
+    monkeypatch.setattr("memory.cli.runtime.create_backup", lambda silent, mirror_home: backup_path)
+    monkeypatch.setattr(
+        "memory.cli.runtime.verify_backup_archive",
+        lambda path: BackupVerification(path, True, ("memory.db",)),
+    )
+    monkeypatch.setattr("memory.cli.runtime._git_fast_forward", lambda upstream, cwd: (True, ""))
+    monkeypatch.setattr(
+        "memory.cli.runtime._run_git",
+        lambda args, *, cwd: (
+            (0, "def5678", "") if args == ["rev-parse", "--short", "HEAD"] else (0, "", "")
+        ),
+    )
+    monkeypatch.setattr(
+        "memory.cli.runtime._git_installed_changes",
+        lambda repository, previous_commit, new_commit: ("def5678 Fix updater",),
+    )
+
+    result = run_runtime_update()
+
+    assert result.success is True
+    assert result.backup_path == backup_path
+    assert result.installed_changes == ("def5678 Fix updater",)
+    assert result.next_steps == ("Run: python -m memory runtime update",)
+    assert result.stages[0] == RuntimeUpdateStage(
+        "status gate", "fail", "runtime status crashed before update planning: status exploded"
+    )
+    assert any(stage.name == "code repair fast-forward" for stage in result.stages)
+    migrations_stage = next(stage for stage in result.stages if stage.name == "migrations")
+    assert migrations_stage.state == "skip"
+
+
+def test_runtime_update_repair_blocks_dirty_tree(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        "memory.cli.runtime.inspect_git",
+        lambda start: GitStatus(tmp_path, "main", "abc1234", True),
+    )
+
+    result = run_runtime_update_repair()
+
+    assert result.success is False
+    repair_stage = next(stage for stage in result.stages if stage.name == "repair preflight")
+    assert repair_stage.state == "fail"
+    assert "dirty" in repair_stage.detail
+    assert any("Commit, stash" in entry for entry in result.recovery)
+
+
+def test_runtime_update_repair_allows_code_only_without_database(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        "memory.cli.runtime.inspect_git",
+        lambda start: GitStatus(tmp_path, "main", "abc1234", False),
+    )
+    monkeypatch.setattr(
+        "memory.cli.runtime.inspect_git_update_plan",
+        lambda git: GitUpdatePlan("origin/main", 0, 1, True, "pull", "pull 1 commit"),
+    )
+    monkeypatch.setattr("memory.cli.runtime._git_fetch", lambda remote, branch, cwd: (True, ""))
+    monkeypatch.setattr("memory.cli.runtime.resolve_mirror_home", lambda: tmp_path)
+    monkeypatch.setattr(
+        "memory.cli.runtime.default_db_path_for_home", lambda home: tmp_path / "missing.db"
+    )
+    monkeypatch.setattr("memory.cli.runtime._git_fast_forward", lambda upstream, cwd: (True, ""))
+    monkeypatch.setattr(
+        "memory.cli.runtime._run_git",
+        lambda args, *, cwd: (
+            (0, "def5678", "") if args == ["rev-parse", "--short", "HEAD"] else (0, "", "")
+        ),
+    )
+
+    result = run_runtime_update_repair()
+
+    assert result.success is True
+    backup_stage = next(stage for stage in result.stages if stage.name == "backup")
+    assert backup_stage.state == "skip"
+    assert backup_stage.detail == "database not found"
+    migrations_stage = next(stage for stage in result.stages if stage.name == "migrations")
+    assert migrations_stage.state == "skip"
+
+
+def test_render_runtime_update_result_renders_next_steps():
+    result = RuntimeUpdateResult(
+        stages=(RuntimeUpdateStage("code repair fast-forward", "pass", "abc1234 -> def5678"),),
+        previous_commit="abc1234",
+        new_commit="def5678",
+        backup_path=None,
+        success=True,
+        next_steps=("Run: python -m memory runtime update",),
+    )
+
+    rendered = render_runtime_update_result(result)
+
+    assert "Next:" in rendered
+    assert "- Run: python -m memory runtime update" in rendered
+
+
+def test_cmd_runtime_update_repair_updater_invokes_repair(monkeypatch, capsys):
+    captured: dict = {}
+
+    def fake_repair(*, mirror_home_arg=None, fetch=True):
+        captured["fetch"] = fetch
+        captured["mirror_home_arg"] = mirror_home_arg
+        return RuntimeUpdateResult(
+            stages=(RuntimeUpdateStage("repair preflight", "pass"),),
+            previous_commit="abc1234",
+            new_commit="abc1234",
+            backup_path=None,
+            success=True,
+        )
+
+    monkeypatch.setattr("memory.cli.runtime.run_runtime_update_repair", fake_repair)
+
+    rc = cmd_runtime(["update", "--repair-updater", "--no-fetch", "--mirror-home", "/tmp/m"])
+
+    assert rc == 0
+    assert captured == {"fetch": False, "mirror_home_arg": "/tmp/m"}
+    assert "Update result: success" in capsys.readouterr().out
