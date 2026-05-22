@@ -24,6 +24,7 @@ over time.
 | Code | Story | Status |
 |------|-------|--------|
 | [CV9.E3.S1](cv9-e3-s1-identity-onboarding/index.md) | Zero-Friction Identity Onboarding | ✅ Done |
+| [CV9.E3.S2](cv9-e3-s2-runtime-status-health/index.md) | Runtime Status Health Checks | ✅ Done |
 
 ---
 

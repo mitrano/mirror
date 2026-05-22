@@ -9,6 +9,14 @@ Update when a meaningful milestone is reached.
 
 ## Done
 
+### 2026-05-22 — Runtime status health checks added
+
+Expanded `python -m memory runtime status` with read-only health checks for core database migrations and installed extensions. The command now reports whether the core `_migrations` ledger is current against known migrations and whether installed extensions have valid manifests, pending command-skill migrations, or checksum drift in applied migration files.
+
+This keeps the self-update path conservative: status observes the runtime without applying migrations, repairing extensions, or mutating the database. Future update dry-runs can now start from a stronger current-state diagnosis.
+
+Verification: 1073 tests passed; ruff check and format check passed; story-scoped mypy passed for changed modules; `git diff --check` passed. `mypy src/memory` still fails on pre-existing typing debt in unrelated modules.
+
 ### 2026-05-22 — Runtime status command added
 
 Added `python -m memory runtime status` as the first self-update prerequisite. The command is read-only and reports Mirror version, repository path, git branch, commit, dirty tree state, mirror home, database path, installed extensions, Python version, and `MEMORY_ENV`.

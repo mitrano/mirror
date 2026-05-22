@@ -236,6 +236,38 @@ def _record_migration(
     )
 
 
+def inspect_migration_files(
+    conn: sqlite3.Connection,
+    *,
+    extension_id: str,
+    migrations_dir: Path,
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Return pending and drifted migration files without applying them.
+
+    This is the read-only companion to :func:`run_migrations`. It uses the
+    same filename validation and checksum semantics, including the legacy raw
+    checksum compatibility path, but it never updates bookkeeping rows or runs
+    SQL statements from migration files.
+    """
+    files = _list_migration_files(migrations_dir, extension_id)
+    pending: list[str] = []
+    drifted: list[str] = []
+    for path in files:
+        content = path.read_text(encoding="utf-8")
+        checksum = _checksum(content)
+        seen, recorded_checksum = _already_applied(
+            conn, extension_id=extension_id, filename=path.name
+        )
+        if not seen:
+            pending.append(path.name)
+            continue
+        assert recorded_checksum is not None
+        if recorded_checksum == checksum or recorded_checksum == _raw_checksum(content):
+            continue
+        drifted.append(path.name)
+    return tuple(pending), tuple(drifted)
+
+
 def run_migrations(
     conn: sqlite3.Connection,
     *,
@@ -261,6 +293,7 @@ def run_migrations(
             conn, extension_id=extension_id, filename=path.name
         )
         if seen:
+            assert recorded_checksum is not None
             if recorded_checksum == checksum:
                 # Happy path: matches the normalised hash exactly.
                 continue

@@ -3,18 +3,22 @@
 from __future__ import annotations
 
 import argparse
+import sqlite3
 import subprocess
 import sys
 from dataclasses import dataclass
 from importlib import metadata
 from pathlib import Path
 
+from memory.cli.extensions import ExtensionValidationError, load_extension_manifest
 from memory.config import (
     MEMORY_ENV,
     default_db_path_for_home,
     default_extensions_dir_for_home,
     resolve_mirror_home,
 )
+from memory.db.migrations import MIGRATIONS
+from memory.extensions.migrations import ExtensionMigrationError, inspect_migration_files
 
 
 @dataclass(frozen=True)
@@ -27,6 +31,24 @@ class GitStatus:
 
 
 @dataclass(frozen=True)
+class CoreMigrationHealth:
+    ready: bool
+    applied_count: int | None
+    known_count: int
+    missing: tuple[str, ...]
+    note: str | None = None
+
+
+@dataclass(frozen=True)
+class ExtensionHealth:
+    extension_id: str
+    ready: bool
+    note: str | None = None
+    pending_migrations: tuple[str, ...] = ()
+    drifted_migrations: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class RuntimeStatusReport:
     version: str
     git: GitStatus
@@ -34,7 +56,9 @@ class RuntimeStatusReport:
     mirror_home_error: str | None
     db_path: Path | None
     db_exists: bool | None
+    core_migrations: CoreMigrationHealth
     extensions: tuple[str, ...]
+    extension_health: tuple[ExtensionHealth, ...]
     python_version: str
     memory_env: str
 
@@ -47,6 +71,10 @@ class RuntimeStatusReport:
         if self.git.dirty:
             return "attention needed"
         if self.db_exists is False:
+            return "attention needed"
+        if not self.core_migrations.ready:
+            return "attention needed"
+        if any(not health.ready for health in self.extension_health):
             return "attention needed"
         return "ready"
 
@@ -134,6 +162,120 @@ def list_installed_extensions(mirror_home: Path | None) -> tuple[str, ...]:
     )
 
 
+def _connect_read_only(db_path: Path) -> sqlite3.Connection:
+    uri = f"{db_path.resolve().as_uri()}?mode=ro"
+    return sqlite3.connect(uri, uri=True)
+
+
+def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (table,)
+    ).fetchone()
+    return row is not None
+
+
+def inspect_core_migrations(db_path: Path | None, db_exists: bool | None) -> CoreMigrationHealth:
+    known_ids = tuple(migration_id for migration_id, _ in MIGRATIONS)
+    if db_path is None:
+        return CoreMigrationHealth(False, None, len(known_ids), (), "database path unknown")
+    if db_exists is not True:
+        return CoreMigrationHealth(False, None, len(known_ids), (), "database missing")
+    try:
+        with _connect_read_only(db_path) as conn:
+            if not _table_exists(conn, "_migrations"):
+                return CoreMigrationHealth(
+                    False, 0, len(known_ids), known_ids, "migration ledger missing"
+                )
+            rows = conn.execute("SELECT id FROM _migrations").fetchall()
+    except sqlite3.Error as exc:
+        return CoreMigrationHealth(False, None, len(known_ids), known_ids, str(exc))
+
+    applied = {row[0] for row in rows}
+    missing = tuple(migration_id for migration_id in known_ids if migration_id not in applied)
+    return CoreMigrationHealth(
+        ready=not missing,
+        applied_count=len(applied.intersection(known_ids)),
+        known_count=len(known_ids),
+        missing=missing,
+    )
+
+
+def inspect_extension_health(
+    mirror_home: Path | None, db_path: Path | None, db_exists: bool | None
+) -> tuple[ExtensionHealth, ...]:
+    if mirror_home is None:
+        return ()
+    extensions_dir = default_extensions_dir_for_home(mirror_home)
+    if not extensions_dir.exists() or not extensions_dir.is_dir():
+        return ()
+
+    results: list[ExtensionHealth] = []
+    conn: sqlite3.Connection | None = None
+    if db_path is not None and db_exists is True:
+        try:
+            conn = _connect_read_only(db_path)
+        except sqlite3.Error:
+            conn = None
+
+    try:
+        for child in sorted(extensions_dir.iterdir()):
+            if not child.is_dir() or not (child / "skill.yaml").exists():
+                continue
+            extension_id = child.name
+            try:
+                manifest = load_extension_manifest(child)
+                extension_id = manifest["id"]
+            except ExtensionValidationError as exc:
+                results.append(ExtensionHealth(extension_id, False, str(exc)))
+                continue
+
+            if manifest["kind"] != "command-skill":
+                results.append(ExtensionHealth(extension_id, True))
+                continue
+
+            if conn is None:
+                results.append(ExtensionHealth(extension_id, False, "database unavailable"))
+                continue
+            if not _table_exists(conn, "_ext_migrations"):
+                migrations_dir = child / "migrations"
+                has_migrations = migrations_dir.exists() and any(migrations_dir.glob("*.sql"))
+                results.append(
+                    ExtensionHealth(
+                        extension_id,
+                        not has_migrations,
+                        "extension migration ledger missing" if has_migrations else None,
+                    )
+                )
+                continue
+
+            try:
+                pending, drifted = inspect_migration_files(
+                    conn, extension_id=extension_id, migrations_dir=child / "migrations"
+                )
+            except ExtensionMigrationError as exc:
+                results.append(ExtensionHealth(extension_id, False, str(exc)))
+                continue
+            note = None
+            if pending:
+                note = "pending migrations"
+            if drifted:
+                note = "migration checksum drift" if note is None else f"{note}; checksum drift"
+            results.append(
+                ExtensionHealth(
+                    extension_id,
+                    not pending and not drifted,
+                    note,
+                    pending_migrations=pending,
+                    drifted_migrations=drifted,
+                )
+            )
+    finally:
+        if conn is not None:
+            conn.close()
+
+    return tuple(results)
+
+
 def build_runtime_status(
     *,
     start: Path | None = None,
@@ -159,7 +301,9 @@ def build_runtime_status(
         mirror_home_error=mirror_home_error,
         db_path=db_path,
         db_exists=db_exists,
+        core_migrations=inspect_core_migrations(db_path, db_exists),
         extensions=list_installed_extensions(mirror_home),
+        extension_health=inspect_extension_health(mirror_home, db_path, db_exists),
         python_version=sys.version.split()[0],
         memory_env=MEMORY_ENV,
     )
@@ -169,6 +313,42 @@ def _yes_no(value: bool | None) -> str:
     if value is None:
         return "unknown"
     return "yes" if value else "no"
+
+
+def _render_core_migrations(health: CoreMigrationHealth) -> str:
+    if health.ready:
+        return f"Core migrations: current ({health.applied_count}/{health.known_count})"
+    count = "unknown" if health.applied_count is None else str(health.applied_count)
+    detail = f"{count}/{health.known_count} applied"
+    if health.missing:
+        detail = f"{detail}; missing {', '.join(health.missing)}"
+    if health.note:
+        detail = f"{detail}; {health.note}"
+    return f"Core migrations: attention needed ({detail})"
+
+
+def _render_extension_health(items: tuple[ExtensionHealth, ...]) -> list[str]:
+    if not items:
+        return ["Extension health: ready (0 checked)"]
+    issue_count = sum(1 for item in items if not item.ready)
+    if issue_count == 0:
+        return [f"Extension health: ready ({len(items)} checked)"]
+
+    lines = [f"Extension health: attention needed ({len(items)} checked, {issue_count} issue(s))"]
+    for item in items:
+        if item.ready:
+            continue
+        details: list[str] = []
+        if item.note:
+            details.append(item.note)
+        if item.pending_migrations:
+            details.append(f"pending {', '.join(item.pending_migrations)}")
+        if item.drifted_migrations:
+            details.append(f"drifted {', '.join(item.drifted_migrations)}")
+        lines.append(
+            f"  - {item.extension_id}: {'; '.join(details) if details else 'attention needed'}"
+        )
+    return lines
 
 
 def render_runtime_status(report: RuntimeStatusReport) -> str:
@@ -187,12 +367,14 @@ def render_runtime_status(report: RuntimeStatusReport) -> str:
         lines.append(f"Mirror home note: {report.mirror_home_error}")
     lines.append(f"Database: {report.db_path if report.db_path else 'unknown'}")
     lines.append(f"Database exists: {_yes_no(report.db_exists)}")
+    lines.append(_render_core_migrations(report.core_migrations))
     if report.extensions:
         lines.append(
             f"Installed extensions: {len(report.extensions)} ({', '.join(report.extensions)})"
         )
     else:
         lines.append("Installed extensions: 0")
+    lines.extend(_render_extension_health(report.extension_health))
     lines.append(f"Python: {report.python_version}")
     lines.append(f"MEMORY_ENV: {report.memory_env}")
     lines.append("")

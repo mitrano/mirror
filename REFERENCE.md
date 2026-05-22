@@ -45,7 +45,7 @@ To inspect the local runtime state before an operational update:
 uv run python -m memory runtime status
 ```
 
-The command reports version, repository, git state, mirror home, database, installed extensions, Python version, and environment. It exits with attention needed when the current state is not safe enough for update planning, for example when the git tree is dirty or the mirror home is not configured.
+The command reports version, repository, git state, mirror home, database, core migration health, installed extensions, extension health, Python version, and environment. It exits with attention needed when the current state is not safe enough for update planning, for example when the git tree is dirty, the mirror home is not configured, core migrations are missing, or installed extension migrations have pending or drifted files.
 
 To list the active personas for the current user:
 
