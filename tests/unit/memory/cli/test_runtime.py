@@ -7,11 +7,15 @@ from memory.cli.runtime import (
     CoreMigrationHealth,
     ExtensionHealth,
     GitStatus,
+    GitUpdatePlan,
     RuntimeStatusReport,
+    RuntimeUpdateDryRun,
     cmd_runtime,
     inspect_core_migrations,
     inspect_extension_health,
+    inspect_git_update_plan,
     render_runtime_status,
+    render_runtime_update_dry_run,
 )
 from memory.db.migrations import MIGRATIONS
 from memory.extensions.migrations import run_migrations
@@ -285,3 +289,144 @@ def test_cmd_runtime_status_returns_nonzero_when_attention_needed(monkeypatch, c
     out = capsys.readouterr().out
     assert rc == 1
     assert "Status: attention needed" in out
+
+
+def test_inspect_git_update_plan_reports_missing_upstream(monkeypatch):
+    def fake_run_git(args, *, cwd):
+        if args[:2] == ["rev-parse", "--abbrev-ref"]:
+            return 128, "", "no upstream configured"
+        raise AssertionError(args)
+
+    monkeypatch.setattr("memory.cli.runtime._run_git", fake_run_git)
+
+    plan = inspect_git_update_plan(GitStatus(Path("/repo"), "main", "abc1234", False))
+
+    assert plan == GitUpdatePlan(None, None, None, False, "blocked", "no upstream configured")
+
+
+def test_inspect_git_update_plan_reports_equal_branch(monkeypatch):
+    def fake_run_git(args, *, cwd):
+        if args[:2] == ["rev-parse", "--abbrev-ref"]:
+            return 0, "origin/main", ""
+        if args[:2] == ["rev-list", "--left-right"]:
+            return 0, "0 0", ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr("memory.cli.runtime._run_git", fake_run_git)
+
+    plan = inspect_git_update_plan(GitStatus(Path("/repo"), "main", "abc1234", False))
+
+    assert plan == GitUpdatePlan("origin/main", 0, 0, True, "none", "already up to date")
+
+
+def test_inspect_git_update_plan_reports_behind_branch(monkeypatch):
+    def fake_run_git(args, *, cwd):
+        if args[:2] == ["rev-parse", "--abbrev-ref"]:
+            return 0, "origin/main", ""
+        if args[:2] == ["rev-list", "--left-right"]:
+            return 0, "0 3", ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr("memory.cli.runtime._run_git", fake_run_git)
+
+    plan = inspect_git_update_plan(GitStatus(Path("/repo"), "main", "abc1234", False))
+
+    assert plan == GitUpdatePlan("origin/main", 0, 3, True, "pull", "pull 3 remote commit(s)")
+
+
+def test_inspect_git_update_plan_blocks_ahead_branch(monkeypatch):
+    def fake_run_git(args, *, cwd):
+        if args[:2] == ["rev-parse", "--abbrev-ref"]:
+            return 0, "origin/main", ""
+        if args[:2] == ["rev-list", "--left-right"]:
+            return 0, "2 0", ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr("memory.cli.runtime._run_git", fake_run_git)
+
+    plan = inspect_git_update_plan(GitStatus(Path("/repo"), "main", "abc1234", False))
+
+    assert plan == GitUpdatePlan("origin/main", 2, 0, False, "blocked", "local commits present")
+
+
+def test_inspect_git_update_plan_blocks_diverged_branch(monkeypatch):
+    def fake_run_git(args, *, cwd):
+        if args[:2] == ["rev-parse", "--abbrev-ref"]:
+            return 0, "origin/main", ""
+        if args[:2] == ["rev-list", "--left-right"]:
+            return 0, "2 4", ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr("memory.cli.runtime._run_git", fake_run_git)
+
+    plan = inspect_git_update_plan(GitStatus(Path("/repo"), "main", "abc1234", False))
+
+    assert plan == GitUpdatePlan("origin/main", 2, 4, False, "blocked", "branch diverged")
+
+
+def test_render_runtime_update_dry_run_blocks_dirty_status():
+    dry_run = RuntimeUpdateDryRun(
+        _report(git=GitStatus(Path("/repo"), "main", "abc1234", True)), None
+    )
+
+    rendered = render_runtime_update_dry_run(dry_run)
+
+    assert "Mirror runtime update dry-run" in rendered
+    assert "Current status: attention needed" in rendered
+    assert "git tree is dirty" in rendered
+    assert "Dry-run result: blocked" in rendered
+
+
+def test_render_runtime_update_dry_run_ready_plan_includes_backup_and_validation():
+    dry_run = RuntimeUpdateDryRun(
+        _report(), GitUpdatePlan("origin/main", 0, 3, True, "pull", "pull 3 remote commit(s)")
+    )
+
+    rendered = render_runtime_update_dry_run(dry_run)
+
+    assert "Current status: ready" in rendered
+    assert "Upstream: origin/main" in rendered
+    assert "Update plan: pull 3 remote commit(s)" in rendered
+    assert "Backup: required before real update" in rendered
+    assert 'uv run pytest tests/unit/ tests/integration/ -m "not live"' in rendered
+    assert "Dry-run result: ready" in rendered
+
+
+def test_cmd_runtime_update_requires_dry_run(capsys):
+    rc = cmd_runtime(["update"])
+
+    captured = capsys.readouterr()
+    assert rc == 1
+    assert "runtime update currently supports --dry-run only" in captured.err
+
+
+def test_cmd_runtime_update_dry_run_dispatches(monkeypatch, capsys):
+    monkeypatch.setattr(
+        "memory.cli.runtime.build_runtime_update_dry_run",
+        lambda mirror_home_arg=None: RuntimeUpdateDryRun(
+            _report(),
+            GitUpdatePlan("origin/main", 0, 0, True, "none", "already up to date"),
+        ),
+    )
+
+    rc = cmd_runtime(["update", "--dry-run"])
+
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "Mirror runtime update dry-run" in out
+    assert "Dry-run result: ready" in out
+
+
+def test_cmd_runtime_update_dry_run_returns_nonzero_when_blocked(monkeypatch, capsys):
+    monkeypatch.setattr(
+        "memory.cli.runtime.build_runtime_update_dry_run",
+        lambda mirror_home_arg=None: RuntimeUpdateDryRun(
+            _report(git=GitStatus(Path("/repo"), "main", "abc1234", True)), None
+        ),
+    )
+
+    rc = cmd_runtime(["update", "--dry-run"])
+
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert "Dry-run result: blocked" in out

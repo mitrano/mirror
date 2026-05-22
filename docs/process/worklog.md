@@ -9,6 +9,14 @@ Update when a meaningful milestone is reached.
 
 ## Done
 
+### 2026-05-22 — Runtime update dry-run added
+
+Added `python -m memory runtime update --dry-run` as the planning step before any self-update execution. The command reuses runtime status as its safety gate, inspects the local branch's configured upstream without fetching or mutating refs, and reports whether the runtime is already up to date, behind upstream, ahead of upstream, diverged, missing an upstream, or blocked by unsafe current state.
+
+The dry-run is intentionally non-mutating: it does not fetch, pull, back up, migrate, or edit files. It emits the backup and validation steps that a future real update must perform.
+
+Verification: focused runtime tests passed, ruff check and format check passed, and story-scoped mypy passed for `src/memory/cli/runtime.py`. Manual validation confirmed the dirty-tree gate blocks update planning as expected.
+
 ### 2026-05-22 — Runtime status health checks added
 
 Expanded `python -m memory runtime status` with read-only health checks for core database migrations and installed extensions. The command now reports whether the core `_migrations` ledger is current against known migrations and whether installed extensions have valid manifests, pending command-skill migrations, or checksum drift in applied migration files.

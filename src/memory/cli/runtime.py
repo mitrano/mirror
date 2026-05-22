@@ -49,6 +49,26 @@ class ExtensionHealth:
 
 
 @dataclass(frozen=True)
+class GitUpdatePlan:
+    upstream: str | None
+    ahead: int | None
+    behind: int | None
+    ready: bool
+    action: str
+    note: str | None = None
+
+
+@dataclass(frozen=True)
+class RuntimeUpdateDryRun:
+    status_report: RuntimeStatusReport
+    git_plan: GitUpdatePlan | None
+
+    @property
+    def ready(self) -> bool:
+        return self.status_report.status == "ready" and bool(self.git_plan and self.git_plan.ready)
+
+
+@dataclass(frozen=True)
 class RuntimeStatusReport:
     version: str
     git: GitStatus
@@ -309,6 +329,54 @@ def build_runtime_status(
     )
 
 
+def inspect_git_update_plan(git: GitStatus) -> GitUpdatePlan:
+    if git.repository is None:
+        return GitUpdatePlan(None, None, None, False, "blocked", "repository unavailable")
+    code, upstream, stderr = _run_git(
+        ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], cwd=git.repository
+    )
+    if code != 0 or not upstream:
+        return GitUpdatePlan(None, None, None, False, "blocked", stderr or "no upstream configured")
+
+    count_code, counts, count_err = _run_git(
+        ["rev-list", "--left-right", "--count", "HEAD...@{u}"], cwd=git.repository
+    )
+    if count_code != 0 or not counts:
+        return GitUpdatePlan(
+            upstream, None, None, False, "blocked", count_err or "cannot compare upstream"
+        )
+    try:
+        ahead_text, behind_text = counts.split()
+        ahead = int(ahead_text)
+        behind = int(behind_text)
+    except ValueError:
+        return GitUpdatePlan(
+            upstream, None, None, False, "blocked", f"unexpected git count: {counts}"
+        )
+
+    if ahead == 0 and behind == 0:
+        return GitUpdatePlan(upstream, ahead, behind, True, "none", "already up to date")
+    if ahead == 0 and behind > 0:
+        return GitUpdatePlan(
+            upstream, ahead, behind, True, "pull", f"pull {behind} remote commit(s)"
+        )
+    if ahead > 0 and behind == 0:
+        return GitUpdatePlan(upstream, ahead, behind, False, "blocked", "local commits present")
+    return GitUpdatePlan(upstream, ahead, behind, False, "blocked", "branch diverged")
+
+
+def build_runtime_update_dry_run(
+    *,
+    start: Path | None = None,
+    mirror_home_arg: str | Path | None = None,
+) -> RuntimeUpdateDryRun:
+    status_report = build_runtime_status(start=start, mirror_home_arg=mirror_home_arg)
+    git_plan = (
+        inspect_git_update_plan(status_report.git) if status_report.status == "ready" else None
+    )
+    return RuntimeUpdateDryRun(status_report=status_report, git_plan=git_plan)
+
+
 def _yes_no(value: bool | None) -> str:
     if value is None:
         return "unknown"
@@ -351,6 +419,76 @@ def _render_extension_health(items: tuple[ExtensionHealth, ...]) -> list[str]:
     return lines
 
 
+def _runtime_status_blockers(report: RuntimeStatusReport) -> list[str]:
+    blockers: list[str] = []
+    if report.mirror_home_error:
+        blockers.append("mirror home is not configured")
+    if report.git.error:
+        blockers.append(f"git status error: {report.git.error}")
+    if report.git.dirty:
+        blockers.append("git tree is dirty")
+    if report.db_exists is False:
+        blockers.append("database is missing")
+    if not report.core_migrations.ready:
+        blockers.append("core migrations are not current")
+    for health in report.extension_health:
+        if not health.ready:
+            blockers.append(f"extension {health.extension_id} needs attention")
+    return blockers
+
+
+def render_runtime_update_dry_run(dry_run: RuntimeUpdateDryRun) -> str:
+    report = dry_run.status_report
+    lines: list[str] = []
+    lines.append("Mirror runtime update dry-run")
+    lines.append("")
+    lines.append(f"Current status: {report.status}")
+    lines.append(f"Repository: {report.git.repository if report.git.repository else 'unknown'}")
+    lines.append(f"Git branch: {report.git.branch or 'unknown'}")
+
+    blockers = _runtime_status_blockers(report)
+    if blockers:
+        lines.append("Blocked:")
+        for blocker in blockers:
+            lines.append(f"  - {blocker}")
+        lines.append("")
+        lines.append("Dry-run result: blocked")
+        return "\n".join(lines) + "\n"
+
+    git_plan = dry_run.git_plan
+    if git_plan is None:
+        lines.append("Blocked:")
+        lines.append("  - git update plan unavailable")
+        lines.append("")
+        lines.append("Dry-run result: blocked")
+        return "\n".join(lines) + "\n"
+
+    lines.append(f"Upstream: {git_plan.upstream or 'not configured'}")
+    if git_plan.ahead is not None and git_plan.behind is not None:
+        lines.append(f"Git relation: ahead {git_plan.ahead}, behind {git_plan.behind}")
+
+    if not git_plan.ready:
+        lines.append("Blocked:")
+        lines.append(f"  - {git_plan.note or 'git update is not safe to plan'}")
+        lines.append("")
+        lines.append("Dry-run result: blocked")
+        return "\n".join(lines) + "\n"
+
+    lines.append(f"Update plan: {git_plan.note or git_plan.action}")
+    if report.mirror_home:
+        lines.append(f"Backup: required before real update ({report.mirror_home / 'backups'})")
+    else:
+        lines.append("Backup: required before real update")
+    lines.append("Validation after update:")
+    lines.append('  - uv run pytest tests/unit/ tests/integration/ -m "not live"')
+    lines.append("  - uv run ruff check src/ tests/")
+    lines.append("  - uv run ruff format --check src/ tests/")
+    lines.append("Note: dry-run does not fetch, pull, back up, migrate, or modify files.")
+    lines.append("")
+    lines.append("Dry-run result: ready")
+    return "\n".join(lines) + "\n"
+
+
 def render_runtime_status(report: RuntimeStatusReport) -> str:
     lines: list[str] = []
     lines.append("Mirror runtime status")
@@ -387,12 +525,23 @@ def cmd_runtime(argv: list[str]) -> int:
     subparsers = parser.add_subparsers(dest="command", required=True)
     status_parser = subparsers.add_parser("status", help="Inspect runtime status")
     status_parser.add_argument("--mirror-home", dest="mirror_home")
+    update_parser = subparsers.add_parser("update", help="Plan a runtime update")
+    update_parser.add_argument("--dry-run", action="store_true", dest="dry_run")
+    update_parser.add_argument("--mirror-home", dest="mirror_home")
     args = parser.parse_args(argv)
 
     if args.command == "status":
         report = build_runtime_status(mirror_home_arg=args.mirror_home)
         sys.stdout.write(render_runtime_status(report))
         return 0 if report.status == "ready" else 1
+
+    if args.command == "update":
+        if not args.dry_run:
+            sys.stderr.write("runtime update currently supports --dry-run only\n")
+            return 1
+        dry_run = build_runtime_update_dry_run(mirror_home_arg=args.mirror_home)
+        sys.stdout.write(render_runtime_update_dry_run(dry_run))
+        return 0 if dry_run.ready else 1
 
     parser.print_help()
     return 1
