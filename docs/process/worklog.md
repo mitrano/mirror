@@ -9,6 +9,22 @@ Update when a meaningful milestone is reached.
 
 ## Done
 
+### 2026-05-22 — Safe runtime update execution added
+
+Added `python -m memory runtime update` as the first mutating self-update command. Execution runs as an ordered pipeline of explicit stages: status gate, fetch upstream, plan, database backup, backup verification, fast-forward only git merge, migrations through a one-shot `MemoryClient` open, and post-update status check. The first failure stops the pipeline and prints a recovery block with the backup path and previous commit when applicable.
+
+Flags: `--no-fetch` skips network and plans from local refs only; `--skip-migrations` applies code without opening the database. `--dry-run` and `--check` remain read-only.
+
+Verification:
+
+```bash
+PYTHONPATH=src uv run pytest tests/unit/memory/cli/test_runtime.py tests/unit/memory/cli/test_build.py tests/unit/memory/extensions/test_migrations.py
+uv run --extra dev ruff check src/ tests/
+uv run --extra dev ruff format --check src/ tests/
+```
+
+Result: 85 targeted tests passed. Static checks clean.
+
 ### 2026-05-22 — Clone role guard added
 
 Introduced an explicit clone role marker (`.mirror-clone-role`) at the repository root, with values `production` and `dev`. Default is `production` when the file is missing, unreadable, or unknown. `runtime status` and `runtime version` now report the clone role on a dedicated line. `python -m memory build load <slug>` refuses to start Builder Mode in clones marked `production`, exiting with a clear message and an override hint. The override is `--ignore-production-role`, which proceeds with a visible warning to the user.

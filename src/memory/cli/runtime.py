@@ -129,6 +129,23 @@ class RuntimeUpdateDryRun:
 
 
 @dataclass(frozen=True)
+class RuntimeUpdateStage:
+    name: str
+    state: str
+    detail: str | None = None
+
+
+@dataclass(frozen=True)
+class RuntimeUpdateResult:
+    stages: tuple[RuntimeUpdateStage, ...]
+    previous_commit: str | None
+    new_commit: str | None
+    backup_path: Path | None
+    success: bool
+    recovery: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class RuntimeStatusReport:
     version: str
     git: GitStatus
@@ -994,6 +1011,318 @@ def render_runtime_status(report: RuntimeStatusReport) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _git_fetch(remote: str, branch: str, cwd: Path) -> tuple[bool, str]:
+    code, _stdout, stderr = _run_git(["fetch", remote, branch], cwd=cwd)
+    if code != 0:
+        return False, stderr or "git fetch failed"
+    return True, ""
+
+
+def _git_fast_forward(upstream: str, cwd: Path) -> tuple[bool, str]:
+    code, _stdout, stderr = _run_git(["merge", "--ff-only", upstream], cwd=cwd)
+    if code != 0:
+        return False, stderr or "git merge --ff-only refused"
+    return True, ""
+
+
+def _apply_migrations(mirror_home_arg: str | Path | None) -> tuple[bool, str]:
+    try:
+        from memory.client import MemoryClient
+
+        mirror_home = (
+            Path(mirror_home_arg).expanduser() if mirror_home_arg else resolve_mirror_home()
+        )
+        client = MemoryClient(env="production", db_path=default_db_path_for_home(mirror_home))
+        client.close()
+    except Exception as exc:
+        return False, str(exc)
+    return True, ""
+
+
+def run_runtime_update(
+    *,
+    mirror_home_arg: str | Path | None = None,
+    fetch: bool = True,
+    migrate: bool = True,
+) -> RuntimeUpdateResult:
+    stages: list[RuntimeUpdateStage] = []
+    recovery: list[str] = []
+    backup_path: Path | None = None
+    previous_commit: str | None = None
+    new_commit: str | None = None
+
+    report = build_runtime_status(mirror_home_arg=mirror_home_arg)
+    if report.status != "ready":
+        stages.append(RuntimeUpdateStage("status gate", "fail", "runtime status is not ready"))
+        recovery.append("Run: python -m memory runtime diagnose")
+        recovery.append("Resolve the reported drift, then retry runtime update.")
+        return RuntimeUpdateResult(
+            tuple(stages), None, None, None, success=False, recovery=tuple(recovery)
+        )
+    stages.append(RuntimeUpdateStage("status gate", "pass"))
+    previous_commit = report.git.commit
+
+    upstream_full: str | None = None
+    remote_name: str | None = None
+    branch_name: str | None = None
+    if report.git.repository is None:
+        stages.append(RuntimeUpdateStage("plan", "fail", "repository unavailable"))
+        recovery.append("Mirror must be a git checkout to run runtime update.")
+        return RuntimeUpdateResult(
+            tuple(stages),
+            previous_commit,
+            None,
+            None,
+            success=False,
+            recovery=tuple(recovery),
+        )
+
+    if fetch:
+        plan_before = inspect_git_update_plan(report.git)
+        if plan_before.upstream is None:
+            stages.append(
+                RuntimeUpdateStage("fetch", "fail", plan_before.note or "no upstream configured")
+            )
+            recovery.append("Configure an upstream branch with git, then retry runtime update.")
+            return RuntimeUpdateResult(
+                tuple(stages),
+                previous_commit,
+                None,
+                None,
+                success=False,
+                recovery=tuple(recovery),
+            )
+        split = _split_upstream(plan_before.upstream)
+        if split is None:
+            stages.append(RuntimeUpdateStage("fetch", "fail", "unexpected upstream name"))
+            recovery.append("Resolve upstream tracking manually, then retry runtime update.")
+            return RuntimeUpdateResult(
+                tuple(stages),
+                previous_commit,
+                None,
+                None,
+                success=False,
+                recovery=tuple(recovery),
+            )
+        remote_name, branch_name = split
+        upstream_full = plan_before.upstream
+        ok, err = _git_fetch(remote_name, branch_name, report.git.repository)
+        if not ok:
+            stages.append(RuntimeUpdateStage("fetch", "fail", err))
+            recovery.append("Check network connectivity and remote access.")
+            recovery.append("Retry runtime update, or use --no-fetch to plan from local refs only.")
+            return RuntimeUpdateResult(
+                tuple(stages),
+                previous_commit,
+                None,
+                None,
+                success=False,
+                recovery=tuple(recovery),
+            )
+        stages.append(RuntimeUpdateStage("fetch", "pass", f"{remote_name} {branch_name}"))
+    else:
+        stages.append(RuntimeUpdateStage("fetch", "skip", "--no-fetch"))
+
+    plan = inspect_git_update_plan(report.git)
+    if plan.upstream is None:
+        stages.append(RuntimeUpdateStage("plan", "fail", plan.note or "no upstream"))
+        recovery.append("Configure an upstream branch with git, then retry runtime update.")
+        return RuntimeUpdateResult(
+            tuple(stages),
+            previous_commit,
+            None,
+            None,
+            success=False,
+            recovery=tuple(recovery),
+        )
+    upstream_full = upstream_full or plan.upstream
+
+    if plan.action == "none":
+        stages.append(RuntimeUpdateStage("plan", "pass", "already up to date"))
+        return RuntimeUpdateResult(
+            tuple(stages),
+            previous_commit,
+            previous_commit,
+            None,
+            success=True,
+        )
+    if plan.action != "pull":
+        stages.append(RuntimeUpdateStage("plan", "fail", plan.note or plan.action))
+        if plan.action == "blocked" and plan.ahead and plan.behind:
+            recovery.append("Branch diverged; reconcile local and upstream commits manually.")
+        elif plan.ahead:
+            recovery.append("Local branch is ahead of upstream; push or reset before updating.")
+        else:
+            recovery.append("Resolve the blocking condition manually, then retry runtime update.")
+        return RuntimeUpdateResult(
+            tuple(stages),
+            previous_commit,
+            None,
+            None,
+            success=False,
+            recovery=tuple(recovery),
+        )
+    stages.append(RuntimeUpdateStage("plan", "pass", plan.note or "pull"))
+
+    try:
+        mirror_home = (
+            Path(mirror_home_arg).expanduser() if mirror_home_arg else resolve_mirror_home()
+        )
+    except ValueError as exc:
+        stages.append(RuntimeUpdateStage("backup", "fail", str(exc)))
+        recovery.append("Configure MIRROR_HOME or MIRROR_USER, then retry runtime update.")
+        return RuntimeUpdateResult(
+            tuple(stages),
+            previous_commit,
+            None,
+            None,
+            success=False,
+            recovery=tuple(recovery),
+        )
+
+    try:
+        backup_path = create_backup(silent=True, mirror_home=mirror_home)
+    except Exception as exc:
+        stages.append(RuntimeUpdateStage("backup", "fail", str(exc)))
+        recovery.append(f"Backup directory must be writable: {mirror_home / 'backups'}")
+        return RuntimeUpdateResult(
+            tuple(stages),
+            previous_commit,
+            None,
+            None,
+            success=False,
+            recovery=tuple(recovery),
+        )
+    if backup_path is None:
+        stages.append(RuntimeUpdateStage("backup", "fail", "database not found"))
+        recovery.append(f"Expected database at: {default_db_path_for_home(mirror_home)}")
+        return RuntimeUpdateResult(
+            tuple(stages),
+            previous_commit,
+            None,
+            None,
+            success=False,
+            recovery=tuple(recovery),
+        )
+    stages.append(RuntimeUpdateStage("backup", "pass", str(backup_path)))
+
+    verification = verify_backup_archive(backup_path)
+    if not verification.valid:
+        stages.append(
+            RuntimeUpdateStage("verify backup", "fail", verification.note or "invalid backup")
+        )
+        recovery.append(f"Backup created but failed verification: {backup_path}")
+        recovery.append("Inspect the archive before retrying runtime update.")
+        return RuntimeUpdateResult(
+            tuple(stages),
+            previous_commit,
+            None,
+            backup_path,
+            success=False,
+            recovery=tuple(recovery),
+        )
+    stages.append(RuntimeUpdateStage("verify backup", "pass"))
+
+    ok, err = _git_fast_forward(upstream_full, report.git.repository)
+    if not ok:
+        stages.append(RuntimeUpdateStage("fast-forward", "fail", err))
+        recovery.append("Working tree is unchanged because fast-forward refused.")
+        recovery.append(f"Backup: {backup_path}")
+        recovery.append(f"Previous commit: {previous_commit}")
+        return RuntimeUpdateResult(
+            tuple(stages),
+            previous_commit,
+            None,
+            backup_path,
+            success=False,
+            recovery=tuple(recovery),
+        )
+    code, new_short, _err = _run_git(["rev-parse", "--short", "HEAD"], cwd=report.git.repository)
+    new_commit = new_short if code == 0 and new_short else None
+    stages.append(
+        RuntimeUpdateStage(
+            "fast-forward",
+            "pass",
+            f"{previous_commit} -> {new_commit}" if new_commit else "completed",
+        )
+    )
+
+    if migrate:
+        ok, err = _apply_migrations(mirror_home_arg)
+        if not ok:
+            stages.append(RuntimeUpdateStage("migrations", "fail", err))
+            recovery.append(f"Backup: {backup_path}")
+            recovery.append(f"Previous commit: {previous_commit}")
+            recovery.append(
+                f"Restore database from backup and run: git reset --hard {previous_commit}"
+            )
+            return RuntimeUpdateResult(
+                tuple(stages),
+                previous_commit,
+                new_commit,
+                backup_path,
+                success=False,
+                recovery=tuple(recovery),
+            )
+        stages.append(RuntimeUpdateStage("migrations", "pass"))
+    else:
+        stages.append(RuntimeUpdateStage("migrations", "skip", "--skip-migrations"))
+
+    post_report = build_runtime_status(mirror_home_arg=mirror_home_arg)
+    if post_report.status != "ready":
+        stages.append(
+            RuntimeUpdateStage("post-update status", "fail", "runtime status is not ready")
+        )
+        recovery.append("Code is on the new commit, database may be migrated.")
+        recovery.append(f"Backup: {backup_path}")
+        recovery.append("Run: python -m memory runtime diagnose")
+        return RuntimeUpdateResult(
+            tuple(stages),
+            previous_commit,
+            new_commit,
+            backup_path,
+            success=False,
+            recovery=tuple(recovery),
+        )
+    stages.append(RuntimeUpdateStage("post-update status", "pass"))
+
+    return RuntimeUpdateResult(
+        tuple(stages),
+        previous_commit,
+        new_commit,
+        backup_path,
+        success=True,
+    )
+
+
+def render_runtime_update_result(result: RuntimeUpdateResult) -> str:
+    lines: list[str] = ["Mirror runtime update", ""]
+    marks = {"pass": "✓", "fail": "✗", "skip": "-"}
+    for stage in result.stages:
+        mark = marks.get(stage.state, "?")
+        line = f"[{mark}] {stage.name}"
+        if stage.detail:
+            line = f"{line}: {stage.detail}"
+        lines.append(line)
+    lines.append("")
+    if result.previous_commit and result.new_commit and result.previous_commit != result.new_commit:
+        lines.append(f"Previous commit: {result.previous_commit}")
+        lines.append(f"New commit: {result.new_commit}")
+    if result.backup_path:
+        lines.append(f"Backup: {result.backup_path}")
+    lines.append("")
+    if result.success:
+        lines.append("Update result: success")
+    else:
+        lines.append("Update result: failed")
+        if result.recovery:
+            lines.append("")
+            lines.append("Recovery:")
+            for entry in result.recovery:
+                lines.append(f"- {entry}")
+    return "\n".join(lines) + "\n"
+
+
 def cmd_runtime(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Inspect Mirror runtime state")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -1003,9 +1332,11 @@ def cmd_runtime(argv: list[str]) -> int:
     version_parser.add_argument("--start", dest="start")
     diagnose_parser = subparsers.add_parser("diagnose", help="Diagnose runtime drift")
     diagnose_parser.add_argument("--mirror-home", dest="mirror_home")
-    update_parser = subparsers.add_parser("update", help="Plan a runtime update")
+    update_parser = subparsers.add_parser("update", help="Plan or execute a runtime update")
     update_parser.add_argument("--dry-run", action="store_true", dest="dry_run")
     update_parser.add_argument("--check", action="store_true", dest="check")
+    update_parser.add_argument("--no-fetch", action="store_true", dest="no_fetch")
+    update_parser.add_argument("--skip-migrations", action="store_true", dest="skip_migrations")
     update_parser.add_argument("--mirror-home", dest="mirror_home")
     backup_parser = subparsers.add_parser("backup", help="Create or verify a runtime backup")
     backup_parser.add_argument("--mirror-home", dest="mirror_home")
@@ -1034,12 +1365,17 @@ def cmd_runtime(argv: list[str]) -> int:
             availability = check_runtime_update_availability()
             sys.stdout.write(render_runtime_update_availability(availability))
             return 0 if availability.status in {"up_to_date", "update_available"} else 1
-        if not args.dry_run:
-            sys.stderr.write("runtime update currently supports --dry-run or --check only\n")
-            return 1
-        dry_run = build_runtime_update_dry_run(mirror_home_arg=args.mirror_home)
-        sys.stdout.write(render_runtime_update_dry_run(dry_run))
-        return 0 if dry_run.ready else 1
+        if args.dry_run:
+            dry_run = build_runtime_update_dry_run(mirror_home_arg=args.mirror_home)
+            sys.stdout.write(render_runtime_update_dry_run(dry_run))
+            return 0 if dry_run.ready else 1
+        result = run_runtime_update(
+            mirror_home_arg=args.mirror_home,
+            fetch=not args.no_fetch,
+            migrate=not args.skip_migrations,
+        )
+        sys.stdout.write(render_runtime_update_result(result))
+        return 0 if result.success else 1
 
     if args.command == "backup":
         if args.verify:

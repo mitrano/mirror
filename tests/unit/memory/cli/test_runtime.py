@@ -15,6 +15,8 @@ from memory.cli.runtime import (
     RuntimeStatusReport,
     RuntimeUpdateAvailability,
     RuntimeUpdateDryRun,
+    RuntimeUpdateResult,
+    RuntimeUpdateStage,
     RuntimeVersionReport,
     check_runtime_update_availability,
     cmd_runtime,
@@ -28,7 +30,9 @@ from memory.cli.runtime import (
     render_runtime_status,
     render_runtime_update_availability,
     render_runtime_update_dry_run,
+    render_runtime_update_result,
     render_runtime_version,
+    run_runtime_update,
     verify_backup_archive,
 )
 from memory.db.migrations import MIGRATIONS
@@ -665,12 +669,24 @@ def test_cmd_runtime_diagnose_dispatches(monkeypatch, capsys):
     assert "Status: attention needed" in out
 
 
-def test_cmd_runtime_update_requires_mode(capsys):
-    rc = cmd_runtime(["update"])
+def test_cmd_runtime_update_with_only_check_does_not_invoke_executor(monkeypatch, capsys):
+    monkeypatch.setattr(
+        "memory.cli.runtime.check_runtime_update_availability",
+        lambda: RuntimeUpdateAvailability(
+            "0.7.0", "origin/main", "abc1234", "abc1234", "up_to_date"
+        ),
+    )
+    called: list[bool] = []
+    monkeypatch.setattr(
+        "memory.cli.runtime.run_runtime_update",
+        lambda **kwargs: called.append(True),
+    )
 
-    captured = capsys.readouterr()
-    assert rc == 1
-    assert "runtime update currently supports --dry-run or --check only" in captured.err
+    rc = cmd_runtime(["update", "--check"])
+
+    assert rc == 0
+    assert called == []
+    assert "Availability: up_to_date" in capsys.readouterr().out
 
 
 def test_cmd_runtime_version_dispatches(monkeypatch, capsys):
@@ -850,3 +866,292 @@ def test_cmd_runtime_backup_verify_returns_nonzero_for_invalid_archive(tmp_path,
     out = capsys.readouterr().out
     assert rc == 1
     assert "Verification result: invalid" in out
+
+
+# CV9.E3.S7 — Safe Runtime Update Execution
+
+
+def _ready_report(monkeypatch):
+    monkeypatch.setattr(
+        "memory.cli.runtime.build_runtime_status", lambda mirror_home_arg=None: _report()
+    )
+
+
+def _attention_report(monkeypatch):
+    monkeypatch.setattr(
+        "memory.cli.runtime.build_runtime_status",
+        lambda mirror_home_arg=None: _report(git=GitStatus(Path("/repo"), "main", "abc1234", True)),
+    )
+
+
+def test_run_runtime_update_blocks_when_status_not_ready(monkeypatch):
+    _attention_report(monkeypatch)
+
+    result = run_runtime_update()
+
+    assert not result.success
+    assert result.stages[0].name == "status gate"
+    assert result.stages[0].state == "fail"
+    assert "runtime diagnose" in " ".join(result.recovery)
+
+
+def test_run_runtime_update_exits_clean_when_already_up_to_date(monkeypatch):
+    _ready_report(monkeypatch)
+    monkeypatch.setattr("memory.cli.runtime._git_fetch", lambda remote, branch, cwd: (True, ""))
+    monkeypatch.setattr(
+        "memory.cli.runtime.inspect_git_update_plan",
+        lambda git: GitUpdatePlan("origin/main", 0, 0, True, "none", "already up to date"),
+    )
+
+    result = run_runtime_update()
+
+    assert result.success is True
+    stage_names = [stage.name for stage in result.stages]
+    assert "status gate" in stage_names
+    assert "fetch" in stage_names
+    assert "plan" in stage_names
+    assert "fast-forward" not in stage_names
+
+
+def test_run_runtime_update_blocks_on_ahead_plan(monkeypatch):
+    _ready_report(monkeypatch)
+    monkeypatch.setattr("memory.cli.runtime._git_fetch", lambda remote, branch, cwd: (True, ""))
+    monkeypatch.setattr(
+        "memory.cli.runtime.inspect_git_update_plan",
+        lambda git: GitUpdatePlan("origin/main", 2, 0, False, "blocked", "local commits present"),
+    )
+
+    result = run_runtime_update()
+
+    assert not result.success
+    plan_stage = next(stage for stage in result.stages if stage.name == "plan")
+    assert plan_stage.state == "fail"
+    assert any("ahead" in entry for entry in result.recovery)
+
+
+def test_run_runtime_update_blocks_when_fetch_fails(monkeypatch):
+    _ready_report(monkeypatch)
+    monkeypatch.setattr(
+        "memory.cli.runtime.inspect_git_update_plan",
+        lambda git: GitUpdatePlan("origin/main", 0, 1, True, "pull", "pull 1 commit"),
+    )
+    monkeypatch.setattr(
+        "memory.cli.runtime._git_fetch",
+        lambda remote, branch, cwd: (False, "remote unreachable"),
+    )
+
+    result = run_runtime_update()
+
+    assert not result.success
+    fetch_stage = next(stage for stage in result.stages if stage.name == "fetch")
+    assert fetch_stage.state == "fail"
+    assert "remote unreachable" in fetch_stage.detail
+    assert any("--no-fetch" in entry for entry in result.recovery)
+
+
+def test_run_runtime_update_runs_full_happy_path(monkeypatch, tmp_path):
+    _ready_report(monkeypatch)
+    monkeypatch.setattr("memory.cli.runtime._git_fetch", lambda remote, branch, cwd: (True, ""))
+    monkeypatch.setattr(
+        "memory.cli.runtime.inspect_git_update_plan",
+        lambda git: GitUpdatePlan("origin/main", 0, 1, True, "pull", "pull 1 commit"),
+    )
+    backup_path = tmp_path / "memory.zip"
+    backup_path.write_bytes(b"PK")
+    monkeypatch.setattr(
+        "memory.cli.runtime.create_backup",
+        lambda silent, mirror_home: backup_path,
+    )
+    monkeypatch.setattr(
+        "memory.cli.runtime.verify_backup_archive",
+        lambda path: BackupVerification(path, True, ("memory.db",)),
+    )
+    monkeypatch.setattr("memory.cli.runtime._git_fast_forward", lambda upstream, cwd: (True, ""))
+    monkeypatch.setattr("memory.cli.runtime._apply_migrations", lambda mirror_home_arg: (True, ""))
+    monkeypatch.setattr(
+        "memory.cli.runtime._run_git",
+        lambda args, *, cwd: (
+            (0, "def5678", "") if args == ["rev-parse", "--short", "HEAD"] else (0, "", "")
+        ),
+    )
+
+    result = run_runtime_update()
+
+    assert result.success is True
+    assert result.backup_path == backup_path
+    assert result.new_commit == "def5678"
+    stage_names = [stage.name for stage in result.stages]
+    assert stage_names == [
+        "status gate",
+        "fetch",
+        "plan",
+        "backup",
+        "verify backup",
+        "fast-forward",
+        "migrations",
+        "post-update status",
+    ]
+
+
+def test_run_runtime_update_migrations_failure_includes_recovery(monkeypatch, tmp_path):
+    _ready_report(monkeypatch)
+    monkeypatch.setattr("memory.cli.runtime._git_fetch", lambda remote, branch, cwd: (True, ""))
+    monkeypatch.setattr(
+        "memory.cli.runtime.inspect_git_update_plan",
+        lambda git: GitUpdatePlan("origin/main", 0, 1, True, "pull", "pull 1 commit"),
+    )
+    backup_path = tmp_path / "memory.zip"
+    monkeypatch.setattr(
+        "memory.cli.runtime.create_backup",
+        lambda silent, mirror_home: backup_path,
+    )
+    monkeypatch.setattr(
+        "memory.cli.runtime.verify_backup_archive",
+        lambda path: BackupVerification(path, True, ("memory.db",)),
+    )
+    monkeypatch.setattr("memory.cli.runtime._git_fast_forward", lambda upstream, cwd: (True, ""))
+    monkeypatch.setattr(
+        "memory.cli.runtime._run_git",
+        lambda args, *, cwd: (
+            (0, "def5678", "") if args == ["rev-parse", "--short", "HEAD"] else (0, "", "")
+        ),
+    )
+    monkeypatch.setattr(
+        "memory.cli.runtime._apply_migrations",
+        lambda mirror_home_arg: (False, "constraint failed"),
+    )
+
+    result = run_runtime_update()
+
+    assert not result.success
+    migrations_stage = next(stage for stage in result.stages if stage.name == "migrations")
+    assert migrations_stage.state == "fail"
+    assert any("Backup:" in entry for entry in result.recovery)
+    assert any("git reset --hard" in entry for entry in result.recovery)
+
+
+def test_run_runtime_update_no_fetch_skips_fetch(monkeypatch):
+    _ready_report(monkeypatch)
+    monkeypatch.setattr(
+        "memory.cli.runtime.inspect_git_update_plan",
+        lambda git: GitUpdatePlan("origin/main", 0, 0, True, "none", "already up to date"),
+    )
+
+    called: list[bool] = []
+    monkeypatch.setattr(
+        "memory.cli.runtime._git_fetch",
+        lambda remote, branch, cwd: called.append(True) or (True, ""),
+    )
+
+    result = run_runtime_update(fetch=False)
+
+    assert result.success is True
+    assert called == []
+    fetch_stage = next(stage for stage in result.stages if stage.name == "fetch")
+    assert fetch_stage.state == "skip"
+
+
+def test_render_runtime_update_result_success(tmp_path):
+    backup = tmp_path / "memory.zip"
+    result = RuntimeUpdateResult(
+        stages=(
+            RuntimeUpdateStage("status gate", "pass"),
+            RuntimeUpdateStage("plan", "pass", "pull 1 commit"),
+            RuntimeUpdateStage("backup", "pass", str(backup)),
+            RuntimeUpdateStage("verify backup", "pass"),
+            RuntimeUpdateStage("fast-forward", "pass", "abc1234 -> def5678"),
+            RuntimeUpdateStage("migrations", "pass"),
+            RuntimeUpdateStage("post-update status", "pass"),
+        ),
+        previous_commit="abc1234",
+        new_commit="def5678",
+        backup_path=backup,
+        success=True,
+    )
+
+    rendered = render_runtime_update_result(result)
+
+    assert "Mirror runtime update" in rendered
+    assert "[✓] status gate" in rendered
+    assert "[✓] fast-forward: abc1234 -> def5678" in rendered
+    assert f"Backup: {backup}" in rendered
+    assert "Update result: success" in rendered
+
+
+def test_render_runtime_update_result_failure_renders_recovery():
+    result = RuntimeUpdateResult(
+        stages=(RuntimeUpdateStage("status gate", "fail", "runtime status is not ready"),),
+        previous_commit=None,
+        new_commit=None,
+        backup_path=None,
+        success=False,
+        recovery=("Run: python -m memory runtime diagnose",),
+    )
+
+    rendered = render_runtime_update_result(result)
+
+    assert "[✗] status gate: runtime status is not ready" in rendered
+    assert "Update result: failed" in rendered
+    assert "Recovery:" in rendered
+    assert "- Run: python -m memory runtime diagnose" in rendered
+
+
+def test_cmd_runtime_update_executes_and_returns_zero_on_success(monkeypatch, capsys):
+    monkeypatch.setattr(
+        "memory.cli.runtime.run_runtime_update",
+        lambda mirror_home_arg=None, fetch=True, migrate=True: RuntimeUpdateResult(
+            stages=(RuntimeUpdateStage("status gate", "pass"),),
+            previous_commit="abc",
+            new_commit="abc",
+            backup_path=None,
+            success=True,
+        ),
+    )
+
+    rc = cmd_runtime(["update"])
+
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "Update result: success" in out
+
+
+def test_cmd_runtime_update_returns_nonzero_on_failure(monkeypatch, capsys):
+    monkeypatch.setattr(
+        "memory.cli.runtime.run_runtime_update",
+        lambda mirror_home_arg=None, fetch=True, migrate=True: RuntimeUpdateResult(
+            stages=(RuntimeUpdateStage("status gate", "fail", "not ready"),),
+            previous_commit=None,
+            new_commit=None,
+            backup_path=None,
+            success=False,
+            recovery=("Run: python -m memory runtime diagnose",),
+        ),
+    )
+
+    rc = cmd_runtime(["update"])
+
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert "Update result: failed" in out
+    assert "Recovery:" in out
+
+
+def test_cmd_runtime_update_passes_flag_overrides(monkeypatch, capsys):
+    captured: dict = {}
+
+    def fake_run(*, mirror_home_arg=None, fetch=True, migrate=True):
+        captured["fetch"] = fetch
+        captured["migrate"] = migrate
+        return RuntimeUpdateResult(
+            stages=(RuntimeUpdateStage("status gate", "pass"),),
+            previous_commit=None,
+            new_commit=None,
+            backup_path=None,
+            success=True,
+        )
+
+    monkeypatch.setattr("memory.cli.runtime.run_runtime_update", fake_run)
+
+    cmd_runtime(["update", "--no-fetch", "--skip-migrations"])
+
+    assert captured == {"fetch": False, "migrate": False}

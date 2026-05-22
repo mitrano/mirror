@@ -2,7 +2,7 @@
 
 # CV9.E3.S7 — Safe Runtime Update Execution
 
-**Status:** 🟡 Planned  
+**Status:** ✅ Done  
 **Epic:** CV9.E3 Distribution & Tooling
 
 ---

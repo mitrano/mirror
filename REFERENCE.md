@@ -36,7 +36,7 @@ Codex uses the `$mm-` prefix. All runtimes call the same Python core.
 | `/mm-shadow` | `$mm-shadow` | `/mm:shadow` | Surface and promote shadow-layer observations | `scan`, `apply`, `reject`, `list`, `show` |
 | `/mm-welcome` | `$mm-welcome` | `/mm:welcome` | Renders the state-aware welcome card on demand | no arguments |
 | `/mm-help` | `$mm-help` | `/mm:help` | Lists available commands | no arguments |
-| `python -m memory runtime` | — | — | Inspects Mirror runtime status, version, drift, backups, and update plans | `status [--mirror-home PATH]`, `version`, `diagnose [--mirror-home PATH]`, `backup [--mirror-home PATH]`, `backup --verify PATH`, `update --dry-run [--mirror-home PATH]`, `update --check` |
+| `python -m memory runtime` | — | — | Inspects Mirror runtime status, version, drift, backups, plans updates, and executes safe updates | `status [--mirror-home PATH]`, `version`, `diagnose [--mirror-home PATH]`, `backup [--mirror-home PATH]`, `backup --verify PATH`, `update --dry-run [--mirror-home PATH]`, `update --check`, `update [--no-fetch] [--skip-migrations] [--mirror-home PATH]` |
 | `ext-review-copy` | — | `ext:review-copy` | External multi-LLM copy review skill; install and expose it before use | skill-driven workflow |
 
 To inspect the local runtime state before an operational update:
@@ -85,6 +85,14 @@ To plan a runtime update from local git refs without mutating files, git refs, b
 ```bash
 uv run python -m memory runtime update --dry-run
 ```
+
+To execute a safe runtime update:
+
+```bash
+uv run python -m memory runtime update
+```
+
+Execution is the first mutating runtime command. It runs as an ordered pipeline: status gate, fetch upstream, plan, database backup, backup verification, fast-forward only git merge, migrations through a one-shot `MemoryClient` open, and a post-update status check. The first failure stops the pipeline. Recovery instructions are always printed on failure and include the backup path and previous commit when relevant. Flags: `--no-fetch` skips fetch and uses local refs; `--skip-migrations` applies code without opening the database; `--mirror-home PATH` overrides the resolved mirror home.
 
 The dry-run reuses runtime status as its safety gate, inspects the local branch's configured upstream without fetching, and reports whether a real update would be a no-op, pull known remote commits, or require manual reconciliation because the branch is ahead, diverged, dirty, or missing an upstream.
 
