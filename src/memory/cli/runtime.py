@@ -100,7 +100,15 @@ def inspect_git(start: Path) -> GitStatus:
     commit_code, commit, commit_err = _run_git(["rev-parse", "--short", "HEAD"], cwd=repository)
     dirty_code, dirty_out, dirty_err = _run_git(["status", "--porcelain"], cwd=repository)
 
-    errors = [err for code, err in ((branch_code, branch_err), (commit_code, commit_err), (dirty_code, dirty_err)) if code != 0 and err]
+    errors = [
+        err
+        for code, err in (
+            (branch_code, branch_err),
+            (commit_code, commit_err),
+            (dirty_code, dirty_err),
+        )
+        if code != 0 and err
+    ]
 
     return GitStatus(
         repository=repository,
@@ -180,7 +188,9 @@ def render_runtime_status(report: RuntimeStatusReport) -> str:
     lines.append(f"Database: {report.db_path if report.db_path else 'unknown'}")
     lines.append(f"Database exists: {_yes_no(report.db_exists)}")
     if report.extensions:
-        lines.append(f"Installed extensions: {len(report.extensions)} ({', '.join(report.extensions)})")
+        lines.append(
+            f"Installed extensions: {len(report.extensions)} ({', '.join(report.extensions)})"
+        )
     else:
         lines.append("Installed extensions: 0")
     lines.append(f"Python: {report.python_version}")

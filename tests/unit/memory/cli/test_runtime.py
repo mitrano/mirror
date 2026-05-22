@@ -64,7 +64,9 @@ def test_render_runtime_status_attention_needed_when_mirror_home_missing():
 
 
 def test_cmd_runtime_status_dispatches(monkeypatch, capsys):
-    monkeypatch.setattr("memory.cli.runtime.build_runtime_status", lambda mirror_home_arg=None: _report())
+    monkeypatch.setattr(
+        "memory.cli.runtime.build_runtime_status", lambda mirror_home_arg=None: _report()
+    )
 
     rc = cmd_runtime(["status"])
 
