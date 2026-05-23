@@ -12,6 +12,12 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-05-22 — v0.8.0 stable release published
+
+Published `v0.8.0 — Stable Self-Update Foundation` as the first prospective stable-channel release. Release commit `4bdff1b` was tagged as `v0.8.0` and `origin/stable` was fast-forwarded to the same commit. CI was green before tagging and promotion.
+
+The Navigator manually updated the production clone (`~/mirror`) through the documented stable self-update route. All validation commands succeeded: runtime version, update check, update execution, runtime status, release notes latest, and welcome. Production now confirms version `0.8.0`, update channel `stable`, ready status, and release notes for `v0.8.0`.
+
 ### 2026-05-22 — v0.8.0 release candidate prepared
 
 Prepared the first prospective stable-channel release candidate: `v0.8.0 — Stable Self-Update Foundation`. Bumped `pyproject.toml` to `0.8.0`, created `docs/releases/v0.8.0.md`, and added the release to `docs/releases/index.md`.

@@ -3,7 +3,7 @@
 # CV9.E3.S12 — First Stable Release Publication
 
 **Epic:** CV9.E3 Distribution & Tooling
-**Status:** 🟢 In Progress
+**Status:** ✅ Done
 **User-visible outcome:** Mirror Mind has its first formal release under the new stable-channel model: a version bump, narrative release note, tag, and promoted `stable` branch.
 
 ---
@@ -47,15 +47,27 @@ release note, a tag, and a stable promotion that production can follow.
 
 ---
 
-## Acceptance Criteria
+## Result
+
+Release published:
+
+```text
+Commit: 4bdff1b Publish v0.8.0 stable self-update foundation
+Tag:    v0.8.0
+Stable: origin/stable -> 4bdff1b
+```
+
+Acceptance criteria met:
 
 - `pyproject.toml` version is `0.8.0`.
 - `docs/releases/v0.8.0.md` exists and has digest, highlights, narrative sections, exclusions, lessons, and next horizon.
 - Git tag `v0.8.0` exists on the release commit.
 - `origin/stable` points to the tagged release commit.
-- Production on channel `stable` can update to the release without manual git intervention.
+- Production on channel `stable` updated to the release without manual git intervention.
 - `runtime release-notes latest` renders `v0.8.0` after update.
 - `runtime status` is ready after update.
+
+Production validation was run manually by the Navigator in `~/mirror` and all commands succeeded.
 
 ---
 
