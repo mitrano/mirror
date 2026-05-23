@@ -12,6 +12,16 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-05-23 — Release-aware stable update notices added
+
+Completed CV9.E3.S13. Stable-channel update surfaces now prefer release language when local refs contain newer release notes: dry-run can show the target release version, title, digest, and preview/update commands, while successful stable updates include an `Installed release` block after fast-forward. `runtime update --check` remains conservative and non-mutating: it can report an available remote commit through `git ls-remote`, but it does not fetch release-note files and says so when details are unavailable.
+
+Commit-oriented summaries remain as fallback, especially for `main` dogfooding. The updater safety pipeline is unchanged: status gate, backup, verification, fast-forward-only update, migrations, and post-update status still govern mutation.
+
+Validation: 99 targeted runtime and welcome tests passed; ruff, format check, story-scoped mypy, and `git diff --check` passed. Manual smoke in the dev clone confirmed the expected safety boundary (`stable` is `local_ahead`; dry-run is blocked by the dirty dev tree), so end-to-end stable update validation remains for CV9.E3.S17.
+
+Also recorded an Ariad/Maestro visualization experiment for the story. The next visualization cycle should add a bird's-eye `CV → Epic → Story` map and a horizontal board to show cards moving through flow lanes.
+
 ### 2026-05-22 — Next release target defined: v0.9.0 Self-Update Done
 
 After publishing `v0.8.0 — Stable Self-Update Foundation`, defined the next release target as `v0.9.0 — Self-Update Done`. The intended scope is CV9.E3.S13–S17: release-aware update notices, release-note skill parity, release promotion preflight/doctor, controlled stable promotion path, and fresh-user stable update smoke.

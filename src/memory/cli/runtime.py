@@ -127,6 +127,7 @@ class RuntimeUpdateAvailability:
     update_channel: UpdateChannel = field(
         default_factory=lambda: UpdateChannel(_DEFAULT_UPDATE_CHANNEL, None)
     )
+    target_release: RuntimeReleaseNote | None = None
 
 
 @dataclass(frozen=True)
@@ -152,6 +153,7 @@ class RuntimeReleaseNote:
 class RuntimeUpdateDryRun:
     status_report: RuntimeStatusReport
     git_plan: GitUpdatePlan | None
+    target_release: RuntimeReleaseNote | None = None
 
     @property
     def ready(self) -> bool:
@@ -174,6 +176,7 @@ class RuntimeUpdateResult:
     success: bool
     recovery: tuple[str, ...] = ()
     installed_changes: tuple[str, ...] = ()
+    installed_release: RuntimeReleaseNote | None = None
     next_steps: tuple[str, ...] = ()
 
 
@@ -335,6 +338,19 @@ def _extract_highlights(text: str) -> tuple[str, ...]:
     return tuple(highlights)
 
 
+def _release_note_from_text(path: Path, text: str) -> RuntimeReleaseNote:
+    title_match = re.search(r"^#\s+(v\d+\.\d+\.\d+)\s+—\s+(.+)$", text, re.MULTILINE)
+    note_version = title_match.group(1) if title_match else path.stem
+    title = title_match.group(2).strip() if title_match else path.stem
+    return RuntimeReleaseNote(
+        version=note_version,
+        title=title,
+        path=path,
+        digest=_extract_frontmatter_digest(text),
+        highlights=_extract_highlights(text),
+    )
+
+
 def read_release_note(
     version: str = "latest", start: Path | None = None
 ) -> RuntimeReleaseNote | None:
@@ -353,17 +369,47 @@ def read_release_note(
         if not path.exists() or not path.is_file():
             continue
         text = path.read_text(encoding="utf-8")
-        title_match = re.search(r"^#\s+(v\d+\.\d+\.\d+)\s+—\s+(.+)$", text, re.MULTILINE)
-        note_version = title_match.group(1) if title_match else path.stem
-        title = title_match.group(2).strip() if title_match else path.stem
-        return RuntimeReleaseNote(
-            version=note_version,
-            title=title,
-            path=path,
-            digest=_extract_frontmatter_digest(text),
-            highlights=_extract_highlights(text),
-        )
+        return _release_note_from_text(path, text)
     return None
+
+
+def read_release_note_from_ref(
+    ref: str, version: str = "latest", start: Path | None = None
+) -> RuntimeReleaseNote | None:
+    start_path = (start or Path.cwd()).resolve()
+    repository = _resolve_repo_root(start_path) or start_path
+    if version == "latest":
+        code, stdout, _stderr = _run_git(
+            ["ls-tree", "-r", "--name-only", ref, "docs/releases"], cwd=repository
+        )
+        if code != 0 or not stdout:
+            return None
+        names = [
+            line.strip()
+            for line in stdout.splitlines()
+            if re.search(r"docs/releases/v\d+\.\d+\.\d+\.md$", line.strip())
+        ]
+        if not names:
+            return None
+        selected = sorted(names, key=lambda name: _parse_semver(Path(name).stem), reverse=True)[0]
+    else:
+        wanted = version if version.startswith("v") else f"v{version}"
+        selected = f"docs/releases/{wanted}.md"
+
+    code, text, _stderr = _run_git(["show", f"{ref}:{selected}"], cwd=repository)
+    if code != 0 or not text:
+        return None
+    return _release_note_from_text(Path(selected), text)
+
+
+def _newer_release_note(
+    note: RuntimeReleaseNote | None, current_version: str
+) -> RuntimeReleaseNote | None:
+    if note is None:
+        return None
+    if _parse_semver(note.version) <= _parse_semver(current_version):
+        return None
+    return note
 
 
 def render_release_note(note: RuntimeReleaseNote | None) -> str:
@@ -874,8 +920,21 @@ def render_runtime_update_availability(report: RuntimeUpdateAvailability) -> str
         lines.append(f"Reason: {report.note}")
     if report.status == "update_available":
         lines.append("")
+        if report.target_release:
+            lines.append(
+                f"Release available: {report.target_release.version} — {report.target_release.title}"
+            )
+            if report.target_release.digest:
+                lines.append(f"Summary: {report.target_release.digest}")
+        elif report.update_channel.value == "stable":
+            lines.append(
+                "Release details: not fetched by this check; dry-run can show them when local refs contain release notes."
+            )
         lines.append("Preview:")
         lines.append("uv run python -m memory runtime update --dry-run")
+        lines.append("")
+        lines.append("Update:")
+        lines.append("uv run python -m memory runtime update")
     elif report.status == "up_to_date":
         lines.append("")
         lines.append("Next: no update needed")
@@ -971,7 +1030,21 @@ def build_runtime_update_dry_run(
         if status_report.status == "ready"
         else None
     )
-    return RuntimeUpdateDryRun(status_report=status_report, git_plan=git_plan)
+    target_release = None
+    if (
+        git_plan is not None
+        and git_plan.action == "pull"
+        and git_plan.upstream
+        and status_report.git.repository
+        and status_report.update_channel.value == "stable"
+    ):
+        target_release = _newer_release_note(
+            read_release_note_from_ref(git_plan.upstream, start=status_report.git.repository),
+            status_report.version,
+        )
+    return RuntimeUpdateDryRun(
+        status_report=status_report, git_plan=git_plan, target_release=target_release
+    )
 
 
 def _yes_no(value: bool | None) -> str:
@@ -1229,6 +1302,22 @@ def render_runtime_update_dry_run(dry_run: RuntimeUpdateDryRun) -> str:
         return "\n".join(lines) + "\n"
 
     lines.append(f"Update plan: {git_plan.note or git_plan.action}")
+    if dry_run.target_release:
+        lines.append("")
+        lines.append(
+            f"Release available: {dry_run.target_release.version} — {dry_run.target_release.title}"
+        )
+        if dry_run.target_release.digest:
+            lines.append(f"Summary: {dry_run.target_release.digest}")
+        lines.append("")
+        lines.append("Preview:")
+        lines.append("uv run python -m memory runtime update --dry-run")
+        lines.append("")
+        lines.append("Update:")
+        lines.append("uv run python -m memory runtime update")
+    elif report.update_channel.value == "stable" and git_plan.action == "pull":
+        lines.append("")
+        lines.append("Release details: unavailable in local refs; commit summary will be used.")
     if report.mirror_home:
         lines.append(f"Backup: required before real update ({report.mirror_home / 'backups'})")
     else:
@@ -1533,6 +1622,7 @@ def run_runtime_update(
     previous_commit: str | None = None
     new_commit: str | None = None
     installed_changes: tuple[str, ...] = ()
+    installed_release: RuntimeReleaseNote | None = None
 
     try:
         report = _build_status_for_channel(mirror_home_arg=mirror_home_arg, channel=channel)
@@ -1738,6 +1828,8 @@ def run_runtime_update(
         )
     )
     installed_changes = _git_installed_changes(report.git.repository, previous_commit, new_commit)
+    if report.update_channel.value == "stable" and previous_commit != new_commit:
+        installed_release = read_release_note("latest", start=report.git.repository)
 
     if migrate:
         ok, err = _apply_migrations(mirror_home_arg)
@@ -1756,6 +1848,7 @@ def run_runtime_update(
                 success=False,
                 recovery=tuple(recovery),
                 installed_changes=installed_changes,
+                installed_release=installed_release,
             )
         stages.append(RuntimeUpdateStage("migrations", "pass"))
     else:
@@ -1777,6 +1870,7 @@ def run_runtime_update(
             success=False,
             recovery=tuple(recovery),
             installed_changes=installed_changes,
+            installed_release=installed_release,
         )
     stages.append(RuntimeUpdateStage("post-update status", "pass"))
 
@@ -1787,6 +1881,7 @@ def run_runtime_update(
         backup_path,
         success=True,
         installed_changes=installed_changes,
+        installed_release=installed_release,
     )
 
 
@@ -1805,6 +1900,13 @@ def render_runtime_update_result(result: RuntimeUpdateResult) -> str:
         lines.append(f"New commit: {result.new_commit}")
     if result.backup_path:
         lines.append(f"Backup: {result.backup_path}")
+    if result.installed_release:
+        lines.append("")
+        lines.append(
+            f"Installed release: {result.installed_release.version} — {result.installed_release.title}"
+        )
+        if result.installed_release.digest:
+            lines.append(f"Summary: {result.installed_release.digest}")
     if result.installed_changes:
         lines.append("")
         lines.append("Installed changes:")

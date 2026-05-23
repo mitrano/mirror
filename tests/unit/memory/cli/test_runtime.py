@@ -12,12 +12,14 @@ from memory.cli.runtime import (
     GitStatus,
     GitUpdatePlan,
     GitWorktreeEntry,
+    RuntimeReleaseNote,
     RuntimeStatusReport,
     RuntimeUpdateAvailability,
     RuntimeUpdateDryRun,
     RuntimeUpdateResult,
     RuntimeUpdateStage,
     RuntimeVersionReport,
+    build_runtime_update_dry_run,
     check_runtime_update_availability,
     cmd_runtime,
     diagnose_runtime,
@@ -25,6 +27,7 @@ from memory.cli.runtime import (
     inspect_core_migrations,
     inspect_extension_health,
     inspect_git_update_plan,
+    read_release_note_from_ref,
     render_runtime_backup_created,
     render_runtime_diagnosis,
     render_runtime_status,
@@ -568,6 +571,47 @@ def test_render_runtime_update_availability():
     assert "runtime update --dry-run" in rendered
 
 
+def test_render_runtime_update_availability_stable_without_fetched_release_details():
+    from memory.cli.runtime import UpdateChannel
+
+    rendered = render_runtime_update_availability(
+        RuntimeUpdateAvailability(
+            "0.8.0",
+            "origin/stable",
+            "abcdef1234567890",
+            "def5678901234567",
+            "update_available",
+            update_channel=UpdateChannel("stable", None),
+        )
+    )
+
+    assert "Release details: not fetched by this check" in rendered
+    assert "uv run python -m memory runtime update --dry-run" in rendered
+    assert "uv run python -m memory runtime update" in rendered
+
+
+def test_render_runtime_update_availability_with_release_details(tmp_path):
+    from memory.cli.runtime import UpdateChannel
+
+    note = RuntimeReleaseNote(
+        "v0.9.0", "Self-Update Done", tmp_path / "v0.9.0.md", digest="Release summary."
+    )
+    rendered = render_runtime_update_availability(
+        RuntimeUpdateAvailability(
+            "0.8.0",
+            "origin/stable",
+            "abcdef1234567890",
+            "def5678901234567",
+            "update_available",
+            update_channel=UpdateChannel("stable", None),
+            target_release=note,
+        )
+    )
+
+    assert "Release available: v0.9.0 — Self-Update Done" in rendered
+    assert "Summary: Release summary." in rendered
+
+
 def test_inspect_git_update_plan_reports_missing_upstream(monkeypatch):
     def fake_run_git(args, *, cwd):
         if args[:2] == ["rev-parse", "--abbrev-ref"]:
@@ -667,6 +711,54 @@ def test_render_runtime_update_dry_run_ready_plan_includes_backup_and_validation
     assert "Backup: required before real update" in rendered
     assert 'uv run pytest tests/unit/ tests/integration/ -m "not live"' in rendered
     assert "Dry-run result: ready" in rendered
+
+
+def test_render_runtime_update_dry_run_shows_stable_release_details(tmp_path):
+    from memory.cli.runtime import UpdateChannel
+
+    dry_run = RuntimeUpdateDryRun(
+        _report(update_channel=UpdateChannel("stable", None)),
+        GitUpdatePlan("origin/stable", 0, 2, True, "pull", "pull 2 remote commit(s)"),
+        RuntimeReleaseNote(
+            "v0.9.0", "Self-Update Done", tmp_path / "v0.9.0.md", digest="Release summary."
+        ),
+    )
+
+    rendered = render_runtime_update_dry_run(dry_run)
+
+    assert "Release available: v0.9.0 — Self-Update Done" in rendered
+    assert "Summary: Release summary." in rendered
+    assert "uv run python -m memory runtime update" in rendered
+
+
+def test_build_runtime_update_dry_run_loads_newer_stable_release(monkeypatch, tmp_path):
+    from memory.cli.runtime import UpdateChannel
+
+    monkeypatch.setattr(
+        "memory.cli.runtime.build_runtime_status",
+        lambda mirror_home_arg=None, channel=None: _report(
+            version="0.8.0",
+            git=GitStatus(tmp_path, "main", "abc1234", False),
+            update_channel=UpdateChannel("stable", None),
+        ),
+    )
+    monkeypatch.setattr(
+        "memory.cli.runtime.inspect_git_update_plan",
+        lambda git, update_channel=None: GitUpdatePlan(
+            "origin/stable", 0, 1, True, "pull", "pull 1 remote commit(s)"
+        ),
+    )
+    monkeypatch.setattr(
+        "memory.cli.runtime.read_release_note_from_ref",
+        lambda ref, start=None: RuntimeReleaseNote(
+            "v0.9.0", "Self-Update Done", tmp_path / "v0.9.0.md"
+        ),
+    )
+
+    dry_run = build_runtime_update_dry_run(channel="stable")
+
+    assert dry_run.target_release is not None
+    assert dry_run.target_release.version == "v0.9.0"
 
 
 def test_cmd_runtime_diagnose_dispatches(monkeypatch, capsys):
@@ -997,6 +1089,12 @@ def test_run_runtime_update_runs_full_happy_path(monkeypatch, tmp_path):
     )
     monkeypatch.setattr("memory.cli.runtime._apply_migrations", lambda mirror_home_arg: (True, ""))
     monkeypatch.setattr(
+        "memory.cli.runtime.read_release_note",
+        lambda version="latest", start=None: RuntimeReleaseNote(
+            "v0.9.0", "Self-Update Done", tmp_path / "v0.9.0.md"
+        ),
+    )
+    monkeypatch.setattr(
         "memory.cli.runtime._run_git",
         lambda args, *, cwd: (
             (0, "def5678", "") if args == ["rev-parse", "--short", "HEAD"] else (0, "", "")
@@ -1009,6 +1107,8 @@ def test_run_runtime_update_runs_full_happy_path(monkeypatch, tmp_path):
     assert result.backup_path == backup_path
     assert result.new_commit == "def5678"
     assert result.installed_changes == ("def5678 Add update UX",)
+    assert result.installed_release is not None
+    assert result.installed_release.version == "v0.9.0"
     stage_names = [stage.name for stage in result.stages]
     assert stage_names == [
         "status gate",
@@ -1103,6 +1203,9 @@ def test_render_runtime_update_result_success(tmp_path):
         backup_path=backup,
         success=True,
         installed_changes=("def5678 Add update UX", "fed9012 Improve release summary"),
+        installed_release=RuntimeReleaseNote(
+            "v0.9.0", "Self-Update Done", tmp_path / "v0.9.0.md", digest="Release summary."
+        ),
     )
 
     rendered = render_runtime_update_result(result)
@@ -1111,6 +1214,8 @@ def test_render_runtime_update_result_success(tmp_path):
     assert "[✓] status gate" in rendered
     assert "[✓] fast-forward: abc1234 -> def5678" in rendered
     assert f"Backup: {backup}" in rendered
+    assert "Installed release: v0.9.0 — Self-Update Done" in rendered
+    assert "Summary: Release summary." in rendered
     assert "Installed changes:" in rendered
     assert "- def5678 Add update UX" in rendered
     assert "- fed9012 Improve release summary" in rendered
@@ -1426,6 +1531,45 @@ def test_render_runtime_status_includes_update_channel():
     rendered = render_runtime_status(_report(update_channel=UpdateChannel("main", None)))
 
     assert "Update channel: main" in rendered
+
+
+def test_read_release_note_from_ref_reads_latest_note(monkeypatch, tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    calls: list[list[str]] = []
+
+    def fake_run_git(args, *, cwd):
+        calls.append(args)
+        if args == ["ls-tree", "-r", "--name-only", "origin/stable", "docs/releases"]:
+            return 0, "docs/releases/v0.8.0.md\ndocs/releases/v0.9.0.md", ""
+        if args == ["show", "origin/stable:docs/releases/v0.9.0.md"]:
+            return (
+                0,
+                """---
+digest: >
+  Release summary.
+---
+
+# v0.9.0 — Self-Update Done
+
+## Highlights
+
+- Release-aware notices.
+""",
+                "",
+            )
+        raise AssertionError(args)
+
+    monkeypatch.setattr("memory.cli.runtime._resolve_repo_root", lambda start: repo)
+    monkeypatch.setattr("memory.cli.runtime._run_git", fake_run_git)
+
+    note = read_release_note_from_ref("origin/stable", start=repo)
+
+    assert note is not None
+    assert note.version == "v0.9.0"
+    assert note.title == "Self-Update Done"
+    assert note.digest == "Release summary."
+    assert ["show", "origin/stable:docs/releases/v0.9.0.md"] in calls
 
 
 def test_runtime_release_notes_latest_reads_digest_and_highlights(tmp_path, monkeypatch):
