@@ -1,12 +1,138 @@
 const tree = document.querySelector('#docs-tree');
 const content = document.querySelector('#content');
 const currentPath = document.querySelector('#current-path');
+const mirrorName = document.querySelector('#mirror-name');
+const activePerspective = document.querySelector('#active-perspective');
+const chooser = document.querySelector('#chooser');
+const warning = document.querySelector('#warning');
+const docsPanel = document.querySelector('#docs-panel');
+const tabs = [...document.querySelectorAll('[data-view]')];
 let currentDocPath = null;
+let docsLoaded = false;
+let activeView = 'atlas';
+
+async function boot() {
+  const shell = await fetchJson('/api/shell');
+  mirrorName.textContent = shell.mirror?.name || 'Local Mirror';
+  showWarning(shell.warning);
+
+  if (!shell.defaultPerspective) {
+    chooser.hidden = false;
+    activeView = 'atlas';
+    await showView('atlas', { updateHash: false });
+  } else {
+    chooser.hidden = true;
+    activeView = shell.defaultPerspective;
+    await showView(activeView, { updateHash: false });
+  }
+}
+
+function showWarning(message) {
+  warning.hidden = !message;
+  warning.textContent = message || '';
+}
+
+async function chooseDefault(perspective) {
+  const result = await fetchJson('/api/preferences/default-perspective', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ defaultPerspective: perspective }),
+  });
+  showWarning(result.warning);
+  chooser.hidden = !!result.defaultPerspective;
+  await showView(result.defaultPerspective || perspective);
+}
+
+async function showView(view, { updateHash = true } = {}) {
+  activeView = view;
+  docsPanel.hidden = view !== 'docs';
+  tabs.forEach((tab) => tab.classList.toggle('active', tab.dataset.view === view));
+  activePerspective.textContent = view === 'docs' ? 'Docs' : `Perspective · ${capitalize(view)}`;
+
+  if (updateHash) {
+    window.history.replaceState({ view }, '', `#${view}`);
+  }
+
+  if (view === 'docs') {
+    await loadTree();
+    return;
+  }
+
+  const surface = await fetchJson(`/api/surface/${view}`);
+  currentPath.textContent = view === 'atlas' ? 'Atlas' : 'Workspace';
+  content.innerHTML = view === 'atlas' ? renderAtlas(surface) : renderWorkspace(surface);
+  window.scrollTo({ top: 0 });
+}
+
+function renderAtlas(surface) {
+  const regions = (surface.regions || []).map(renderRegion).join('');
+  return `
+    <section class="surface-intro">
+      <p class="eyebrow">Atlas</p>
+      <h2>Editorial psyche map</h2>
+      <p>${escapeHtml(surface.synthesis || 'Atlas is ready for Mirror visibility.')}</p>
+    </section>
+    <div class="region-grid">${regions}</div>
+  `;
+}
+
+function renderWorkspace(surface) {
+  const sections = (surface.sections || []).map(renderWorkspaceSection).join('');
+  return `
+    <section class="surface-intro">
+      <p class="eyebrow">Workspace</p>
+      <h2>Operational dashboard</h2>
+      <p>${escapeHtml(surface.status || 'Read-only operational overview')}</p>
+    </section>
+    <div class="section-stack">${sections}</div>
+  `;
+}
+
+function renderRegion(region) {
+  const cards = (region.cards || []).map(renderCard).join('');
+  return `
+    <section class="surface-group">
+      <div>
+        <p class="eyebrow">${escapeHtml(region.id)}</p>
+        <h3>${escapeHtml(region.title)}</h3>
+        <p>${escapeHtml(region.description)}</p>
+      </div>
+      ${cards ? `<div class="card-grid">${cards}</div>` : `<p class="empty-state">${escapeHtml(region.empty_state || 'Nothing to show yet.')}</p>`}
+    </section>
+  `;
+}
+
+function renderWorkspaceSection(section) {
+  const cards = (section.cards || []).map(renderCard).join('');
+  return `
+    <section class="surface-group wide">
+      <div>
+        <p class="eyebrow">${escapeHtml(section.id)}</p>
+        <h3>${escapeHtml(section.title)}</h3>
+        ${section.description ? `<p>${escapeHtml(section.description)}</p>` : ''}
+      </div>
+      ${cards ? `<div class="card-grid compact">${cards}</div>` : `<p class="empty-state">${escapeHtml(section.empty_state || 'Nothing to show yet.')}</p>`}
+    </section>
+  `;
+}
+
+function renderCard(card) {
+  return `
+    <article class="surface-card">
+      <div class="card-meta">${escapeHtml(card.kind)}${card.status ? ` · ${escapeHtml(card.status)}` : ''}</div>
+      <h4>${escapeHtml(card.title)}</h4>
+      <p>${escapeHtml(card.description || '')}</p>
+    </article>
+  `;
+}
 
 async function loadTree() {
-  const response = await fetch('/api/docs/tree');
-  const nodes = await response.json();
+  if (docsLoaded) {
+    if (!currentDocPath) await loadInitialDoc();
+    return;
+  }
 
+  const nodes = await fetchJson('/api/docs/tree');
   tree.innerHTML = '';
   const list = document.createElement('ul');
   list.className = 'doc-tree';
@@ -14,34 +140,16 @@ async function loadTree() {
     list.appendChild(renderNode(node, 0));
   }
   tree.appendChild(list);
-
-  const initial = readPathFromLocation();
-  if (initial) {
-    await loadDoc(initial, { replace: true });
-  } else {
-    const docsHome = findNodeByPath(nodes, 'docs/index.md');
-    const firstFile = findFirstFile(nodes);
-    const initialDoc = docsHome || firstFile;
-    if (initialDoc) {
-      await loadDoc(initialDoc.path, { replace: true });
-    }
-  }
+  docsLoaded = true;
+  await loadInitialDoc(nodes);
 }
 
-function readPathFromLocation() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('path');
-}
-
-function updateLocation(path, { replace = false } = {}) {
-  const url = new URL(window.location.href);
-  url.searchParams.set('path', path);
-  const state = { path };
-  if (replace) {
-    window.history.replaceState(state, '', url);
-  } else {
-    window.history.pushState(state, '', url);
-  }
+async function loadInitialDoc(nodes = null) {
+  const loadedNodes = nodes || await fetchJson('/api/docs/tree');
+  const docsHome = findNodeByPath(loadedNodes, 'docs/index.md');
+  const firstFile = findFirstFile(loadedNodes);
+  const initialDoc = docsHome || firstFile;
+  if (initialDoc) await loadDoc(initialDoc.path, { replace: true });
 }
 
 function renderNode(node, depth = 0) {
@@ -95,10 +203,8 @@ function findNodeByPath(nodes, path) {
   return null;
 }
 
-async function loadDoc(path, { replace = false, updateHistory = true } = {}) {
-  if (currentDocPath === path && !replace) {
-    return;
-  }
+async function loadDoc(path, { replace = false } = {}) {
+  if (currentDocPath === path && !replace) return;
 
   const response = await fetch(`/api/docs/file?path=${encodeURIComponent(path)}`);
   const doc = await response.json();
@@ -113,22 +219,11 @@ async function loadDoc(path, { replace = false, updateHistory = true } = {}) {
   currentPath.textContent = doc.path;
   content.innerHTML = doc.html;
   window.scrollTo({ top: 0 });
-
-  if (updateHistory) {
-    updateLocation(doc.path, { replace });
-  }
 }
-
-window.addEventListener('popstate', (event) => {
-  const path = event.state?.path || readPathFromLocation();
-  if (path && path !== currentDocPath) {
-    loadDoc(path, { updateHistory: false });
-  }
-});
 
 content.addEventListener('click', async (event) => {
   const link = event.target.closest('a');
-  if (!link || !currentDocPath) return;
+  if (!link || activeView !== 'docs' || !currentDocPath) return;
 
   const href = link.getAttribute('href');
   if (!href || isExternalLink(href) || href.startsWith('#')) return;
@@ -141,6 +236,14 @@ content.addEventListener('click', async (event) => {
   if (resolved.hash) {
     document.querySelector(resolved.hash)?.scrollIntoView();
   }
+});
+
+document.querySelectorAll('[data-choose]').forEach((button) => {
+  button.addEventListener('click', () => chooseDefault(button.dataset.choose));
+});
+
+tabs.forEach((tab) => {
+  tab.addEventListener('click', () => showView(tab.dataset.view));
 });
 
 function isExternalLink(href) {
@@ -170,8 +273,19 @@ function resolveDocHref(basePath, href) {
   };
 }
 
+async function fetchJson(url, options = {}) {
+  const response = await fetch(url, options);
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || `Request failed: ${url}`);
+  return payload;
+}
+
+function capitalize(value) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
 function escapeHtml(value) {
-  return value
+  return String(value)
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
@@ -179,6 +293,7 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
-loadTree().catch((error) => {
+boot().catch((error) => {
+  currentPath.textContent = 'Error';
   content.innerHTML = `<pre>${escapeHtml(String(error))}</pre>`;
 });

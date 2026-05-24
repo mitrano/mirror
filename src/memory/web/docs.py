@@ -149,7 +149,9 @@ class DocsBrowser:
 
     def _file_node(self, entry: DocEntry, name: str | None = None) -> DocNode:
         title = "Home" if entry.path == "docs/index.md" else entry.title
-        return DocNode(name=name or Path(entry.path).name, title=title, type="file", path=entry.path)
+        return DocNode(
+            name=name or Path(entry.path).name, title=title, type="file", path=entry.path
+        )
 
     def _directory_title(self, name: str) -> str:
         return name.replace("-", " ").replace("_", " ").title()

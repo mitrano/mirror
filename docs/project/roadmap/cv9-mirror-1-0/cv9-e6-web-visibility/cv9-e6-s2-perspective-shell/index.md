@@ -2,7 +2,7 @@
 
 # CV9.E6.S2 — Perspective Shell and Preference
 
-**Status:** 🟡 Planned  
+**Status:** 🟢 Planned — Plan checkpoint ready
 **User-visible outcome:** The local web app lets the user choose Atlas or Workspace, remembers the default, and keeps a stable shell across perspectives.
 
 ## Scope
@@ -23,6 +23,11 @@ Add the shared web shell for Mirror visibility:
 - The active perspective remains visible and switchable.
 - Atlas and Workspace share the same shell.
 - The docs browser remains accessible or intentionally repositioned.
+
+## Plan and Validation
+
+- [Plan](plan.md)
+- [Test Guide](test-guide.md)
 
 ## Notes
 
