@@ -148,6 +148,10 @@ uv run --extra dev ruff format --check src/ tests/
 uv run python -m memory welcome --mirror-home /Users/alissonvale/.mirror-minds/alisson-vale
 ```
 
+### 2026-05-24 — CV9.E6 Web Visibility roadmap created
+
+Added CV9.E6 as the roadmap epic for the Mirror Mind 1.0 web visibility surface. The epic is Ariad-compatible, with six planned stories covering the Web Surface foundation, perspective shell, Atlas identity/persona map, object detail and evidence, Workspace dashboard, and personal Mirror validation. Updated the CV9 and roadmap indexes so the new work is integrated with the existing 1.0 plan.
+
 ### 2026-05-24 — Web docs browser opens on docs home
 
 Adjusted the local web docs browser so a session without an explicit `?path=` opens on `docs/index.md` instead of the first alphabetic document. Moved the Python API reference to `docs/product/api.md` and the architecture reference to `docs/product/architecture.md`, then linked both from Product so the web navigation groups Mirror Core product surfaces together. Verified with `uv run pytest tests/unit/memory/web`.
