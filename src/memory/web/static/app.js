@@ -122,7 +122,7 @@ function renderPersonaRegion(region) {
   return `
     <section class="atlas-region atlas-personas persona-team">
       <div class="team-copy concept-side">
-        <div class="concept-icon" aria-label="${escapeHtml(region.title)}">${escapeHtml(region.metadata?.icon || '☷')}</div>
+        <div class="concept-icon" aria-label="${escapeHtml(region.title)}">${escapeHtml(region.metadata?.icon || '✣')}</div>
         <p class="concept-kicker">${escapeHtml(region.title)}</p>
         <h3>${escapeHtml(region.metadata?.motif || 'Team')}</h3>
         <p>${escapeHtml(region.description)}</p>

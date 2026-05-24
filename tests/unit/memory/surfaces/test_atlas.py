@@ -58,8 +58,8 @@ def test_atlas_home_surfaces_real_identity_and_personas(
     assert personas_region.metadata == {
         "atlas_role": "personas",
         "data_readiness": "real",
-        "icon": "☷",
-        "motif": "Team",
+        "icon": "✣",
+        "motif": "Action",
         "chips": ("Lenses", "Roles", "Voices"),
     }
     assert shadow_region.title == "Shadow"

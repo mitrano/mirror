@@ -75,8 +75,8 @@ class AtlasSurface:
             empty_state=None if cards else "No personas are available yet.",
             metadata={
                 **_region_metadata("personas", cards),
-                "icon": "☷",
-                "motif": "Team",
+                "icon": "✣",
+                "motif": "Action",
                 "chips": ("Lenses", "Roles", "Voices"),
             },
         )
