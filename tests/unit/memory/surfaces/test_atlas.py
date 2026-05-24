@@ -32,12 +32,12 @@ def test_atlas_home_surfaces_real_identity_and_personas(
         "The Mirror's speaking voice, behavioral stance, and operating constraints."
     )
     assert ego_region.cards[0].metadata["variants"] == ({"key": "identity", "label": "Identity"},)
-    assert ego_region.metadata == {"atlas_role": "center", "data_readiness": "real"}
+    assert ego_region.metadata == {"atlas_role": "ego", "data_readiness": "real"}
     assert personas_region.empty_state is None
     assert personas_region.cards[0].id == "engineer"
     assert personas_region.cards[0].kind == "persona"
     assert personas_region.cards[0].title == "Engineer"
-    assert personas_region.metadata == {"atlas_role": "west", "data_readiness": "real"}
+    assert personas_region.metadata == {"atlas_role": "personas", "data_readiness": "real"}
 
 
 def test_atlas_home_represents_empty_regions(
@@ -63,8 +63,6 @@ def test_atlas_home_represents_empty_regions(
         "personas",
         "shadow",
         "memories",
-        "journeys",
-        "conversations",
     }
     assert all(region.empty_state for region in home.regions)
     assert all(region.metadata["data_readiness"] == "empty" for region in home.regions)

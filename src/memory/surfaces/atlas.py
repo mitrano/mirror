@@ -31,11 +31,9 @@ class AtlasSurface:
         regions = (
             self._identity_region(),
             self._ego_region(),
-            self._personas_region(),
             self._shadow_region(),
+            self._personas_region(),
             self._memories_region(),
-            self._journeys_region(),
-            self._conversations_region(),
         )
         return AtlasHome(
             synthesis="An editorial map of the identity, lenses, memories, and trails inside this Mirror.",
@@ -55,7 +53,7 @@ class AtlasSurface:
             description="Structural layers that shape how the Mirror responds.",
             cards=cards,
             empty_state=None if cards else "No identity layers are available yet.",
-            metadata=_region_metadata("north", cards),
+            metadata=_region_metadata("self", cards),
         )
 
     def _ego_region(self) -> AtlasRegion:
@@ -67,7 +65,7 @@ class AtlasSurface:
             description="The active operational voice through which the Mirror speaks.",
             cards=cards,
             empty_state=None if cards else "No ego layers are available yet.",
-            metadata=_region_metadata("center", cards),
+            metadata=_region_metadata("ego", cards),
         )
 
     def _personas_region(self) -> AtlasRegion:
@@ -79,7 +77,7 @@ class AtlasSurface:
             description="Specialized lenses that activate by context.",
             cards=cards,
             empty_state=None if cards else "No personas are available yet.",
-            metadata=_region_metadata("west", cards),
+            metadata=_region_metadata("personas", cards),
         )
 
     def _shadow_region(self) -> AtlasRegion:
@@ -91,7 +89,7 @@ class AtlasSurface:
             description="Tensions, avoidances, contradictions, and integration candidates.",
             cards=cards,
             empty_state=None if cards else "No structural shadow observations are available yet.",
-            metadata=_region_metadata("south-west", cards),
+            metadata=_region_metadata("shadow", cards),
         )
 
     def _memories_region(self) -> AtlasRegion:
@@ -114,7 +112,7 @@ class AtlasSurface:
             description="Retained meaning, facts, patterns, and evidence.",
             cards=cards,
             empty_state=None if cards else "No memories are available yet.",
-            metadata=_region_metadata("south", cards, partial=True),
+            metadata=_region_metadata("memories", cards, partial=True),
         )
 
     def _journeys_region(self) -> AtlasRegion:

@@ -250,9 +250,9 @@ input {
 .atlas-map {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-template-areas:
-    ". north ."
-    "west center east"
-    "south-west south south-east";
+    "self ego shadow"
+    "personas personas personas"
+    "memories memories memories";
   align-items: stretch;
 }
 
@@ -282,36 +282,32 @@ input {
   z-index: 1;
 }
 
-.atlas-north {
-  grid-area: north;
+.atlas-self {
+  grid-area: self;
+  min-height: 170px;
 }
 
-.atlas-center {
-  grid-area: center;
-  min-height: 300px;
+.atlas-ego {
+  grid-area: ego;
+  min-height: 170px;
   background:
     radial-gradient(circle at 50% 15%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 48%),
     var(--panel);
 }
 
-.atlas-west {
-  grid-area: west;
+.atlas-shadow {
+  grid-area: shadow;
+  min-height: 170px;
 }
 
-.atlas-east {
-  grid-area: east;
+.atlas-personas {
+  grid-area: personas;
+  min-height: 230px;
 }
 
-.atlas-south-west {
-  grid-area: south-west;
-}
-
-.atlas-south {
-  grid-area: south;
-}
-
-.atlas-south-east {
-  grid-area: south-east;
+.atlas-memories {
+  grid-area: memories;
+  min-height: 320px;
 }
 
 .region-heading {
@@ -520,13 +516,11 @@ summary:hover {
   .atlas-map {
     grid-template-columns: 1fr;
     grid-template-areas:
-      "north"
-      "center"
-      "west"
-      "east"
-      "south-west"
-      "south"
-      "south-east";
+      "self"
+      "ego"
+      "shadow"
+      "personas"
+      "memories";
   }
 
   .docs-panel {
