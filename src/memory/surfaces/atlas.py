@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections import Counter
+
 from memory.models import Identity
 from memory.services.conversation import ConversationService
 from memory.services.identity import IdentityService
@@ -98,39 +100,19 @@ class AtlasSurface:
         )
 
     def _memories_region(self) -> AtlasRegion:
-        memories = self.memories.list_recent(limit=5)
-        memory_cards = tuple(
-            SurfaceCard(
-                id=memory.id,
-                kind="memory",
-                title=memory.title,
-                description="A retained memory available for later evidence and interpretation.",
-                href=f"/objects/memory/{memory.id}",
-                status=memory.layer,
-                accent=memory.memory_type,
-                metadata={"icon": "◫", "icon_kind": "glyph", "group": "Memories"},
-            )
-            for memory in memories
+        cards = _memory_category_cards(
+            memory_counts=Counter(
+                _memory_category(memory.memory_type)
+                for memory in self.memories.list_recent(limit=10000)
+            ),
+            journey_count=len(self.journeys.list_active_journeys()),
         )
-        journey_cards = tuple(
-            SurfaceCard(
-                id=journey["id"],
-                kind="journey",
-                title=journey["name"] or journey["id"],
-                description="A field of work or becoming remembered by the Mirror.",
-                href=f"/objects/journey/{journey['id']}",
-                status="journey",
-                metadata={"icon": "✦", "icon_kind": "glyph", "group": "Journeys"},
-            )
-            for journey in self.journeys.list_active_journeys()
-        )
-        cards = journey_cards + memory_cards
         return AtlasRegion(
             id="memories",
             title="Memories",
-            description="Retained meaning, journeys, patterns, and evidence.",
+            description="What has been retained over time.",
             cards=cards,
-            empty_state=None if cards else "No memories or journeys are available yet.",
+            empty_state=None if cards else "No memory categories are available yet.",
             metadata=_region_metadata("memories", cards, partial=True),
         )
 
@@ -177,6 +159,75 @@ class AtlasSurface:
             empty_state=None if cards else "No conversations are available yet.",
             metadata=_region_metadata("south-east", cards, partial=True),
         )
+
+
+def _memory_category_cards(
+    *, memory_counts: Counter[str], journey_count: int
+) -> tuple[SurfaceCard, ...]:
+    counts = Counter(memory_counts)
+    if journey_count:
+        counts["Journeys"] += journey_count
+    if not counts:
+        return ()
+
+    ranked = counts.most_common()
+    visible = ranked[:7]
+    other_count = sum(count for _, count in ranked[7:])
+    if other_count:
+        visible.append(("Other", other_count))
+    max_count = max(count for _, count in visible)
+    return tuple(
+        SurfaceCard(
+            id=f"memory-category:{label.lower().replace(' ', '-')}",
+            kind="memory-category",
+            title=label,
+            description="A type of retained Mirror memory.",
+            href=f"/objects/memory-category/{label.lower().replace(' ', '-')}",
+            count=count,
+            metadata={
+                "icon": _memory_category_icon(label),
+                "icon_kind": "glyph",
+                "bar_ratio": count / max_count,
+            },
+        )
+        for label, count in visible
+    )
+
+
+def _memory_category(raw_type: str) -> str:
+    normalized = (raw_type or "").strip().lower()
+    return {
+        "decision": "Decisions",
+        "decisao": "Decisions",
+        "idea": "Ideas",
+        "ideia": "Ideas",
+        "insight": "Insights",
+        "learning": "Learning",
+        "reflection": "Reflections",
+        "journal": "Reflections",
+        "pattern": "Patterns",
+        "padrao": "Patterns",
+        "tension": "Tensions",
+        "tensao": "Tensions",
+        "commitment": "Commitments",
+        "info": "Info",
+    }.get(normalized, _humanize_key(normalized) if normalized else "Other")
+
+
+def _memory_category_icon(label: str) -> str:
+    return {
+        "Decisions": "◆",
+        "Ideas": "✧",
+        "Insights": "✺",
+        "Learning": "▣",
+        "Reflections": "☉",
+        "Patterns": "⌘",
+        "Tensions": "◐",
+        "Commitments": "●",
+        "Journeys": "✦",
+        "Info": "◫",
+        "Other": "⋯",
+    }.get(label, "◫")
 
 
 def _identity_card(row: Identity) -> SurfaceCard:

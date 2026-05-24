@@ -102,7 +102,10 @@ function renderAtlasRegion(region) {
   }
 
   const readiness = region.metadata?.data_readiness || 'unknown';
-  const cards = (region.cards || []).slice(0, 6).map(renderCard).join('');
+  const cards = (region.cards || [])
+    .slice(0, 8)
+    .map((card) => (card.kind === 'memory-category' ? renderMemoryCategory(card) : renderCard(card)))
+    .join('');
   return `
     <section class="atlas-region atlas-${escapeHtml(role)} readiness-${escapeHtml(readiness)}">
       <div>
@@ -186,6 +189,20 @@ function renderWorkspaceSection(section) {
       </div>
       ${cards ? `<div class="card-grid compact">${cards}</div>` : `<p class="empty-state">${escapeHtml(section.empty_state || 'Nothing to show yet.')}</p>`}
     </section>
+  `;
+}
+
+function renderMemoryCategory(card) {
+  const ratio = Math.max(0.04, Math.min(1, Number(card.metadata?.bar_ratio || 0)));
+  return `
+    <article class="memory-type">
+      <div class="memory-type-head">
+        <span class="memory-type-icon" aria-hidden="true">${escapeHtml(card.metadata?.icon || '◫')}</span>
+        <span>${escapeHtml(card.title)}</span>
+        <strong>${escapeHtml(card.count ?? 0)}</strong>
+      </div>
+      <div class="memory-bar" aria-hidden="true"><span style="width: ${ratio * 100}%"></span></div>
+    </article>
   `;
 }
 

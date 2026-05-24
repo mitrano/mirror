@@ -7,6 +7,7 @@ def test_atlas_home_surfaces_real_identity_and_personas(
     memory_service,
     conversation_service,
     task_service,
+    mock_memory_embedding,
 ) -> None:
     identity_service.set_identity("self", "soul", "# Alma\nPurpose and values")
     identity_service.set_identity("ego", "identity", "# Ego\nOperational voice")
@@ -14,6 +15,8 @@ def test_atlas_home_surfaces_real_identity_and_personas(
     identity_service.set_identity("journey_path", "ariad", "# Ariad Path\nPath snapshot")
     identity_service.set_identity("journey", "mirror-mind", "# Mirror Mind\n**Status:** active")
     identity_service.set_identity("persona", "engineer", "# Engineer\nBuilds reliable systems")
+    memory_service.add_memory(title="Choice", content="A decision", memory_type="decision")
+    memory_service.add_memory(title="Seed", content="An idea", memory_type="ideia")
 
     surfaces = SurfaceService(
         identity=identity_service,
@@ -40,7 +43,12 @@ def test_atlas_home_surfaces_real_identity_and_personas(
     assert all(card.kind != "journey" for card in identity_region.cards)
     assert all(card.metadata["key"] != "journey_path" for card in identity_region.cards)
     assert all(card.metadata["layer"] != "journey_path" for card in identity_region.cards)
-    assert memories_region.cards[0].kind == "journey"
+    assert {card.title: card.count for card in memories_region.cards} == {
+        "Decisions": 1,
+        "Ideas": 1,
+        "Journeys": 1,
+    }
+    assert all(card.kind == "memory-category" for card in memories_region.cards)
     assert ego_region.empty_state is None
     assert ego_region.cards[0].id == "ego"
     assert ego_region.cards[0].kind == "identity"
