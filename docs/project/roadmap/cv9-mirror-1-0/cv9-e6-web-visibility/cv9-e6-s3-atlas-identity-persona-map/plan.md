@@ -1,6 +1,6 @@
 [< Story](index.md)
 
-# Plan — CV9.E6.S3 Atlas Identity and Persona Map
+# Plan — CV9.E6.S3 Identity Map Page
 
 ## Goal
 

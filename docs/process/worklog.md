@@ -12,6 +12,16 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-05-24 — Identity Map page validated
+
+Completed CV9.E6.S3, renamed from Atlas Identity and Persona Map to **Identity Map Page** after product review clarified that the whole map is an identity surface. The public UI now labels the perspective as Identity while the internal `atlas` route remains stable.
+
+The page renders a reflective map of Self, Ego, Shadow, Personas, and Memories. Self is scoped to `self/soul` and shown as Alma with Purpose/Principles/Values. Ego is Expression with Self-image/Behavior/Constraints. Shadow is Tension with integration-oriented chips. Personas are presented as a social/action team of persona initials and names. Memories are presented as category counts with proportional bars rather than individual memory records.
+
+This matters because the web surface moved from a database-shaped card grid toward a product-shaped identity map. The story also clarified an important taxonomy boundary: the identity table is a broad context registry, not the same thing as Self.
+
+Validation: `uv run pytest tests/unit/memory/surfaces tests/unit/memory/web tests/unit/memory/test_public_api.py` passed with 35 tests; Ruff lint and format checks passed; Navigator browser review accepted the Identity Map page direction.
+
 ### 2026-05-24 — Web perspective shell added
 
 Completed CV9.E6.S2 for the local web visibility track. The web app now has a shared shell for Atlas, Workspace, and Docs; a discreet perspective switcher; user-home default perspective persistence in `web/preferences.json`; and shell/surface APIs for Atlas and Workspace. Atlas and Workspace render initial read-only content from `MemoryClient.surfaces`, while Docs remains available as a dedicated mode with the documentation sidebar.

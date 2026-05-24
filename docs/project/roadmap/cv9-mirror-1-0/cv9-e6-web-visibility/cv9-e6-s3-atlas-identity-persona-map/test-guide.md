@@ -1,6 +1,6 @@
 [< Story](index.md)
 
-# Test Guide — CV9.E6.S3 Atlas Identity and Persona Map
+# Test Guide — CV9.E6.S3 Identity Map Page
 
 ## Automated validation
 
@@ -49,6 +49,20 @@ Validate Atlas:
 - Cards remain read-only.
 - Links are visibly prepared for detail routing but do not imply editing.
 - Workspace and Docs still work after switching away from Atlas.
+
+## Validation record
+
+Validated on 2026-05-24:
+
+```bash
+uv run pytest tests/unit/memory/surfaces tests/unit/memory/web tests/unit/memory/test_public_api.py
+uv run --extra dev ruff check src/memory/surfaces src/memory/web tests/unit/memory/surfaces tests/unit/memory/web
+uv run --extra dev ruff format --check src/memory/surfaces src/memory/web tests/unit/memory/surfaces tests/unit/memory/web
+```
+
+Result: 35 tests passed; Ruff lint and format checks passed. Navigator browser
+review accepted the Identity Map page after Self, Ego, Shadow, Personas, and
+Memories refinements.
 
 ## Known exclusions
 
