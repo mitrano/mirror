@@ -94,24 +94,38 @@ class AtlasSurface:
 
     def _memories_region(self) -> AtlasRegion:
         memories = self.memories.list_recent(limit=5)
-        cards = tuple(
+        memory_cards = tuple(
             SurfaceCard(
                 id=memory.id,
                 kind="memory",
                 title=memory.title,
-                description=memory.content,
+                description="A retained memory available for later evidence and interpretation.",
                 href=f"/objects/memory/{memory.id}",
                 status=memory.layer,
                 accent=memory.memory_type,
+                metadata={"icon": "M", "group": "Memories"},
             )
             for memory in memories
         )
+        journey_cards = tuple(
+            SurfaceCard(
+                id=journey["id"],
+                kind="journey",
+                title=journey["name"] or journey["id"],
+                description="A field of work or becoming remembered by the Mirror.",
+                href=f"/objects/journey/{journey['id']}",
+                status="journey",
+                metadata={"icon": "J", "group": "Journeys"},
+            )
+            for journey in self.journeys.list_active_journeys()
+        )
+        cards = journey_cards + memory_cards
         return AtlasRegion(
             id="memories",
             title="Memories",
-            description="Retained meaning, facts, patterns, and evidence.",
+            description="Retained meaning, journeys, patterns, and evidence.",
             cards=cards,
-            empty_state=None if cards else "No memories are available yet.",
+            empty_state=None if cards else "No memories or journeys are available yet.",
             metadata=_region_metadata("memories", cards, partial=True),
         )
 
@@ -162,14 +176,20 @@ class AtlasSurface:
 
 def _identity_card(row: Identity) -> SurfaceCard:
     object_id = identity_object_id(row.layer, row.key)
+    title = _title_for_identity(row)
     return SurfaceCard(
         id=object_id,
         kind="identity",
-        title=_title_for_identity(row),
+        title=title,
         description=_identity_description(row),
         href=f"/objects/identity/{object_id}",
         status=row.layer,
-        metadata={"layer": row.layer, "key": row.key, "icon": _icon_for_identity(row)},
+        metadata={
+            "layer": row.layer,
+            "key": row.key,
+            "icon": _icon_for_identity(row),
+            "display_label": _display_label_for_identity(row, title),
+        },
     )
 
 
@@ -186,7 +206,7 @@ def _ego_card(rows: list[Identity]) -> SurfaceCard:
         description="The Mirror's speaking voice, behavioral stance, and operating constraints.",
         href=f"/objects/identity/{identity_object_id(primary.layer, primary.key)}",
         status="ego",
-        metadata={"layer": "ego", "icon": "E", "variants": variants},
+        metadata={"layer": "ego", "icon": "E", "display_label": "", "variants": variants},
     )
 
 
@@ -198,7 +218,12 @@ def _persona_card(row: Identity) -> SurfaceCard:
         description="A specialized lens the Mirror can activate when this context is present.",
         href=f"/objects/persona/{row.key}",
         status="persona",
-        metadata={"layer": row.layer, "key": row.key, "icon": _initials(_title_for_identity(row))},
+        metadata={
+            "layer": row.layer,
+            "key": row.key,
+            "icon": _initials(_title_for_identity(row)),
+            "display_label": _title_for_identity(row),
+        },
     )
 
 
@@ -226,6 +251,12 @@ def _title_for_identity(row: Identity) -> str:
     if row.layer == "persona":
         return row.key.replace("-", " ").replace("_", " ").title()
     return f"{row.layer}/{row.key}"
+
+
+def _display_label_for_identity(row: Identity, title: str) -> str:
+    if row.layer in {"shadow", "self"}:
+        return ""
+    return title
 
 
 def _identity_description(row: Identity) -> str:
