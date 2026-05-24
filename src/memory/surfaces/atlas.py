@@ -44,7 +44,7 @@ class AtlasSurface:
         rows = [
             row
             for row in self.identity.store.get_all_identity()
-            if row.layer not in {"persona", "ego"}
+            if row.layer not in {"persona", "ego", "journey"}
         ]
         cards = tuple(_identity_card(row) for row in rows)
         return AtlasRegion(
