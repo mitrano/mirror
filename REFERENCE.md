@@ -3,8 +3,8 @@
 Command reference, configuration, and legacy migration workflow.
 
 - **Commands:** this document
-- **System architecture, schema, and runtime model:** [docs/architecture.md](docs/architecture.md)
-- **Python API:** [docs/api.md](docs/api.md)
+- **System architecture, schema, and runtime model:** [docs/product/architecture.md](docs/product/architecture.md)
+- **Python API:** [docs/product/api.md](docs/product/api.md)
 - **Extensions:** [docs/product/extensions/](docs/product/extensions/index.md)
 
 ---
@@ -347,4 +347,4 @@ layers, planned translations, and post-migration verification details.
 ---
 
 **See also:** [Getting Started](docs/getting-started.md) ·
-[Architecture](docs/architecture.md) · [Python API](docs/api.md)
+[Architecture](docs/product/architecture.md) · [Python API](docs/product/api.md)

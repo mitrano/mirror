@@ -148,11 +148,15 @@ uv run --extra dev ruff format --check src/ tests/
 uv run python -m memory welcome --mirror-home /Users/alissonvale/.mirror-minds/alisson-vale
 ```
 
+### 2026-05-24 — Web docs browser opens on docs home
+
+Adjusted the local web docs browser so a session without an explicit `?path=` opens on `docs/index.md` instead of the first alphabetic document. Moved the Python API reference to `docs/product/api.md` and the architecture reference to `docs/product/architecture.md`, then linked both from Product so the web navigation groups Mirror Core product surfaces together. Verified with `uv run pytest tests/unit/memory/web`.
+
 ### 2026-05-22 — Documentation information architecture updated
 
 Completed CV9.E5.S2 using Ariad's documentation pattern as the reference: short narrative home, explicit Start Here paths, and the Process / Project / Product triad with a practical Reference layer. `docs/index.md` now routes new users, operators, contributors, and developers to the right surfaces.
 
-Made a conservative pre-1.0 decision not to move files only for symmetry. `docs/releases/`, root-level `docs/architecture.md` and `docs/api.md`, and operations docs under `docs/process/` remain in place. Added a worklog scaling rule: keep a single file through 1.0, then archive by release or year if needed.
+Made a conservative pre-1.0 decision not to move files only for symmetry. `docs/releases/`, architecture and Python API references, and operations docs under `docs/process/` remain in explicit reader paths. Added a worklog scaling rule: keep a single file through 1.0, then archive by release or year if needed.
 
 ### 2026-05-22 — CV9.E3 closed and CV9.E5.S2 opened
 
@@ -303,7 +307,7 @@ Claude Code Pro / Gemini AI Pro). Removed legacy migration workflow (REFERENCE
 only). Reduced extension content to one paragraph with a pointer. Kept
 12-persona table and verification checklist.
 
-**S3 — REFERENCE split.** Created `docs/architecture.md` — 8 sections covering
+**S3 — REFERENCE split.** Created `docs/product/architecture.md` — 8 sections covering
 system overview, repo structure, layer model, identity model, memory model,
 runtime model, database schema, and runtime session model. REFERENCE.md trimmed
 to three sections: commands table, configuration, and legacy migration workflow
@@ -325,7 +329,7 @@ table, memory system detail, and extension detail with pointers.
 `docs/product/envisioning/index.md`. Verified all pointers introduced in S1–S5
 resolve correctly.
 
-**S7 — Python API doc.** Created `docs/api.md` covering all public
+**S7 — Python API doc.** Created `docs/product/api.md` covering all public
 `MemoryClient` methods: lifecycle, conversations, memories, identity/journeys,
 tasks, and attachments.
 

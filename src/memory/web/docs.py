@@ -158,6 +158,8 @@ class DocsBrowser:
     def _tree_sort_key(
         self, prefix: str, name: str, value: object
     ) -> tuple[int, int, list[int | str]]:
+        if prefix == "docs" and name == "index.md":
+            return (0, 0, self._natural_sort_key(name))
         if prefix == "docs/product" and name == "principles.md":
             return (0, 0, self._natural_sort_key(name))
         return (1, 0 if isinstance(value, dict) else 1, self._natural_sort_key(name))

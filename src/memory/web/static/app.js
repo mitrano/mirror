@@ -19,9 +19,11 @@ async function loadTree() {
   if (initial) {
     await loadDoc(initial, { replace: true });
   } else {
+    const docsHome = findNodeByPath(nodes, 'docs/index.md');
     const firstFile = findFirstFile(nodes);
-    if (firstFile) {
-      await loadDoc(firstFile.path, { replace: true });
+    const initialDoc = docsHome || firstFile;
+    if (initialDoc) {
+      await loadDoc(initialDoc.path, { replace: true });
     }
   }
 }
@@ -79,6 +81,15 @@ function findFirstFile(nodes) {
   for (const node of nodes) {
     if (node.type === 'file') return node;
     const found = findFirstFile(node.children || []);
+    if (found) return found;
+  }
+  return null;
+}
+
+function findNodeByPath(nodes, path) {
+  for (const node of nodes) {
+    if (node.path === path) return node;
+    const found = findNodeByPath(node.children || [], path);
     if (found) return found;
   }
   return null;

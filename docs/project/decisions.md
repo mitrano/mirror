@@ -11,6 +11,38 @@ resolved.
 
 ## Completed Decisions
 
+### Mirror web visibility uses perspectives, starting with Atlas and Workspace
+
+**Date:** 2026-05-24
+**Reference:** [Mirror Web Perspectives](../product/envisioning/web-perspectives.md), `mirror-1-0-market-entry` journey
+
+The Mirror Mind 1.0 web visibility surface will be explored through
+perspectives rather than fixed user types. A perspective is a viewing mode over
+the same Mirror data, not a permanent classification of the user.
+
+The first two perspectives are:
+
+- **Atlas:** identity-first view for exploring identity, personas, memories,
+  patterns, journeys, and conversations as a map of meaning.
+- **Workspace:** work-first view for following journeys, decisions, tasks,
+  conversations, and relevant context as a surface for action.
+
+If no default perspective is configured, the web app should ask how the user
+wants to look at their Mirror. The selected default can be saved, but the active
+perspective must remain visible and switchable.
+
+Consequences:
+
+- The web app should not become a database admin surface.
+- Atlas and Workspace should reuse the same underlying data while changing
+  labels, ordering, and interpretive emphasis.
+- Identity remains foundational, but it is not forced as the only front door for
+  operational users.
+- Evidence and provenance should be available as a shared detail pattern before
+  becoming a full perspective or graph interface.
+- Roadmap work should be derived after iterating the documented metaphor,
+  decisions, and wireframes.
+
 ### Release updates use stable/main channels
 
 **Date:** 2026-05-22
@@ -28,24 +60,28 @@ Consequences:
 - Release notes are exposed through `runtime release-notes` and the `mm-release-notes` skill, but the user-facing prompt is natural language: "What's new in the latest Mirror Mind release?"
 - A future Maestro release doctor can automate promotion checks.
 
-### Documentation IA stays conservative before 1.0
+### Documentation IA keeps the docs home first and product surfaces together
 
 **Date:** 2026-05-22
+**Updated:** 2026-05-24
 **Reference:** [CV9.E5.S2 Documentation Information Architecture](roadmap/cv9-mirror-1-0/cv9-e5-process-versioning-alignment/cv9-e5-s2-documentation-information-architecture/index.md), [Ariad documentation home](https://github.com/mirror-mind-ai/ariad/blob/main/docs/index.md)
 
 Mirror Mind adopts Ariad's documentation pattern for the 1.0 docs home: a short narrative opening, explicit "start here" paths, and the Process / Project / Product triad as the organizing spine. A practical Reference layer is allowed for command, operations, and developer lookup material.
 
-The project will not move files before 1.0 solely for symmetry. The following locations remain stable for now:
+The web docs browser should open on `docs/index.md`, titled "Mirror Mind Documentation", rather than the first alphabetic document. The docs home is the front door.
+
+The project will not move files before 1.0 solely for symmetry, but product-owned surfaces may move when navigation pressure makes the current location confusing. The following locations remain stable for now:
 
 - `docs/releases/` stays top-level as the prospective release-note home.
-- `docs/architecture.md` and `docs/api.md` stay at the docs root as developer reference surfaces.
+- `docs/product/architecture.md` lives under Product because architecture is part of the Mirror Core product surface.
+- `docs/product/api.md` lives under Product because the Python API is part of the Mirror Core product surface.
 - `docs/process/runtime-repair-policy.md` and `docs/process/troubleshooting.md` stay under Process because they describe safe operating policy and repair practice.
 - `docs/process/worklog.md` stays single-file through 1.0, with post-1.0 archive-by-release or archive-by-year as the scaling rule if it becomes hard to scan.
 
 Consequences:
 
 - The docs home should make reader paths explicit instead of acting only as an inventory.
-- Stable links are preferred over large moves during the 1.0 readiness cycle.
+- Stable reader paths are preferred over large moves during the 1.0 readiness cycle, but the web navigation experience can justify small IA corrections.
 - A future `docs/reference/` or `docs/operations/` subtree remains possible, but it should be justified by accumulated navigation pressure rather than introduced preemptively.
 
 ### Mirror Mind clones declare a role
