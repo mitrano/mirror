@@ -41,11 +41,7 @@ class AtlasSurface:
         )
 
     def _identity_region(self) -> AtlasRegion:
-        rows = [
-            row
-            for row in self.identity.store.get_all_identity()
-            if row.layer not in {"persona", "ego", "journey"}
-        ]
+        rows = [row for row in self.identity.store.get_all_identity() if _is_self_identity(row)]
         cards = tuple(_identity_card(row) for row in rows)
         return AtlasRegion(
             id="identity",
@@ -172,6 +168,14 @@ class AtlasSurface:
             empty_state=None if cards else "No conversations are available yet.",
             metadata=_region_metadata("south-east", cards, partial=True),
         )
+
+
+def _is_self_identity(row: Identity) -> bool:
+    if row.layer in {"persona", "ego", "journey"}:
+        return False
+    if row.key in {"journey_path"}:
+        return False
+    return True
 
 
 def _identity_card(row: Identity) -> SurfaceCard:
