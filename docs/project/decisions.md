@@ -77,6 +77,52 @@ Consequences:
   from persisted data or be absent.
 - Tests should cover surface composition independently from the HTTP server.
 
+### Mirror 1.0 web visibility starts with a read-only Atlas vertical slice
+
+**Date:** 2026-05-24
+**Reference:** [Mirror Web Perspectives](../product/envisioning/web-perspectives.md), [Web Surface Specification](../product/specs/web-surface/index.md)
+
+The first 1.0 web visibility roadmap should start with a narrow vertical slice,
+not a broad inventory of every Mirror object. The slice should prove the full
+path from shell to surface composition to services to rendered detail.
+
+Initial slice:
+
+```text
+perspective shell
+first-run perspective choice
+user-home default perspective setting
+Atlas psyche map
+Identity region with real data
+Personas region with real data
+supported object detail
+evidence placeholder or real provenance where available
+```
+
+The web visibility surface remains read-only in 1.0. Editing identity, memories,
+conversations, or other runtime state is explicitly out of scope for the first
+release.
+
+Data coverage for 1.0 is intentionally uneven and should be represented
+honestly:
+
+- Identity and personas are real.
+- Memories, journeys, conversations, tasks, and evidence may be partial.
+- Decisions may be derived or placeholder until a stronger model exists.
+- Search is outside the first vertical slice unless existing retrieval services
+  make it cheap.
+
+Success criterion: a user can open the local web app and understand what exists
+inside their Mirror without reading the database or using CLI commands.
+
+Consequences:
+
+- Roadmap stories should start with shell, user-home preference, Atlas surface
+  DTOs, identity/persona data, detail view, and evidence affordance.
+- Workspace should follow after the surface pattern is proven.
+- Empty states are part of the product, not a failure.
+- The release should be validated manually against the user's real Mirror.
+
 ### Release updates use stable/main channels
 
 **Date:** 2026-05-22

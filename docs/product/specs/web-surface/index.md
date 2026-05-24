@@ -259,6 +259,28 @@ include enough metadata to render in Atlas or Workspace
 allow perspective-specific grouping later
 ```
 
+## 1.0 implementation boundaries
+
+The first web visibility release is read-only. It should make Mirror data
+visible before it offers mutation workflows.
+
+The default perspective is a Mirror preference and should be stored in the user
+home, not only in browser-local state. Browser-local state may still be used for
+transient UI state.
+
+The first vertical slice should prove the whole path with a narrow Atlas scope:
+
+```text
+perspective shell
+Atlas home surface
+Identity region with real data
+Personas region with real data
+supported object detail
+evidence placeholder or real provenance where available
+```
+
+Workspace should follow after this path is proven.
+
 ## Non-goals for the first web visibility slice
 
 - Web routes querying SQLite directly.

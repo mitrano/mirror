@@ -374,46 +374,126 @@ View evidence
 Evidence is not a separate 1.0 perspective yet. It is a detail pattern used by
 both Atlas and Workspace.
 
-## 1.0 scope hypothesis
+## 1.0 scope
 
 The 1.0 web visibility slice should stay small enough to ship, while still
-making the perspective model visible.
+proving the perspective model and the Web Surface architecture.
 
-Possible 1.0 scope:
+The first implementation should be a vertical slice, not a broad horizontal
+inventory. The preferred first slice is:
+
+```text
+Perspective shell
+  first-run perspective choice
+  persistent default perspective in the user home
+  perspective switcher
+  global search affordance, even if search itself is deferred
+
+Atlas vertical slice
+  editorial psyche map
+  Identity region with real data
+  Personas region with real data
+  Object detail for supported identity/persona objects
+  Evidence placeholder or real provenance where available
+```
+
+This slice proves the full path:
+
+```text
+web shell -> Atlas surface -> services -> storage -> rendered object detail
+```
+
+Workspace should follow once the shell and surface pattern are proven. Its first
+version should reuse the same shell and surface DTO grammar while presenting an
+analytical dashboard.
+
+## 1.0 data coverage matrix
+
+The first roadmap should classify each area honestly instead of pretending every
+Mirror object is equally ready.
+
+```text
+Identity
+  real in 1.0
+
+Personas
+  real in 1.0
+
+Memories
+  partial in 1.0
+
+Journeys
+  real or partial in 1.0, depending on current service readiness
+
+Conversations
+  partial in 1.0
+
+Tasks
+  partial if current data services support it cleanly
+
+Decisions
+  derived or placeholder in 1.0
+
+Evidence
+  partial in 1.0, with honest empty states when provenance is missing
+
+Search
+  out of the first vertical slice unless it falls out cheaply from existing
+  retrieval services
+```
+
+## 1.0 boundaries
+
+The 1.0 web visibility surface is read-only. It should let the user see what is
+inside the Mirror before offering mutation workflows.
+
+In scope:
 
 - First-run perspective choice when no default exists.
-- Persistent default perspective setting.
+- Persistent default perspective setting stored in the user home.
 - Perspective switcher in the web shell.
-- Atlas home as an editorial psyche map with identity, personas, shadow,
-  memories, conversations, and journeys in read-only form.
-- Workspace home as an analytical dashboard with journeys, conversations,
-  decisions or tasks when present, and relevant memories in read-only form.
-- Object detail pages reuse existing data services where possible.
-- Evidence links appear where source data is available, without requiring a full
-  graph interface.
+- Atlas home as an editorial psyche map.
+- Workspace home as an analytical dashboard after the first Atlas slice proves
+  the architecture.
+- Object detail pages for supported objects.
+- Evidence affordances where source data exists.
+- Honest empty states where data or provenance is not available yet.
 
 Out of scope for the first slice:
 
-- Force-directed or fully interactive graph navigation.
 - Editing identity or memory content.
+- Force-directed or fully interactive graph navigation.
 - Automated perspective inference.
 - Full evidence graph.
+- Live LLM synthesis during page rendering.
 - Multi-user web authentication beyond the current local-first boundary.
 
-## Open questions
+## 1.0 success criterion
 
-- Should the default perspective be stored in the database, in the user home, or
-  in browser-local state?
+The web visibility release succeeds when a user can open the local web app and
+understand what exists inside their Mirror without reading the database or using
+CLI commands.
+
+Manual validation questions:
+
+```text
+Can I see my identity?
+Can I see my personas?
+Can I understand the Atlas map?
+Can I open a supported object detail?
+Can I see whether evidence exists for a claim?
+Can I switch perspective without feeling like I changed products?
+Can I understand which areas are not fully supported yet?
+```
+
+## Remaining open questions
+
 - Should perspective affect URLs, for example `/atlas/memories` and
   `/workspace/memories`, or should it be a query or session state over shared
   routes?
 - Which objects already have enough provenance to support useful evidence links
   in 1.0?
-- Are decisions first-class data today, or should Workspace derive decisions
-  from journey docs and conversation metadata until a stronger model exists?
 - Should Atlas have any persistent secondary navigation, or should navigation
   happen primarily through the psyche map plus search?
 - Which Workspace dashboard areas are supported by current data strongly enough
   to ship in 1.0?
-- What is the smallest manual validation scenario that proves users understand
-  what is inside their Mirror?
