@@ -153,7 +153,7 @@ def test_workspace_api_accepts_selected_journey_query(tmp_path: Path) -> None:
     assert payload["selected_journey"]["title"] == "Beta"
 
 
-def test_search_api_serializes_recent_memory_results(tmp_path: Path) -> None:
+def test_search_api_serializes_recent_memory_results(tmp_path: Path, mock_embeddings) -> None:
     mirror_home = tmp_path / "mirror-home"
     db_path = mirror_home / "memory.db"
     with MemoryClient(db_path=db_path) as mem:
@@ -174,7 +174,9 @@ def test_search_api_serializes_recent_memory_results(tmp_path: Path) -> None:
     assert payload["results"][0]["title"] == "Choose surface boundary"
 
 
-def test_memory_category_api_serializes_recent_memory_results(tmp_path: Path) -> None:
+def test_memory_category_api_serializes_recent_memory_results(
+    tmp_path: Path, mock_embeddings
+) -> None:
     mirror_home = tmp_path / "mirror-home"
     db_path = mirror_home / "memory.db"
     with MemoryClient(db_path=db_path) as mem:
