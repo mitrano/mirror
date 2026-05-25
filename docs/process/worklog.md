@@ -12,6 +12,18 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-05-25 — CV13.E1.S4 search results page validated
+
+Completed the fourth CV13.E1 read-only refinement story. The header search now
+opens a read-only results page over recent retained memories, with lexical local
+matching, honest empty states, browser Back behavior, full-width result cards,
+and memory-card icons that prefer persona context when present before falling
+back to the memory layer.
+
+Validation: focused search/surface and web tests passed, `node --check` passed,
+`git diff --check` passed, and Navigator browser validation accepted the search
+page, card width, and icon behavior.
+
 ### 2026-05-25 — CV13.E1.S3 memory category drilldown validated
 
 Completed the third CV13.E1 read-only refinement story. Identity memory category

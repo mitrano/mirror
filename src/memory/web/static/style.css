@@ -760,7 +760,8 @@ input {
 
 .workspace-hero,
 .docs-hero,
-.memories-hero {
+.memories-hero,
+.search-hero {
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--accent) 9%, transparent), transparent 55%),
     var(--panel);
@@ -825,7 +826,7 @@ input {
 }
 
 .memory-result-list {
-  max-width: 1100px;
+  width: 100%;
 }
 
 .workspace-card {

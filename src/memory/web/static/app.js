@@ -297,6 +297,31 @@ function workspaceCardDetail(card) {
   return values.map((value) => `<span>${escapeHtml(value)}</span>`).join('');
 }
 
+async function loadSearchResults(query, { updateHistory = true } = {}) {
+  activeView = 'search';
+  if (docsPanel) docsPanel.hidden = true;
+  currentPath.hidden = true;
+  contentGrid.classList.remove('docs-active');
+  tabs.forEach((tab) => tab.classList.remove('active'));
+
+  const results = await fetchJson(`/api/surface/search?q=${encodeURIComponent(query)}&perspective=${encodeURIComponent(activeView)}`);
+  content.innerHTML = renderSearchResultsPage(results);
+  if (updateHistory) {
+    window.history.pushState({ view: 'search', query }, '', `#search/${encodeURIComponent(query)}`);
+  }
+  window.scrollTo({ top: 0 });
+}
+
+function renderSearchResultsPage(results) {
+  const cards = (results.results || []).map(renderSearchResultCard).join('');
+  return `
+    <section class="surface-intro surface-line search-hero">
+      <p><strong>Search retained memories:</strong> ${escapeHtml(results.query || 'Type a query to search recent memory context.')}</p>
+    </section>
+    ${cards ? `<div class="workspace-list memory-result-list">${cards}</div>` : `<p class="empty-state">${escapeHtml(results.empty_state || 'No results available yet.')}</p>`}
+  `;
+}
+
 async function loadMemoryCategory(category, { updateHistory = true } = {}) {
   activeView = 'memories';
   if (docsPanel) docsPanel.hidden = true;
@@ -328,7 +353,7 @@ function renderSearchResultCard(result) {
   const detail = [metadata.memory_type, metadata.layer, metadata.journey, metadata.persona].filter(Boolean);
   return `
     <article class="workspace-card">
-      <div class="workspace-card-icon" aria-hidden="true">◫</div>
+      <div class="workspace-card-icon" aria-hidden="true">${escapeHtml(metadata.icon || '◫')}</div>
       <div>
         <div class="card-meta">${escapeHtml(detail.join(' · ') || result.kind)}</div>
         <h4>${escapeHtml(result.title)}</h4>
@@ -756,6 +781,14 @@ tabs.forEach((tab) => {
   });
 });
 
+document.querySelectorAll('[data-search-form]').forEach((form) => {
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const query = new FormData(form).get('q') || '';
+    await loadSearchResults(String(query));
+  });
+});
+
 document.querySelectorAll('[data-home]').forEach((homeLink) => {
   homeLink.addEventListener('click', async (event) => {
     event.preventDefault();
@@ -767,6 +800,10 @@ window.addEventListener('popstate', async (event) => {
   const state = event.state || {};
   if (state.view === 'memory-category' && state.category) {
     await loadMemoryCategory(state.category, { updateHistory: false });
+    return;
+  }
+  if (state.view === 'search') {
+    await loadSearchResults(state.query || '', { updateHistory: false });
     return;
   }
   await showView(state.view || viewFromHash() || 'workspace', { updateHash: false });

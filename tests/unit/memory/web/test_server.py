@@ -153,6 +153,27 @@ def test_workspace_api_accepts_selected_journey_query(tmp_path: Path) -> None:
     assert payload["selected_journey"]["title"] == "Beta"
 
 
+def test_search_api_serializes_recent_memory_results(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    db_path = mirror_home / "memory.db"
+    with MemoryClient(db_path=db_path) as mem:
+        mem.memories.add_memory(
+            title="Choose surface boundary",
+            content="Web renders surfaces.",
+            memory_type="decision",
+        )
+
+    server = WebTestServer(root=make_docs_root(tmp_path), mirror_home=mirror_home, db_path=db_path)
+    try:
+        status, payload = server.request("GET", "/api/surface/search?q=surface")
+    finally:
+        server.close()
+
+    assert status == 200
+    assert payload["query"] == "surface"
+    assert payload["results"][0]["title"] == "Choose surface boundary"
+
+
 def test_memory_category_api_serializes_recent_memory_results(tmp_path: Path) -> None:
     mirror_home = tmp_path / "mirror-home"
     db_path = mirror_home / "memory.db"

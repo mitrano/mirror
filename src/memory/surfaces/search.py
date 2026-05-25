@@ -14,10 +14,31 @@ class SearchSurface:
         self.memories = memories
 
     def search(self, query: str, perspective: str | None = None) -> SearchResults:
+        normalized = " ".join(query.split())
+        if not normalized:
+            return SearchResults(
+                query="",
+                perspective=perspective,
+                empty_state="Type a search term to search recent retained memories.",
+            )
+        if self.memories is None:
+            return SearchResults(
+                query=normalized,
+                perspective=perspective,
+                empty_state="Search is not wired into the web surface yet.",
+            )
+
+        terms = normalized.lower().split()
+        matches = [
+            memory
+            for memory in self.memories.list_recent(limit=1000)
+            if _matches_memory(memory, terms)
+        ][:25]
         return SearchResults(
-            query=query,
+            query=normalized,
             perspective=perspective,
-            empty_state="Search is not wired into the web surface yet.",
+            results=tuple(_memory_result(memory) for memory in matches),
+            empty_state=None if matches else f"No recent retained memories match '{normalized}'.",
         )
 
     def memory_category(self, category_id: str, *, limit: int = 50) -> SearchResults:
@@ -44,6 +65,21 @@ class SearchSurface:
         )
 
 
+def _matches_memory(memory: MemorySummary, terms: list[str]) -> bool:
+    haystack = " ".join(
+        item or ""
+        for item in (
+            memory.title,
+            memory.content,
+            memory.memory_type,
+            memory.layer,
+            memory.journey,
+            memory.persona,
+        )
+    ).lower()
+    return all(term in haystack for term in terms)
+
+
 def _memory_result(memory: MemorySummary) -> SearchResultItem:
     return SearchResultItem(
         id=memory.id,
@@ -52,6 +88,7 @@ def _memory_result(memory: MemorySummary) -> SearchResultItem:
         description=memory.content,
         href=f"/objects/memory/{memory.id}",
         metadata={
+            "icon": _memory_icon(memory),
             "memory_type": memory.memory_type,
             "layer": memory.layer,
             "journey": memory.journey,
@@ -59,6 +96,20 @@ def _memory_result(memory: MemorySummary) -> SearchResultItem:
             "created_at": memory.created_at,
         },
     )
+
+
+def _memory_icon(memory: MemorySummary) -> str:
+    if memory.persona:
+        return "✣"
+    normalized = (memory.layer or "").strip().lower()
+    return {
+        "self": "♛",
+        "ego": "◉",
+        "persona": "✣",
+        "shadow": "◐",
+        "user": "◇",
+        "journey": "⌁",
+    }.get(normalized, "◫")
 
 
 def _category_from_id(category_id: str) -> str:

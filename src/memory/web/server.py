@@ -73,6 +73,14 @@ class MirrorWebHandler(BaseHTTPRequestHandler):
                 self._send_json(mem.surfaces.memory_category(category).to_dict())
             return
 
+        if parsed.path == "/api/surface/search":
+            query = parse_qs(parsed.query)
+            search_query = query.get("q", [""])[0]
+            perspective = query.get("perspective", [None])[0]
+            with MemoryClient(db_path=self.db_path) as mem:
+                self._send_json(mem.surfaces.search(search_query, perspective).to_dict())
+            return
+
         if parsed.path == "/api/docs/tree":
             self._send_json([node.to_dict() for node in self.browser.tree()])
             return
