@@ -12,6 +12,14 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-05-25 — v0.10.9 release-awareness validation stub prepared
+
+Prepared `v0.10.9 — Release Awareness Validation Stub` after production was
+confirmed on `v0.10.8`. This is intentionally a minimal version/release-note
+release with no functional runtime changes, so production can validate whether
+opening Mirror detects a newly published stable release after the v0.10.8 welcome
+cache fix.
+
 ### 2026-05-25 — v0.10.8 release candidate prepared
 
 Prepared `v0.10.8 — Welcome Release Awareness` after production validation
