@@ -3,7 +3,7 @@
 # CV9.E6 — Web Visibility
 
 **Epic:** Make the contents of a user's Mirror visible through a local web surface  
-**Status:** 🟡 Active
+**Status:** ✅ Done
 
 ---
 
@@ -60,7 +60,7 @@ CV9.E6 delivers a read-only web visibility path for Mirror 1.0:
 | [CV9.E6.S3](cv9-e6-s3-atlas-identity-persona-map/index.md) | Identity Map Page | Identity opens as a reflective map of Self, Ego, Shadow, Personas, and Memories | ✅ Done |
 | [CV9.E6.S4](cv9-e6-s4-object-detail-evidence/index.md) | Object Detail and Source Context | Supported objects open into a common detail view with related objects, rendered content, metadata, and clear source context | ✅ Done |
 | [CV9.E6.S5](cv9-e6-s5-workspace-dashboard/index.md) | Workspace Dashboard Slice | Workspace shows a journey-centric workspace with briefing, conversations, tasks, memories, and decisions | ✅ Done |
-| [CV9.E6.S6](cv9-e6-s6-personal-mirror-validation/index.md) | Personal Mirror Validation | The 1.0 web visibility surface is validated against the real personal Mirror and documented with evidence and follow-up | ⏭️ Next |
+| [CV9.E6.S6](cv9-e6-s6-personal-mirror-validation/index.md) | Personal Mirror Validation | The 1.0 web visibility surface is validated against the real personal Mirror and documented with evidence and follow-up | ✅ Done |
 
 ---
 

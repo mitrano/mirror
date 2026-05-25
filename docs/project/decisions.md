@@ -11,6 +11,38 @@ resolved.
 
 ## Completed Decisions
 
+### Historical conversation journey repair is explicit and backup-gated
+
+**Date:** 2026-05-25
+**Reference:** [CV9.E6.S6 Personal Mirror Validation](roadmap/cv9-mirror-1-0/cv9-e6-web-visibility/cv9-e6-s6-personal-mirror-validation/index.md), [Troubleshooting](../process/troubleshooting.md#pi-builder-conversations-appear-without-journeys)
+
+Mirror Mind must not silently rewrite historical conversation journey
+associations. When a runtime bug leaves conversations with `journey = NULL`, the
+fix for future sessions belongs in core runtime logging, but historical repair
+must be explicit, reviewable, and backup-gated.
+
+The repair path is therefore:
+
+```bash
+uv run python -m memory conversation-logger repair-journeys
+uv run python -m memory conversation-logger repair-journeys --apply
+```
+
+The dry-run lists high-confidence candidates. The apply path creates a database
+backup before mutation and only updates `conversations.journey` for rows matched
+conservatively from activation language or explicit build commands. Ambiguous
+rows remain unchanged.
+
+Consequences:
+
+- The database remains personal memory, not a surface the framework rewrites
+  silently.
+- User trust is preserved through visible candidates and pre-repair backup.
+- Workspace can become truthful again after repair without pretending inference
+  is perfect.
+- Future repair tools should follow the same policy: diagnose first, backup
+  before mutation, apply only reviewed or high-confidence changes.
+
 ### Mirror web visibility uses perspectives, starting with Atlas and Workspace
 
 **Date:** 2026-05-24

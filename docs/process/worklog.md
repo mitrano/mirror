@@ -12,6 +12,45 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-05-25 — CV9.E6 Web Visibility validated and closed
+
+Completed CV9.E6.S6 and closed the Web Visibility epic. The read-only web
+surface now has a validated Identity perspective, shared object detail and
+Source Context, and a journey-centric Workspace perspective.
+
+Personal Mirror validation first exposed a release-blocking data-truth issue:
+Workspace was rendering the database correctly, but recent Pi Builder
+conversations were missing journey associations. After the core fix and
+backup-gated historical repair, Navigator visual validation confirmed that
+Workspace now reflects Mirror Mind, Maestro, and other journeys correctly.
+
+Validation: 62 focused tests passed; ruff lint and format checks passed;
+`node --check src/memory/web/static/app.js` passed; `git diff --check` passed;
+Navigator browser validation accepted the repaired Workspace state.
+
+### 2026-05-25 — Pi Builder journey association repaired
+
+During CV9.E6.S6 personal Mirror validation, Workspace revealed a data-truth
+bug: recent Pi Builder sessions were logged with messages but without journey
+association, so active journeys such as Mirror Mind and Maestro appeared stale
+or empty.
+
+Fixed the core conversation logger so SKILL.md commands without an explicit
+session id fall back to the latest active runtime session, and Pi user-message
+logging refreshes runtime session activity. Added an explicit repair command,
+`conversation-logger repair-journeys [--limit N] [--apply]`, with dry-run
+review and backup-gated apply for historical conversations.
+
+Applied the repair to the personal Mirror after backup
+`memory_20260525_083122.zip`: 45 high-confidence conversations were associated
+with journeys, the active validation conversation was attached to `mirror-mind`,
+and the `mirror-mind` journey identity was restored to active so Workspace can
+list it. Post-repair Workspace selects Mirror Mind and shows recent
+conversation cards; Maestro now shows its recent conversations.
+
+Validation: 62 focused tests passed; ruff lint and format checks passed;
+`node --check src/memory/web/static/app.js` passed; `git diff --check` passed.
+
 ### 2026-05-24 — Journey-centric Workspace dashboard added
 
 Completed CV9.E6.S5. Workspace now opens as a journey-centric operational surface rather than a generic stacked dashboard. The left side shows active journeys ordered by most recent activity; the central area shows the selected journey as a profile-style workspace with Briefing, Conversations, Tasks, Memories, and Decisions tabs.

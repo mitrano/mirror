@@ -40,11 +40,11 @@ In progress. Mirror Mind 1.0 focuses on refactoring, stabilization, release
 hardening, documentation polish, process/versioning alignment, web visibility,
 and public readiness. Documentation Polish (CV9.E4), Process & Versioning
 Alignment (CV9.E5), and Distribution & Tooling (CV9.E3) are complete. Web
-Visibility (CV9.E6) is now active: S1 Web Surface Foundation, S2 Perspective
-Shell and Preference, S3 Identity Map Page, S4 Object Detail and Source Context,
-and S5 Workspace Dashboard Slice are done on the `feature/cv9-e6-web-visibility`
-branch; S6 Personal Mirror Validation is next. Boundary Hardening and Stabilization remain planned before
-the full CV9 done condition is met.
+Visibility (CV9.E6) is complete: the read-only Identity and Workspace
+perspectives were validated against the personal Mirror, including a repaired Pi
+Builder journey-association bug that had made Workspace conversation data look
+stale. Boundary Hardening and Stabilization remain planned before the full CV9
+done condition is met.
 
 ---
 
