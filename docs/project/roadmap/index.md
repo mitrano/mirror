@@ -29,7 +29,7 @@ folder and index. Stories that are non-trivial have a `plan.md` and a
 | [CV10](cv10-coherence-engine/index.md) | Coherence Engine | 🟡 Planned |
 | [CV11](cv11-localization/index.md) | Localization | ⚪ Future |
 | [CV12](cv12-audience-modes/index.md) | Audience Modes | ⚪ Future |
-| [CV13](cv13-mirror-web-console/index.md) | Mirror Web Console | 🟡 Planned |
+| [CV13](cv13-mirror-web-console/index.md) | Mirror Web Experience | 🟡 Planned |
 | [CV14](cv14-stateful-extensions/index.md) | Stateful Extension System | 🟢 E1–E2 Done · E3–E4 provisional |
 
 ---
@@ -67,12 +67,14 @@ Future. Audience modes adapt explanation depth and vocabulary for technical and
 non-technical users without changing facts, standards, or coherence rules. See
 the [CV12 index](cv12-audience-modes/index.md).
 
-## CV13 — Mirror Web Console
+## CV13 — Mirror Web Experience
 
-Planned/deferred. The local web interface work is currently advancing inside
-CV9.E6 Web Visibility so the 1.0 release can ship read-only Identity and
-Workspace perspectives first. CV13 remains the broader post-1.0 web console
-track for future inspection/editing expansion. See the [CV13 index](cv13-mirror-web-console/index.md).
+Planned. CV13 is the post-1.0 web arc for Mirror Mind. CV9.E6 shipped the local
+read-only visibility foundation; CV13 evolves it into a fuller local web
+experience through staged minor releases: read-only refinement, multi-Mirror
+selection and preferences, configuration surfaces, conversation intelligence,
+allowlisted web operations, and eventually a controlled agentic web console. See
+the [CV13 index](cv13-mirror-web-console/index.md).
 
 ## CV3 — Pi Skill Parity
 
@@ -136,29 +138,16 @@ Add new items at the top. Each entry should name the problem (not just the
 solution), point at evidence or source, and sketch the rough shape of the
 work.
 
-### Agentic web console for controlled Mirror operations
+### Mirror Web Experience staged major release
 
-**Source:** CV9.E6 web visibility exploration and Navigator product discussion
-**Surfaced:** 2026-05-24
+**Source:** CV9.E6 validation, Agentic Web Console exploration, and Navigator product review
+**Surfaced:** 2026-05-25
+**Status:** Graduated into [CV13 Mirror Web Experience](cv13-mirror-web-console/index.md)
 
-After the read-only web visibility surface is useful, Mirror could grow a local
-agentic web console where users ask for updates in natural language and watch a
-headless agent run in the browser. The strategic goal is to avoid building CRUD
-forms for every Mirror mutation: identity, personas, journeys, memory
-consolidation, and shadow cultivation are semantic operations better handled
-through proposals, approval, controlled service calls, and audit trails.
-
-This should not be folded into CV9.E6. It likely needs its own future CV because
-it changes the web surface from read-only visibility into controlled agentic
-operation. See [Agentic Web Console](../../product/envisioning/agentic-web-console.md).
-
-Possible first slices:
-
-- Headless agent run spike with no writes.
-- Browser event timeline for a read-only agent explanation run.
-- Proposal-only flow for identity/persona updates.
-- Approval-gated writes through Mirror Core services, not raw SQL.
-- Audit trail connecting requested intent, run events, before/after state, and evidence.
+The post-1.0 web work is now organized as CV13. The agentic web console remains
+the major-release horizon, but the path now runs through smaller product slices:
+read-only refinement, multi-Mirror selection and preferences, configuration
+surfaces, conversation intelligence, and allowlisted streamed web operations.
 
 ### Mirror self-update and runtime health
 

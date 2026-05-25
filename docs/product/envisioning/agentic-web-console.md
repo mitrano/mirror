@@ -1,9 +1,10 @@
 [< Product Envisioning](index.md)
 
-> **Status: Exploratory product design.** This document captures a future
-> direction discovered while building the 1.0 read-only web visibility surface.
-> It is not part of CV9.E6. It should graduate only after the basic visibility
-> surface is useful and stable.
+> **Status: Graduated into roadmap planning.** This document captures the future
+> agentic horizon for the post-1.0 web surface. It is not part of CV9.E6; it has
+> graduated into [CV13 Mirror Web Experience](../../project/roadmap/cv13-mirror-web-console/index.md)
+> as the v2.0 direction after read-only refinement, preferences, configuration,
+> conversation intelligence, and streamed operations mature.
 
 # Agentic Web Console
 
@@ -186,10 +187,13 @@ transcripts, cancellation, and job history.
   manually reviewed diffs?
 - How should agent-created changes be linked back to memory/evidence records?
 
-## Relationship to current web visibility work
+## Relationship to CV13 Mirror Web Experience
 
-This is intentionally out of scope for CV9.E6 Web Visibility.
+This is intentionally out of scope for CV9.E6 Web Visibility, which remains the
+completed read-only foundation.
 
-CV9.E6 should remain read-only and prove that users can see and understand their
-Mirror through Identity and Workspace perspectives. Agentic web operations should
-be considered only after that foundation is useful.
+The idea now belongs to CV13 as the major-release horizon. It should not be the
+first CV13 slice. The safer route is to refine the read-only surface, add
+multi-Mirror selection and preferences, expose configuration carefully, improve
+conversation data, and introduce allowlisted streamed operations before launching
+background agent runs from the browser.

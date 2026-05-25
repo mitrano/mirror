@@ -12,6 +12,25 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-05-25 — CV13 Mirror Web Experience roadmap framed
+
+Reframed CV13 from the older Mirror Web Console placeholder into **Mirror Web
+Experience**, the staged post-1.0 web arc. The roadmap now organizes the
+Navigator's web change observations into minor-release themes: read-only web
+refinement, multi-Mirror selection and preferences, configuration console,
+conversation intelligence, web operations runner, and the agentic web console as
+the major-release horizon.
+
+Also recorded the CV13 branch and cadence policy: development branches per minor
+release, compressed Navigator intervention, automatic commit after an accepted
+story, and automatic push when the next story starts. The Maestro overlay for the
+`mirror-mind` journey now reflects the accepted-story push preference and carries
+these cadence notes.
+
+This planning keeps CV9.E6 as the completed read-only foundation and moves the
+Agentic Web Console exploration out of radar-only status into CV13 without
+pulling agent execution into the first implementation slice.
+
 ### 2026-05-25 — v0.10.17 release candidate prepared
 
 Production validated `update my Mirror` routing. Prepared `v0.10.17 — Update
