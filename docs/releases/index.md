@@ -12,6 +12,7 @@ Future release notes should use the structure defined in [Release Notes](../proc
 
 ## Releases
 
+- [v0.10.10 — Pending Release Notes Prompt](v0.10.10.md) — patch release that routes welcome update prompts to cumulative pending release notes.
 - [v0.10.9 — Release Awareness Validation Stub](v0.10.9.md) — minimal stable release used to validate v0.10.8 welcome update detection.
 - [v0.10.8 — Welcome Release Awareness](v0.10.8.md) — patch release that refreshes stable-channel welcome awareness after cached up-to-date checks.
 - [v0.10.7 — Runtime Operations Documentation](v0.10.7.md) — patch release that reconciles updater and release-management docs/help with the current command surface.

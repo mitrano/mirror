@@ -12,6 +12,27 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-05-25 — v0.10.10 release candidate prepared
+
+Prepared `v0.10.10 — Pending Release Notes Prompt` to publish the welcome prompt
+and release-notes skill routing change. The release changes the update guidance
+from ambiguous `what changed?` wording to `show pending release notes`, and maps
+newly available-version questions to `runtime release-notes pending` so users see
+the cumulative path from their installed version to stable.
+
+### 2026-05-25 — Welcome update prompt routed toward cumulative notes
+
+Production validation confirmed v0.10.8 release awareness works: opening Mirror
+on v0.10.8 showed `New Version Available: v0.10.9` without manual update-check,
+fetch, or cache commands. The suggested prompt `what changed?`, however, was too
+ambiguous and the agent interpreted it as a working-tree/git question.
+
+Changed welcome guidance to suggest `show pending release notes`, and updated the
+`mm-release-notes` skill so questions about the newly available version prefer
+`runtime release-notes pending`. The pending view is the correct final-user
+answer because it includes every release between the installed version and the
+current stable release.
+
 ### 2026-05-25 — v0.10.9 release-awareness validation stub prepared
 
 Prepared `v0.10.9 — Release Awareness Validation Stub` after production was
