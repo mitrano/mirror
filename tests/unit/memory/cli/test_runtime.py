@@ -1017,6 +1017,42 @@ def test_run_runtime_update_blocks_when_status_not_ready(monkeypatch):
     assert "runtime diagnose" in " ".join(result.recovery)
 
 
+def test_run_runtime_update_recovers_database_unavailable_status(monkeypatch):
+    reports = [
+        _report(
+            core_migrations=CoreMigrationHealth(
+                False,
+                None,
+                len(MIGRATIONS),
+                tuple(migration_id for migration_id, _ in MIGRATIONS),
+                note="unable to open database file",
+            ),
+            extension_health=(ExtensionHealth("maestro", False, "database unavailable"),),
+        ),
+        _report(),
+    ]
+    monkeypatch.setattr(
+        "memory.cli.runtime.build_runtime_status", lambda mirror_home_arg=None: reports.pop(0)
+    )
+    monkeypatch.setattr(
+        "memory.cli.runtime._attempt_database_bootstrap",
+        lambda mirror_home_arg: (True, "database opened through MemoryClient"),
+    )
+    monkeypatch.setattr("memory.cli.runtime._git_fetch", lambda remote, branch, cwd: (True, ""))
+    monkeypatch.setattr(
+        "memory.cli.runtime.inspect_git_update_plan",
+        lambda git: GitUpdatePlan("origin/main", 0, 0, True, "none", "already up to date"),
+    )
+
+    result = run_runtime_update()
+
+    assert result.success is True
+    assert [(stage.name, stage.state) for stage in result.stages[:2]] == [
+        ("status recovery", "pass"),
+        ("status gate", "pass"),
+    ]
+
+
 def test_run_runtime_update_exits_clean_when_already_up_to_date(monkeypatch):
     _ready_report(monkeypatch)
     monkeypatch.setattr("memory.cli.runtime._git_fetch", lambda remote, branch, cwd: (True, ""))

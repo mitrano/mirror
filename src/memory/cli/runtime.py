@@ -1694,7 +1694,15 @@ def _git_installed_changes(
     return tuple(line.strip() for line in stdout.splitlines() if line.strip())
 
 
-def _apply_migrations(mirror_home_arg: str | Path | None) -> tuple[bool, str]:
+def _status_database_unavailable(report: RuntimeStatusReport) -> bool:
+    notes = [report.core_migrations.note or ""]
+    notes.extend(item.note or "" for item in report.extension_health)
+    return any(
+        "database unavailable" in note or "unable to open database file" in note for note in notes
+    )
+
+
+def _attempt_database_bootstrap(mirror_home_arg: str | Path | None) -> tuple[bool, str]:
     try:
         from memory.client import MemoryClient
 
@@ -1705,7 +1713,12 @@ def _apply_migrations(mirror_home_arg: str | Path | None) -> tuple[bool, str]:
         client.close()
     except Exception as exc:
         return False, str(exc)
-    return True, ""
+    return True, "database opened through MemoryClient"
+
+
+def _apply_migrations(mirror_home_arg: str | Path | None) -> tuple[bool, str]:
+    ok, detail = _attempt_database_bootstrap(mirror_home_arg)
+    return ok, "" if ok else detail
 
 
 def _try_runtime_backup(
@@ -1923,9 +1936,14 @@ def run_runtime_update(
             fetch=fetch,
             channel=channel,
         )
+    if report.status != "ready" and _status_database_unavailable(report):
+        ok, detail = _attempt_database_bootstrap(mirror_home_arg)
+        stages.append(RuntimeUpdateStage("status recovery", "pass" if ok else "fail", detail))
+        if ok:
+            report = _build_status_for_channel(mirror_home_arg=mirror_home_arg, channel=channel)
     if report.status != "ready":
         stages.append(RuntimeUpdateStage("status gate", "fail", "runtime status is not ready"))
-        recovery.append("Run: python -m memory runtime diagnose")
+        recovery.append("Run: uv run python -m memory runtime diagnose")
         recovery.append("Resolve the reported drift, then retry runtime update.")
         return RuntimeUpdateResult(
             tuple(stages), None, None, None, success=False, recovery=tuple(recovery)
@@ -2145,13 +2163,22 @@ def run_runtime_update(
         stages.append(RuntimeUpdateStage("migrations", "skip", "--skip-migrations"))
 
     post_report = _build_status_for_channel(mirror_home_arg=mirror_home_arg, channel=channel)
+    if post_report.status != "ready" and _status_database_unavailable(post_report):
+        ok, detail = _attempt_database_bootstrap(mirror_home_arg)
+        stages.append(
+            RuntimeUpdateStage("post-update status recovery", "pass" if ok else "fail", detail)
+        )
+        if ok:
+            post_report = _build_status_for_channel(
+                mirror_home_arg=mirror_home_arg, channel=channel
+            )
     if post_report.status != "ready":
         stages.append(
             RuntimeUpdateStage("post-update status", "fail", "runtime status is not ready")
         )
         recovery.append("Code is on the new commit, database may be migrated.")
         recovery.append(f"Backup: {backup_path}")
-        recovery.append("Run: python -m memory runtime diagnose")
+        recovery.append("Run: uv run python -m memory runtime diagnose")
         return RuntimeUpdateResult(
             tuple(stages),
             previous_commit,

@@ -12,6 +12,22 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-05-25 — v0.10.6 release candidate prepared
+
+Production update to `v0.10.5` exposed a final-user resilience issue: when
+runtime status reports `unable to open database file`, the updater blocks at the
+status gate and tells the user to run a recovery command. This is too likely when
+local Mirror surfaces have recently used the production database.
+
+Prepared `v0.10.6 — Update Status Recovery`: runtime update now detects database
+unavailable status-gate failures, attempts the safe `MemoryClient` bootstrap
+that previously fixed the issue manually, rebuilds status, and continues if the
+runtime becomes ready. The same recovery is applied to post-update status.
+Recovery guidance now uses `uv run python -m memory ...`.
+
+Validation: focused runtime tests passed; ruff lint and format checks passed;
+`git diff --check` passed.
+
 ### 2026-05-25 — v0.10.5 release candidate prepared
 
 Prepared `v0.10.5 — Cumulative Release Notes` after adding
