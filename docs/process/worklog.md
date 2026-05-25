@@ -12,6 +12,14 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-05-25 — v0.10.11 pending-notes validation stub prepared
+
+Prepared `v0.10.11 — Pending Notes Prompt Validation Stub` after production was
+updated to v0.10.10. This minimal version/release-note release exists to test the
+new final-user flow: opening production Mirror should detect v0.10.11, suggest
+`show pending release notes`, and that question should render cumulative pending
+release notes instead of git status.
+
 ### 2026-05-25 — v0.10.10 release candidate prepared
 
 Prepared `v0.10.10 — Pending Release Notes Prompt` to publish the welcome prompt
