@@ -12,6 +12,17 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-05-25 — v0.10.4 release candidate prepared
+
+Production validation of `v0.10.3` confirmed Mirror now opens quickly, but Pi's
+startup counter still does not stop. This narrows the remaining issue from
+Python maintenance cost to extension lifecycle semantics.
+
+Prepared `v0.10.4 — Pi Startup Lifecycle`: startup maintenance is now launched
+as a fully detached fire-and-forget process with ignored stdio and `unref()`,
+redirecting output to `mirror-logger.log`. This avoids keeping stdout/stderr
+pipes or child close handlers attached to Pi's startup lifecycle.
+
 ### 2026-05-25 — v0.10.3 release candidate prepared
 
 Prepared `v0.10.3 — Pi Startup Maintenance` as a patch release candidate after
