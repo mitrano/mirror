@@ -306,6 +306,25 @@ def _latest_pi_session_file(sessions_dir: str | Path | None = None) -> Path | No
     return max(files, key=lambda path: path.stat().st_mtime)
 
 
+def attach_conversation_to_journey(
+    conversation_id: str,
+    *,
+    journey: str,
+    persona: str = "engineer",
+    mirror_home: str | Path | None = None,
+) -> str | None:
+    """Attach an existing conversation, addressed by id or id prefix, to a journey."""
+    mem = _memory_client(mirror_home)
+    conv = mem.store.get_conversation(conversation_id)
+    if conv is None:
+        conv = mem.store.find_conversation_by_id_prefix(conversation_id)
+    if conv is None:
+        return None
+
+    mem.store.update_conversation(conv.id, persona=persona, journey=journey)
+    return conv.id
+
+
 def attach_latest_pi_session(
     *,
     journey: str,
@@ -624,11 +643,12 @@ def main(argv: list[str] | None = None) -> None:
             fn(remaining[0], remaining[1], interface=interface, mirror_home=mirror_home)
     elif cmd == "session-start":
         print(session_start(mirror_home=mirror_home))
-    elif cmd == "attach-latest-pi":
+    elif cmd in ("attach", "attach-latest-pi"):
         remaining = list(args[1:])
         journey = None
         persona = "engineer"
         sessions_dir = None
+        conversation_id = None
         if "--journey" in remaining:
             idx = remaining.index("--journey")
             if idx + 1 < len(remaining):
@@ -641,17 +661,31 @@ def main(argv: list[str] | None = None) -> None:
             idx = remaining.index("--sessions-dir")
             if idx + 1 < len(remaining):
                 sessions_dir = remaining[idx + 1]
+        if "--conversation" in remaining:
+            idx = remaining.index("--conversation")
+            if idx + 1 < len(remaining):
+                conversation_id = remaining[idx + 1]
         if not journey:
-            print("Error: attach-latest-pi requires --journey SLUG", file=sys.stderr)
+            print(f"Error: {cmd} requires --journey SLUG", file=sys.stderr)
             sys.exit(1)
-        conv_id = attach_latest_pi_session(
-            journey=journey,
-            persona=persona,
-            mirror_home=mirror_home,
-            sessions_dir=sessions_dir,
-        )
+        if conversation_id:
+            conv_id = attach_conversation_to_journey(
+                conversation_id,
+                journey=journey,
+                persona=persona,
+                mirror_home=mirror_home,
+            )
+        else:
+            conv_id = attach_latest_pi_session(
+                journey=journey,
+                persona=persona,
+                mirror_home=mirror_home,
+                sessions_dir=sessions_dir,
+            )
         if conv_id:
             print(f"Conversation attached to journey {journey}: {conv_id}")
+        elif conversation_id:
+            print(f"Conversation not found: {conversation_id}")
         else:
             print("No Pi session file found.")
     elif cmd == "session-end-pi":

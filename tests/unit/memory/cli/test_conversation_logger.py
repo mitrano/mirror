@@ -179,6 +179,53 @@ class TestSessionEndPi:
         end_session.assert_called_once_with("pi-session-id", extract=False, mirror_home=None)
 
 
+class TestAttachConversationToJourney:
+    def test_attaches_existing_conversation_by_id(self, mocker):
+        conv = Conversation(id="3fd487ca", interface="pi")
+        mock_mem = MagicMock()
+        mock_mem.store.get_conversation.return_value = conv
+        mocker.patch("memory.cli.conversation_logger._memory_client", return_value=mock_mem)
+
+        from memory.cli.conversation_logger import attach_conversation_to_journey
+
+        conv_id = attach_conversation_to_journey(
+            "3fd487ca", journey="plan-pmo-corp", persona="engineer"
+        )
+
+        assert conv_id == "3fd487ca"
+        mock_mem.store.update_conversation.assert_called_once_with(
+            "3fd487ca", persona="engineer", journey="plan-pmo-corp"
+        )
+
+    def test_attaches_existing_conversation_by_id_prefix(self, mocker):
+        conv = Conversation(id="3fd487ca-abcd", interface="pi")
+        mock_mem = MagicMock()
+        mock_mem.store.get_conversation.return_value = None
+        mock_mem.store.find_conversation_by_id_prefix.return_value = conv
+        mocker.patch("memory.cli.conversation_logger._memory_client", return_value=mock_mem)
+
+        from memory.cli.conversation_logger import attach_conversation_to_journey
+
+        conv_id = attach_conversation_to_journey("3fd", journey="plan-pmo-corp")
+
+        assert conv_id == "3fd487ca-abcd"
+        mock_mem.store.find_conversation_by_id_prefix.assert_called_once_with("3fd")
+        mock_mem.store.update_conversation.assert_called_once_with(
+            "3fd487ca-abcd", persona="engineer", journey="plan-pmo-corp"
+        )
+
+    def test_attach_conversation_to_journey_returns_none_when_not_found(self, mocker):
+        mock_mem = MagicMock()
+        mock_mem.store.get_conversation.return_value = None
+        mock_mem.store.find_conversation_by_id_prefix.return_value = None
+        mocker.patch("memory.cli.conversation_logger._memory_client", return_value=mock_mem)
+
+        from memory.cli.conversation_logger import attach_conversation_to_journey
+
+        assert attach_conversation_to_journey("missing", journey="plan-pmo-corp") is None
+        mock_mem.store.update_conversation.assert_not_called()
+
+
 class TestAttachLatestPiSession:
     def test_attaches_most_recent_pi_session_to_journey(self, mocker, tmp_path):
         older_dir = tmp_path / "sessions" / "older"
