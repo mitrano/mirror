@@ -371,9 +371,17 @@ uv run python -m memory conversation-logger log-user <session_id> <prompt> --int
 uv run python -m memory conversation-logger log-assistant <session_id> <content> --interface <name>
 uv run python -m memory conversation-logger session-end          # reads JSON from stdin
 uv run python -m memory conversation-logger session-end-pi <id>  # explicit session id, deferred extraction
+uv run python -m memory conversation-logger attach --conversation <conversation_id> --journey <journey_slug> [--persona <p>]
+uv run python -m memory conversation-logger attach-latest-pi --journey <journey_slug> [--persona <p>]
 uv run python -m memory mirror load --context-only --query <q> [--persona <p>] [--journey <j>] [--org] [--session-id <id>]
 uv run python -m memory backup --silent
 ```
+
+`attach` repairs an existing conversation by explicit ID or unambiguous ID
+prefix. `attach-latest-pi` is a convenience helper for the most recent Pi
+session. Use them when the database has the conversation but the journey/persona
+metadata needs to be attached after the fact; validate with
+`uv run python -m memory conversations --journey <journey_slug>`.
 
 ---
 

@@ -131,6 +131,17 @@ The output reports how many orphaned sessions were ingested. The most recent
 incident backfilled 15 sessions accumulated over roughly a month, with no
 data loss.
 
+If the recovered conversation exists but is not associated with the intended
+journey, attach it after the fact. Find the conversation ID with
+`uv run python -m memory conversations` or `/mm-conversations`; the ID may be
+complete or an unambiguous prefix.
+
+```bash
+uv run python -m memory conversation-logger attach --conversation 3fd487ca --journey plan-pmo-corp
+uv run python -m memory conversation-logger attach-latest-pi --journey plan-pmo-corp
+uv run python -m memory conversations --journey plan-pmo-corp
+```
+
 ### Prevention
 
 Three avenues are worth considering:

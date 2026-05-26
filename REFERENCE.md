@@ -21,9 +21,9 @@ Codex uses the `$mm-` prefix. All runtimes call the same Python core.
 | `/mm-identity` | `$mm-identity` | `/mm:identity` | Read and update identity directly in the database | `list [--layer L]`, `get <layer> <key>`, `set <layer> <key>`, `edit <layer> <key>` |
 | `/mm-consult` | `$mm-consult` | `/mm:consult` | Asks other LLMs through OpenRouter with Mirror context | `<family> [tier] "prompt"`, `credits` |
 | `/mm-journeys` | `$mm-journeys` | `/mm:journeys` | Lists journeys with status | no arguments |
-| `/mm-journey` | `$mm-journey` | `/mm:journey` | Shows detailed journey identity, journey path, memories, and conversations | `[journey]`, `update <journey> <content>` |
+| `/mm-journey` | `$mm-journey` | `/mm:journey` | Shows detailed journey identity, journey path, memories, and conversations; can create journeys interactively | `[journey]`, `create [journey]`, `update <journey> <content>` |
 | `/mm-memories` | `$mm-memories` | `/mm:memories` | Lists or searches memories by type, layer, and journey | `--type T`, `--layer L`, `--journey J`, `--search "Q"`, `--limit N` |
-| `/mm-tasks` | `$mm-tasks` | `/mm:tasks` | Manages tasks by journey | `list`, `add "title"`, `done <id>`, `doing <id>`, `block <id>`, `delete <id>`, `import`, `sync` |
+| `/mm-tasks` | `$mm-tasks` | `/mm:tasks` | Manages tasks by journey | `list`, `add "title"`, `show <id>`, `done <id>`, `doing <id>`, `block <id>`, `delete <id>`, `import`, `sync` |
 | `/mm-week` | `$mm-week` | `/mm:week` | Weekly planning | `view`, `plan "text"`, `save` |
 | `/mm-journal` | `$mm-journal` | `/mm:journal` | Records a personal journal entry | `[--journey J] "text"` |
 | `/mm-recall` | `$mm-recall` | `/mm:recall` | Loads a previous conversation into context | `<conversation_id> [--limit N]` |
@@ -46,6 +46,69 @@ uv run python -m memory list personas --verbose
 
 The database is the source of truth for personas. There is no authoritative
 static table; `list personas --verbose` reflects the current seeded state.
+
+### Conversation association helper
+
+Use the conversation association helper when a conversation already exists in
+the database but was not recorded under the right journey, or when a Pi session
+was started before the journey was selected. This is metadata repair: it does
+not rewrite messages, extract new memories, or change the journey path.
+
+To attach a known conversation to a journey, pass the conversation ID or any ID
+prefix that resolves to exactly one existing conversation:
+
+```bash
+uv run python -m memory conversation-logger attach --conversation <conversation_id> --journey <journey_slug>
+```
+
+Example:
+
+```bash
+uv run python -m memory conversation-logger attach --conversation 3fd487ca --journey plan-pmo-corp
+```
+
+To attach the most recent Pi session, use the dedicated helper:
+
+```bash
+uv run python -m memory conversation-logger attach-latest-pi --journey <journey_slug>
+```
+
+Example:
+
+```bash
+uv run python -m memory conversation-logger attach-latest-pi --journey plan-pmo-corp
+```
+
+The difference is scope: `attach` is explicit and works on the conversation you
+identify; `attach-latest-pi` is a convenience command for the latest Pi session.
+Use `attach` when you already know the target conversation, need to repair an
+older conversation, or want deterministic behavior. Use `attach-latest-pi` right
+after noticing the current/latest Pi conversation is missing its journey.
+
+Both forms accept `--persona` when the conversation should also be tagged with a
+specific persona:
+
+```bash
+uv run python -m memory conversation-logger attach --conversation <conversation_id> --journey <journey_slug> --persona engineer
+uv run python -m memory conversation-logger attach-latest-pi --journey <journey_slug> --persona engineer
+```
+
+Find candidate IDs with the runtime command or the Python CLI:
+
+```text
+/mm-conversations
+```
+
+```bash
+uv run python -m memory conversations
+```
+
+Then validate that the conversation appears under the journey:
+
+```bash
+uv run python -m memory conversations --journey <journey_slug>
+uv run python -m memory conversations --journey plan-pmo-corp
+```
 
 ---
 
