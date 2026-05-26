@@ -76,6 +76,28 @@ class ConversationService:
         """Return the latest conversation whose id starts with prefix."""
         return self.store.find_conversation_by_id_prefix(prefix)
 
+    def update_title(self, conversation_id: str, title: str) -> Conversation:
+        """Update a conversation title through a bounded manual-edit path."""
+        if not isinstance(conversation_id, str) or not conversation_id.strip():
+            raise ValueError("conversationId is required")
+        if not isinstance(title, str):
+            raise ValueError("title must be a string")
+        clean_title = " ".join(title.strip().split())
+        if not clean_title:
+            raise ValueError("title is required")
+        if len(clean_title) > 160:
+            raise ValueError("title must be at most 160 characters")
+        conversation = self.store.get_conversation(conversation_id)
+        if conversation is None:
+            conversation = self.store.find_conversation_by_id_prefix(conversation_id)
+        if conversation is None:
+            raise ValueError(f"Conversation '{conversation_id}' not found")
+        self.store.update_conversation(conversation.id, title=clean_title)
+        updated = self.store.get_conversation(conversation.id)
+        if updated is None:
+            raise ValueError(f"Conversation '{conversation_id}' not found")
+        return updated
+
     def list_recent(
         self,
         *,

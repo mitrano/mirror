@@ -516,7 +516,7 @@ function renderConversationCard(card) {
     started ? `◷ ${started}` : null,
   ].filter(Boolean).map((value) => `<span>${escapeHtml(value)}</span>`).join('');
   return `
-    <article class="workspace-card conversation-card conversation-card-link" role="button" tabindex="0" data-conversation-id="${escapeHtml(card.id)}" aria-label="Open conversation ${escapeHtml(card.title)}">
+    <article class="workspace-card conversation-card conversation-card-link" role="button" tabindex="0" data-conversation-card-id="${escapeHtml(card.id)}" aria-label="Open conversation ${escapeHtml(card.title)}">
       <div class="workspace-card-icon conversation-icon" aria-hidden="true">${escapeHtml(icon)}</div>
       <div class="conversation-card-body">
         <div class="conversation-card-head">
@@ -661,6 +661,13 @@ function renderConversationDetail(detail) {
         <h2>${escapeHtml(detail.title || detail.id)}</h2>
         <p>${escapeHtml(detail.description || countLabel)}</p>
         ${chips ? `<div class="workspace-card-detail">${chips}</div>` : ''}
+        <form class="conversation-title-form" data-conversation-title-form data-conversation-id="${escapeHtml(detail.id)}">
+          <label>
+            <span>Conversation title</span>
+            <input name="title" value="${escapeHtml(detail.title || '')}" maxlength="160" required />
+          </label>
+          <button type="submit">Save title</button>
+        </form>
       </header>
       ${detail.summary ? `
         <section class="conversation-summary">
@@ -1056,10 +1063,10 @@ content.addEventListener('click', async (event) => {
     return;
   }
 
-  const conversationTarget = event.target.closest('[data-conversation-id]');
+  const conversationTarget = event.target.closest('[data-conversation-card-id]');
   if (conversationTarget) {
     event.preventDefault();
-    await loadConversation(conversationTarget.dataset.conversationId);
+    await loadConversation(conversationTarget.dataset.conversationCardId);
     return;
   }
 
@@ -1116,12 +1123,13 @@ content.addEventListener('click', async (event) => {
 });
 
 content.addEventListener('keydown', async (event) => {
+  if (isEditableTarget(event.target)) return;
   if (!['Enter', ' '].includes(event.key)) return;
 
-  const conversationTarget = event.target.closest('[data-conversation-id]');
+  const conversationTarget = event.target.closest('[data-conversation-card-id]');
   if (conversationTarget) {
     event.preventDefault();
-    await loadConversation(conversationTarget.dataset.conversationId);
+    await loadConversation(conversationTarget.dataset.conversationCardId);
     return;
   }
 
@@ -1153,6 +1161,23 @@ mirrorSelector?.addEventListener('click', async (event) => {
 });
 
 content.addEventListener('submit', async (event) => {
+  const titleForm = event.target.closest('[data-conversation-title-form]');
+  if (titleForm) {
+    event.preventDefault();
+    const data = new FormData(titleForm);
+    const detail = await fetchJson('/api/conversations/title', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversationId: titleForm.dataset.conversationId,
+        title: String(data.get('title') || ''),
+      }),
+    });
+    content.innerHTML = renderConversationDetail(detail);
+    showWarning('Conversation title saved.');
+    return;
+  }
+
   const settingsForm = event.target.closest('[data-journey-settings-form]');
   if (settingsForm) {
     event.preventDefault();
@@ -1268,6 +1293,10 @@ function showConfigurationTab(tabId) {
   document.querySelectorAll('[data-configuration-panel]').forEach((panel) => {
     panel.classList.toggle('active', panel.dataset.configurationPanel === tabId);
   });
+}
+
+function isEditableTarget(target) {
+  return !!target?.closest?.('input, textarea, select, button, [contenteditable="true"]');
 }
 
 function isExternalLink(href) {

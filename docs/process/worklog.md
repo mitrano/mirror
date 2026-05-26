@@ -12,6 +12,20 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-05-25 — CV13.E4.S3 manual conversation title edit validated
+
+Added a bounded manual title edit path for individual conversations. The
+transcript page now exposes a title form backed by `ConversationService.update_title`
+and `/api/conversations/title`, with server-side validation and no LLM call. A
+focus issue was corrected by separating card navigation attributes from the title
+form conversation id, preventing transcript card navigation from capturing textbox
+clicks.
+
+Validation: focused Workspace/web tests passed, ruff checks passed,
+`node --check` passed, `git diff --check` passed, the web server was restarted,
+and Navigator browser validation accepted title edit, persistence, Workspace card
+refresh, and stable textbox focus.
+
 ### 2026-05-25 — CV13.E4.S2 conversation card navigation validated
 
 Made Workspace conversation cards real navigation controls for the read-only

@@ -358,6 +358,63 @@ def test_conversation_detail_api_returns_read_only_transcript(tmp_path: Path) ->
     assert "metadata" not in payload["messages"][0]
 
 
+def test_conversation_title_api_updates_one_title(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    db_path = mirror_home / "memory.db"
+    with MemoryClient(db_path=db_path) as mem:
+        mem.identity.set_identity(
+            "journey",
+            "mirror-mind",
+            "# Mirror Mind\n**Status:** active\n\n## Description\nBuild the mirror.",
+        )
+        conversation = mem.conversations.start_conversation(
+            interface="pi",
+            journey="mirror-mind",
+            title="Old title",
+        )
+        mem.conversations.add_message(conversation.id, "user", "Rename this")
+
+    server = WebTestServer(root=make_docs_root(tmp_path), mirror_home=mirror_home, db_path=db_path)
+    try:
+        status, payload = server.request(
+            "POST",
+            "/api/conversations/title",
+            {"conversationId": conversation.id, "title": "  Better transcript title  "},
+        )
+        workspace_status, workspace = server.request(
+            "GET", "/api/surface/workspace?journey=mirror-mind"
+        )
+    finally:
+        server.close()
+
+    assert status == 200
+    assert payload["id"] == conversation.id
+    assert payload["title"] == "Better transcript title"
+    assert workspace_status == 200
+    conversations = next(
+        section for section in workspace["sections"] if section["id"] == "conversations"
+    )
+    assert conversations["cards"][0]["title"] == "Better transcript title"
+
+
+def test_conversation_title_api_rejects_blank_title(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    db_path = mirror_home / "memory.db"
+    with MemoryClient(db_path=db_path) as mem:
+        conversation = mem.conversations.start_conversation(interface="pi", title="Old title")
+
+    server = WebTestServer(root=make_docs_root(tmp_path), mirror_home=mirror_home, db_path=db_path)
+    try:
+        status, payload = server.request(
+            "POST", "/api/conversations/title", {"conversationId": conversation.id, "title": "  "}
+        )
+    finally:
+        server.close()
+
+    assert status == 400
+    assert payload["error"] == "title is required"
+
+
 def test_conversation_detail_api_returns_404_for_missing_conversation(tmp_path: Path) -> None:
     mirror_home = tmp_path / "mirror-home"
     server = WebTestServer(
