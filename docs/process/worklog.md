@@ -12,6 +12,18 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-05-25 — CV13.E4.S2 conversation card navigation validated
+
+Made Workspace conversation cards real navigation controls for the read-only
+transcript page introduced in S1. Cards are clickable and keyboard-accessible,
+open `#conversation/<id>`, and return to Workspace through the transcript back
+action. The story remains navigation-only: no retitle, edit, delete, batch, or
+LLM action is exposed.
+
+Validation: focused Workspace/web tests passed, ruff checks passed,
+`node --check` passed, `git diff --check` passed, the web server was restarted,
+and Navigator browser validation accepted mouse and keyboard navigation.
+
 ### 2026-05-25 — CV13.E4.S1 conversation detail page validated
 
 Started the `v0.14.0 — Conversation Intelligence` slice and added a read-only

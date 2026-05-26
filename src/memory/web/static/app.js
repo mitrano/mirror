@@ -516,7 +516,7 @@ function renderConversationCard(card) {
     started ? `◷ ${started}` : null,
   ].filter(Boolean).map((value) => `<span>${escapeHtml(value)}</span>`).join('');
   return `
-    <article class="workspace-card conversation-card">
+    <article class="workspace-card conversation-card conversation-card-link" role="button" tabindex="0" data-conversation-id="${escapeHtml(card.id)}" aria-label="Open conversation ${escapeHtml(card.title)}">
       <div class="workspace-card-icon conversation-icon" aria-hidden="true">${escapeHtml(icon)}</div>
       <div class="conversation-card-body">
         <div class="conversation-card-head">
@@ -1056,6 +1056,13 @@ content.addEventListener('click', async (event) => {
     return;
   }
 
+  const conversationTarget = event.target.closest('[data-conversation-id]');
+  if (conversationTarget) {
+    event.preventDefault();
+    await loadConversation(conversationTarget.dataset.conversationId);
+    return;
+  }
+
   const journeyTarget = event.target.closest('[data-workspace-journey]');
   if (journeyTarget) {
     event.preventDefault();
@@ -1109,8 +1116,17 @@ content.addEventListener('click', async (event) => {
 });
 
 content.addEventListener('keydown', async (event) => {
+  if (!['Enter', ' '].includes(event.key)) return;
+
+  const conversationTarget = event.target.closest('[data-conversation-id]');
+  if (conversationTarget) {
+    event.preventDefault();
+    await loadConversation(conversationTarget.dataset.conversationId);
+    return;
+  }
+
   const objectTarget = event.target.closest('[data-object-kind][data-object-id]');
-  if (!objectTarget || !['Enter', ' '].includes(event.key)) return;
+  if (!objectTarget) return;
   event.preventDefault();
   await loadObject(objectTarget.dataset.objectKind, objectTarget.dataset.objectId);
 });

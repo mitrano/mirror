@@ -61,6 +61,7 @@ def test_workspace_home_surfaces_operational_sections(
     assert sections["settings"].metadata["settings"][5]["value"] == "amber"
     assert sections["memories"].cards[0].title == "Surface boundary"
     assert sections["conversations"].cards[0].title == "Web planning"
+    assert sections["conversations"].cards[0].href == f"/objects/conversation/{conversation.id}"
     assert sections["conversations"].cards[0].metadata["message_count"] == 1
     assert sections["decisions"].cards[0].title == "Surface boundary"
     assert sections["decisions"].cards[0].metadata["data_readiness"] == "derived"
