@@ -12,6 +12,12 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-05-26 — CV13.E5.S4 conversation repair dry-run/apply validated
+
+Added the conversation journey repair operation to the Web Operations Runner. `conversation-journey-repair` is now runnable with `dryRun` defaulting to true and bounded `limit` validation. Dry-run returns high-confidence repair candidates without mutation. Apply requires `dryRun: false`, creates a backup first, then updates only the inferred journey association for matching journeyless conversations. The operation exposes candidate and backup evidence and rejects arbitrary reassignment, SQL, command, or path parameters.
+
+Validation: focused web tests passed, ruff checks passed, `node --check` passed, and `git diff --check` passed. Manual validation was waived for this API-only story under the current instruction to stop only for surface validation.
+
 ### 2026-05-26 — CV13.E5.S3 backup operation validated
 
 Added the first bounded write operation to the Web Operations Runner. `database-backup` is now runnable through `POST /api/operations/run`, using the existing Python backup path for the selected Mirror home and optional structural archive verification. The response includes backup path, verification entries, validity, note, and manual recovery route. Unsupported parameters such as arbitrary paths are rejected, and no restore, delete, download, shell, SQL, git, update, or streaming behavior was introduced.

@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from memory import MemoryClient
 from memory.web.operations import OPERATION_CATALOG, operation_catalog, run_operation
 
 
@@ -20,10 +21,12 @@ def test_operation_catalog_exposes_stable_allowlisted_operations() -> None:
     operations = {operation["id"]: operation for operation in payload}
     assert operations["runtime-health"]["execution"] == "runnable"
     assert operations["database-backup"]["execution"] == "runnable"
+    assert operations["conversation-journey-repair"]["execution"] == "runnable"
     assert all(
         operation["execution"] == "future"
         for operation in payload
-        if operation["id"] not in {"runtime-health", "database-backup"}
+        if operation["id"]
+        not in {"runtime-health", "database-backup", "conversation-journey-repair"}
     )
 
 
@@ -45,6 +48,14 @@ def test_operation_catalog_parameters_are_declarative_and_bounded() -> None:
     repair_parameters = operations["conversation-journey-repair"]["parameters"]
     assert repair_parameters == [
         {
+            "name": "dryRun",
+            "label": "Dry run",
+            "kind": "boolean",
+            "description": "Preview repair candidates without changing conversations.",
+            "required": False,
+            "default": True,
+        },
+        {
             "name": "limit",
             "label": "Maximum conversations",
             "kind": "integer",
@@ -53,7 +64,7 @@ def test_operation_catalog_parameters_are_declarative_and_bounded() -> None:
             "default": 50,
             "minimum": 1,
             "maximum": 500,
-        }
+        },
     ]
 
     retitle_parameters = operations["batch-conversation-retitle"]["parameters"]
@@ -141,8 +152,55 @@ def test_run_operation_rejects_unsupported_parameters(tmp_path: Path) -> None:
         )
 
 
+def test_run_operation_dry_runs_conversation_journey_repair(tmp_path: Path) -> None:
+    mirror_home, conversation_id = _mirror_with_journeyless_conversation(tmp_path)
+
+    result = run_operation(
+        "conversation-journey-repair",
+        mirror_home=mirror_home,
+        parameters={"dryRun": True, "limit": 10},
+    )
+
+    assert result["operationId"] == "conversation-journey-repair"
+    assert result["status"] == "completed"
+    assert result["outcome"] == "dry_run"
+    assert result["result"]["candidateCount"] == 1
+    assert result["result"]["appliedCount"] == 0
+    assert result["result"]["backupPath"] is None
+    assert result["result"]["candidates"][0]["conversationId"] == conversation_id
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        assert mem.store.get_conversation(conversation_id).journey is None
+
+
+def test_run_operation_applies_conversation_journey_repair_with_backup(
+    tmp_path: Path,
+) -> None:
+    mirror_home, conversation_id = _mirror_with_journeyless_conversation(tmp_path)
+
+    result = run_operation(
+        "conversation-journey-repair",
+        mirror_home=mirror_home,
+        parameters={"dryRun": False, "limit": 10},
+    )
+
+    backup_path = Path(result["result"]["backupPath"])
+    assert result["outcome"] == "repaired"
+    assert result["result"]["candidateCount"] == 1
+    assert result["result"]["appliedCount"] == 1
+    assert backup_path.exists()
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        assert mem.store.get_conversation(conversation_id).journey == "mirror-mind"
+
+
 def test_run_operation_rejects_future_operation(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="not runnable yet"):
-        run_operation(
-            "conversation-journey-repair", mirror_home=tmp_path / "mirror-home", start=tmp_path
-        )
+        run_operation("conversation-logger-health", mirror_home=tmp_path / "mirror-home")
+
+
+def _mirror_with_journeyless_conversation(tmp_path: Path) -> tuple[Path, str]:
+    mirror_home = tmp_path / "mirror-home"
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        mem.identity.set_identity("journey", "mirror-mind", "# Mirror Mind\n**Status:** active")
+        conversation = mem.conversations.start_conversation(interface="pi", title="Builder")
+        mem.conversations.add_message(conversation.id, "user", "$mm-build mirror-mind")
+    return mirror_home, conversation.id

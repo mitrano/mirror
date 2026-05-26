@@ -100,9 +100,10 @@ def test_operations_catalog_api_exposes_read_only_allowlist(tmp_path: Path) -> N
     ]
     assert payload[0]["execution"] == "runnable"
     assert payload[1]["execution"] == "runnable"
-    assert all(operation["execution"] == "future" for operation in payload[2:])
+    assert payload[2]["execution"] == "runnable"
+    assert all(operation["execution"] == "future" for operation in payload[3:])
     assert payload[2]["dryRun"] == "required"
-    assert payload[2]["parameters"][0]["name"] == "limit"
+    assert payload[2]["parameters"][0]["name"] == "dryRun"
 
 
 def test_operations_run_api_executes_runtime_health_only(tmp_path: Path) -> None:
@@ -200,6 +201,38 @@ def test_operations_run_api_rejects_unsupported_backup_parameters(tmp_path: Path
     assert "Unsupported parameters" in payload["error"]
 
 
+def test_operations_run_api_dry_runs_conversation_journey_repair(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        mem.identity.set_identity("journey", "mirror-mind", "# Mirror Mind\n**Status:** active")
+        conversation = mem.conversations.start_conversation(interface="pi", title="Builder")
+        mem.conversations.add_message(conversation.id, "user", "$mm-build mirror-mind")
+    server = WebTestServer(
+        root=make_docs_root(tmp_path),
+        mirror_home=mirror_home,
+        db_path=mirror_home / "memory.db",
+    )
+    try:
+        status, payload = server.request(
+            "POST",
+            "/api/operations/run",
+            {
+                "operationId": "conversation-journey-repair",
+                "parameters": {"dryRun": True, "limit": 10},
+            },
+        )
+    finally:
+        server.close()
+
+    assert status == 200
+    assert payload["outcome"] == "dry_run"
+    assert payload["result"]["candidateCount"] == 1
+    assert payload["result"]["appliedCount"] == 0
+    assert payload["result"]["candidates"][0]["journey"] == "mirror-mind"
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        assert mem.store.get_conversation(conversation.id).journey is None
+
+
 def test_operations_run_api_rejects_future_operations(tmp_path: Path) -> None:
     mirror_home = tmp_path / "mirror-home"
     server = WebTestServer(
@@ -211,7 +244,7 @@ def test_operations_run_api_rejects_future_operations(tmp_path: Path) -> None:
         status, payload = server.request(
             "POST",
             "/api/operations/run",
-            {"operationId": "conversation-journey-repair"},
+            {"operationId": "conversation-logger-health"},
         )
     finally:
         server.close()

@@ -7,7 +7,10 @@ from pathlib import Path
 from typing import Literal
 
 from memory.cli.backup import backup as create_backup
+from memory.cli.common import db_path_from_mirror_home
+from memory.cli.conversation_logger import diagnose_journey_associations
 from memory.cli.runtime import RuntimeStatusReport, build_runtime_status, verify_backup_archive
+from memory.client import MemoryClient
 
 ParameterType = Literal["string", "integer", "boolean", "choice"]
 RiskLevel = Literal["read_only", "writes_backup", "writes_database", "external_llm"]
@@ -109,8 +112,15 @@ OPERATION_CATALOG: tuple[WebOperation, ...] = (
         category="conversations",
         risk_level="writes_database",
         dry_run="required",
-        execution="future",
+        execution="runnable",
         parameters=(
+            OperationParameter(
+                name="dryRun",
+                label="Dry run",
+                kind="boolean",
+                description="Preview repair candidates without changing conversations.",
+                default=True,
+            ),
             OperationParameter(
                 name="limit",
                 label="Maximum conversations",
@@ -187,6 +197,10 @@ def run_operation(
         return _run_runtime_health(mirror_home=mirror_home, start=start)
     if operation.id == "database-backup":
         return _run_database_backup(mirror_home=mirror_home, parameters=parsed_parameters)
+    if operation.id == "conversation-journey-repair":
+        return _run_conversation_journey_repair(
+            mirror_home=mirror_home, parameters=parsed_parameters
+        )
     raise ValueError(f"Operation is not implemented yet: {operation_id}")
 
 
@@ -213,7 +227,7 @@ def _validate_parameters(
             continue
         if parameter.kind == "boolean" and not isinstance(value, bool):
             raise ValueError(f"Parameter must be a boolean for {operation.id}: {name}")
-        if parameter.kind == "integer" and not isinstance(value, int):
+        if parameter.kind == "integer" and (not isinstance(value, int) or isinstance(value, bool)):
             raise ValueError(f"Parameter must be an integer for {operation.id}: {name}")
         if parameter.kind == "string" and not isinstance(value, str):
             raise ValueError(f"Parameter must be a string for {operation.id}: {name}")
@@ -280,6 +294,73 @@ def _run_database_backup(
         "outcome": "backup_created",
         "summary": summary,
         "result": result,
+    }
+
+
+def _run_conversation_journey_repair(
+    *, mirror_home: Path | None, parameters: dict[str, object]
+) -> dict[str, object]:
+    if mirror_home is None:
+        raise ValueError("Mirror home is required for conversation journey repair")
+
+    dry_run = bool(parameters.get("dryRun", True))
+    limit = parameters.get("limit")
+    findings = diagnose_journey_associations(
+        mirror_home=mirror_home,
+        apply=False,
+        limit=int(limit) if limit is not None else None,
+    )
+    candidates = [_repair_candidate_payload(finding) for finding in findings]
+    result: dict[str, object] = {
+        "candidateCount": len(candidates),
+        "appliedCount": 0,
+        "candidates": candidates,
+        "backupPath": None,
+    }
+
+    if dry_run or not candidates:
+        outcome = "dry_run" if dry_run else "no_candidates"
+        return {
+            "operationId": "conversation-journey-repair",
+            "status": "completed",
+            "outcome": outcome,
+            "summary": [f"Repair candidates: {len(candidates)}", "No conversations changed."],
+            "result": result,
+        }
+
+    backup_path = create_backup(silent=True, mirror_home=mirror_home)
+    if backup_path is None:
+        raise ValueError("Database backup failed; refusing to repair conversations")
+
+    with MemoryClient(db_path=db_path_from_mirror_home(mirror_home)) as mem:
+        for candidate in candidates:
+            mem.store.update_conversation(
+                str(candidate["conversationId"]), journey=str(candidate["journey"])
+            )
+
+    result["appliedCount"] = len(candidates)
+    result["backupPath"] = str(backup_path)
+    return {
+        "operationId": "conversation-journey-repair",
+        "status": "completed",
+        "outcome": "repaired",
+        "summary": [
+            f"Repair candidates: {len(candidates)}",
+            f"Repaired conversations: {len(candidates)}",
+            f"Backup created: {backup_path}",
+        ],
+        "result": result,
+    }
+
+
+def _repair_candidate_payload(finding: dict[str, str | int]) -> dict[str, object]:
+    return {
+        "conversationId": str(finding["conversation_id"]),
+        "journey": str(finding["journey"]),
+        "reason": str(finding["reason"]),
+        "title": str(finding["title"]),
+        "startedAt": str(finding["started_at"]),
+        "messageCount": int(finding["message_count"]),
     }
 
 
