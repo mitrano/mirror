@@ -1,6 +1,7 @@
 """Unit tests for conversation_logger."""
 
 import json
+import os
 from unittest.mock import MagicMock
 
 from memory.models import Conversation, Message
@@ -176,6 +177,65 @@ class TestSessionEndPi:
         from memory.cli.conversation_logger import end_session
 
         end_session.assert_called_once_with("pi-session-id", extract=False, mirror_home=None)
+
+
+class TestAttachLatestPiSession:
+    def test_attaches_most_recent_pi_session_to_journey(self, mocker, tmp_path):
+        older_dir = tmp_path / "sessions" / "older"
+        newer_dir = tmp_path / "sessions" / "newer"
+        older_dir.mkdir(parents=True)
+        newer_dir.mkdir(parents=True)
+        older = older_dir / "older.jsonl"
+        newer = newer_dir / "newer.jsonl"
+        older.write_text("{}\n")
+        newer.write_text("{}\n")
+        os.utime(older, (1, 1))
+        os.utime(newer, (2, 2))
+
+        mock_mem = MagicMock()
+        mock_mem.runtime_sessions.get_or_create_conversation.return_value = MagicMock(id="conv-1")
+        mocker.patch("memory.cli.conversation_logger._memory_client", return_value=mock_mem)
+
+        from memory.cli.conversation_logger import attach_latest_pi_session
+
+        conv_id = attach_latest_pi_session(
+            journey="plan-pmo-corp",
+            persona="engineer",
+            sessions_dir=tmp_path / "sessions",
+        )
+
+        assert conv_id == "conv-1"
+        mock_mem.runtime_sessions.get_or_create_conversation.assert_called_once_with(
+            str(newer), interface="pi", persona="engineer", journey="plan-pmo-corp"
+        )
+        mock_mem.store.update_conversation.assert_called_once_with(
+            "conv-1", persona="engineer", journey="plan-pmo-corp"
+        )
+        mock_mem.store.upsert_runtime_session.assert_called_once_with(
+            str(newer),
+            conversation_id="conv-1",
+            interface="pi",
+            persona="engineer",
+            journey="plan-pmo-corp",
+            active=True,
+            closed_at=None,
+        )
+
+    def test_attach_latest_pi_session_returns_none_without_sessions(self, tmp_path):
+        from memory.cli.conversation_logger import attach_latest_pi_session
+
+        assert attach_latest_pi_session(journey="plan-pmo-corp", sessions_dir=tmp_path) is None
+
+    def test_attach_latest_pi_cli_requires_journey(self, capsys):
+        from memory.cli.conversation_logger import main
+
+        try:
+            main(["attach-latest-pi"])
+        except SystemExit as exc:
+            assert exc.code == 1
+
+        captured = capsys.readouterr()
+        assert "requires --journey" in captured.err
 
 
 class TestBackfillPiSessions:

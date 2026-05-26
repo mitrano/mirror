@@ -290,6 +290,55 @@ def _parse_pi_timestamp(ts: object) -> str:
     return _now()
 
 
+def _latest_pi_session_file(sessions_dir: str | Path | None = None) -> Path | None:
+    if sessions_dir is not None:
+        pi_sessions_dir = Path(sessions_dir).expanduser()
+    elif _PI_SESSIONS_DIR is not None:
+        pi_sessions_dir = _PI_SESSIONS_DIR
+    else:
+        pi_sessions_dir = _resolve_pi_sessions_dir()
+
+    if not pi_sessions_dir.exists():
+        return None
+    files = [path for path in pi_sessions_dir.rglob("*.jsonl") if path.is_file()]
+    if not files:
+        return None
+    return max(files, key=lambda path: path.stat().st_mtime)
+
+
+def attach_latest_pi_session(
+    *,
+    journey: str,
+    persona: str = "engineer",
+    mirror_home: str | Path | None = None,
+    sessions_dir: str | Path | None = None,
+) -> str | None:
+    """Attach the most recently modified Pi session to a journey."""
+    session_file = _latest_pi_session_file(sessions_dir=sessions_dir)
+    if session_file is None:
+        return None
+
+    session_id = str(session_file)
+    mem = _memory_client(mirror_home)
+    conv = mem.runtime_sessions.get_or_create_conversation(
+        session_id,
+        interface="pi",
+        persona=persona,
+        journey=journey,
+    )
+    mem.store.update_conversation(conv.id, persona=persona, journey=journey)
+    mem.store.upsert_runtime_session(
+        session_id,
+        conversation_id=conv.id,
+        interface="pi",
+        persona=persona,
+        journey=journey,
+        active=True,
+        closed_at=None,
+    )
+    return conv.id
+
+
 def backfill_pi_sessions(
     mirror_home: str | Path | None = None,
     *,
@@ -575,6 +624,36 @@ def main(argv: list[str] | None = None) -> None:
             fn(remaining[0], remaining[1], interface=interface, mirror_home=mirror_home)
     elif cmd == "session-start":
         print(session_start(mirror_home=mirror_home))
+    elif cmd == "attach-latest-pi":
+        remaining = list(args[1:])
+        journey = None
+        persona = "engineer"
+        sessions_dir = None
+        if "--journey" in remaining:
+            idx = remaining.index("--journey")
+            if idx + 1 < len(remaining):
+                journey = remaining[idx + 1]
+        if "--persona" in remaining:
+            idx = remaining.index("--persona")
+            if idx + 1 < len(remaining):
+                persona = remaining[idx + 1]
+        if "--sessions-dir" in remaining:
+            idx = remaining.index("--sessions-dir")
+            if idx + 1 < len(remaining):
+                sessions_dir = remaining[idx + 1]
+        if not journey:
+            print("Error: attach-latest-pi requires --journey SLUG", file=sys.stderr)
+            sys.exit(1)
+        conv_id = attach_latest_pi_session(
+            journey=journey,
+            persona=persona,
+            mirror_home=mirror_home,
+            sessions_dir=sessions_dir,
+        )
+        if conv_id:
+            print(f"Conversation attached to journey {journey}: {conv_id}")
+        else:
+            print("No Pi session file found.")
     elif cmd == "session-end-pi":
         if len(args) >= 2:
             end_session(args[1], extract=False, mirror_home=mirror_home)
