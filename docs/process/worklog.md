@@ -12,6 +12,18 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-05-25 — CV13.E3.S5 configuration coherence validated
+
+Closed the CV13.E3 Configuration Console story arc with final coherence coverage
+and browser validation. Configuration now stays scoped to Mirror/runtime settings,
+Environment boundary masks secrets, journey settings live in Workspace, selected
+journey metadata can be safely edited through service boundaries, and no raw
+`.env`, JSON, YAML, database, or journey-content editor is exposed.
+
+Validation: focused Workspace/configuration/web tests passed, ruff checks passed,
+`node --check` passed, `git diff --check` passed, and Navigator browser
+validation accepted the final end-to-end flow.
+
 ### 2026-05-25 — CV13.E3.S4 safe journey metadata edit validated
 
 Added a safe edit path for selected journey metadata from Workspace Settings.

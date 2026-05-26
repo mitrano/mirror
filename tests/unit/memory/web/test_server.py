@@ -353,6 +353,51 @@ def test_journey_metadata_api_updates_selected_safe_fields(tmp_path: Path) -> No
     assert values["color"] == "amber"
 
 
+def test_configuration_console_boundaries_stay_coherent(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-boundary-secret")
+    mirror_home = tmp_path / "mirror-home"
+    db_path = mirror_home / "memory.db"
+    with MemoryClient(db_path=db_path) as mem:
+        mem.identity.set_identity(
+            "journey",
+            "mirror-mind",
+            "# Mirror Mind\n**Status:** active\n\n## Description\nBuild the mirror.",
+        )
+
+    server = WebTestServer(root=make_docs_root(tmp_path), mirror_home=mirror_home, db_path=db_path)
+    try:
+        config_status, config_payload = server.request("GET", "/api/configuration/overview")
+        update_status, update_payload = server.request(
+            "POST",
+            "/api/journeys/metadata",
+            {
+                "journeyId": "mirror-mind",
+                "projectPath": "/code/mirror",
+                "syncFile": "/code/mirror/path.md",
+                "icon": "◇",
+                "color": "amber",
+            },
+        )
+        workspace_status, workspace = server.request("GET", "/api/surface/workspace")
+    finally:
+        server.close()
+
+    assert config_status == 200
+    config_sections = {section["id"] for section in config_payload["sections"]}
+    assert "journeys" not in config_sections
+    assert "sk-boundary-secret" not in str(config_payload)
+    assert "sk-…ret (masked)" in str(config_payload)
+    assert update_status == 200
+    assert update_payload["metadata"]["project_path"] == "/code/mirror"
+    assert workspace_status == 200
+    settings = next(section for section in workspace["sections"] if section["id"] == "settings")
+    values = {item["key"]: item["value"] for item in settings["metadata"]["settings"]}
+    assert values["projectPath"] == "/code/mirror"
+    assert values["syncFile"] == "/code/mirror/path.md"
+    assert values["icon"] == "◇"
+    assert values["color"] == "amber"
+
+
 def test_journey_metadata_api_rejects_missing_journey(tmp_path: Path) -> None:
     mirror_home = tmp_path / "mirror-home"
     server = WebTestServer(

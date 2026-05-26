@@ -2,7 +2,7 @@
 
 # CV13.E3 — Configuration Console
 
-**Status:** 🟢 In Progress
+**Status:** ✅ Done
 **Release target:** v0.13.0 — Configuration Console
 **User-visible outcome:** The local web app can inspect Mirror configuration and, where safe service boundaries exist, adjust selected configuration without exposing secrets or mutating raw files directly.
 
@@ -22,7 +22,7 @@ This epic turns configuration from hidden local files/environment into guarded l
 | [CV13.E3.S2](cv13-e3-s2-environment-boundary-and-secrets-masking/index.md) | Environment boundary and secrets masking | Environment-derived configuration is inspectable with sensitive values masked or omitted | ✅ Done |
 | [CV13.E3.S3](cv13-e3-s3-journey-settings-placement/index.md) | Journey settings placement | Journey settings are inspectable from the selected Workspace journey instead of duplicated in global Configuration | ✅ Done |
 | [CV13.E3.S4](cv13-e3-s4-safe-journey-metadata-edit/index.md) | Safe journey metadata edit | Selected journey metadata can be edited through safe service boundaries | ✅ Done |
-| CV13.E3.S5 | Configuration coherence and validation | The configuration console is validated and prepared as v0.13.0 | 🟢 In Progress |
+| [CV13.E3.S5](cv13-e3-s5-configuration-coherence-and-validation/index.md) | Configuration coherence and validation | The configuration console is validated and prepared as v0.13.0 | ✅ Done |
 
 ---
 
