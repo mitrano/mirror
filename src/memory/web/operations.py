@@ -6,7 +6,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
-from memory.cli.runtime import RuntimeStatusReport, build_runtime_status
+from memory.cli.backup import backup as create_backup
+from memory.cli.runtime import RuntimeStatusReport, build_runtime_status, verify_backup_archive
 
 ParameterType = Literal["string", "integer", "boolean", "choice"]
 RiskLevel = Literal["read_only", "writes_backup", "writes_database", "external_llm"]
@@ -90,7 +91,7 @@ OPERATION_CATALOG: tuple[WebOperation, ...] = (
         category="safety",
         risk_level="writes_backup",
         dry_run="unsupported",
-        execution="future",
+        execution="runnable",
         parameters=(
             OperationParameter(
                 name="verify",
@@ -167,7 +168,11 @@ def operation_catalog() -> list[dict[str, object]]:
 
 
 def run_operation(
-    operation_id: str, *, mirror_home: Path | None = None, start: Path | None = None
+    operation_id: str,
+    *,
+    mirror_home: Path | None = None,
+    start: Path | None = None,
+    parameters: dict[str, object] | None = None,
 ) -> dict[str, object]:
     """Run one implemented allowlisted operation and return web-safe results."""
 
@@ -176,12 +181,59 @@ def run_operation(
         raise ValueError(f"Unknown operation: {operation_id}")
     if operation.execution != "runnable":
         raise ValueError(f"Operation is not runnable yet: {operation_id}")
-    if operation.id != "runtime-health":
-        raise ValueError(f"Operation is not implemented yet: {operation_id}")
 
+    parsed_parameters = _validate_parameters(operation, parameters or {})
+    if operation.id == "runtime-health":
+        return _run_runtime_health(mirror_home=mirror_home, start=start)
+    if operation.id == "database-backup":
+        return _run_database_backup(mirror_home=mirror_home, parameters=parsed_parameters)
+    raise ValueError(f"Operation is not implemented yet: {operation_id}")
+
+
+def _operation_by_id(operation_id: str) -> WebOperation | None:
+    return next(
+        (operation for operation in OPERATION_CATALOG if operation.id == operation_id), None
+    )
+
+
+def _validate_parameters(
+    operation: WebOperation, parameters: dict[str, object]
+) -> dict[str, object]:
+    allowed = {parameter.name: parameter for parameter in operation.parameters}
+    extra = set(parameters) - set(allowed)
+    if extra:
+        raise ValueError(f"Unsupported parameters for {operation.id}: {', '.join(sorted(extra))}")
+
+    parsed: dict[str, object] = {}
+    for name, parameter in allowed.items():
+        value = parameters.get(name, parameter.default)
+        if value is None:
+            if parameter.required:
+                raise ValueError(f"Parameter is required for {operation.id}: {name}")
+            continue
+        if parameter.kind == "boolean" and not isinstance(value, bool):
+            raise ValueError(f"Parameter must be a boolean for {operation.id}: {name}")
+        if parameter.kind == "integer" and not isinstance(value, int):
+            raise ValueError(f"Parameter must be an integer for {operation.id}: {name}")
+        if parameter.kind == "string" and not isinstance(value, str):
+            raise ValueError(f"Parameter must be a string for {operation.id}: {name}")
+        if parameter.kind == "choice" and value not in parameter.choices:
+            raise ValueError(
+                f"Parameter must be one of the allowed choices for {operation.id}: {name}"
+            )
+        if isinstance(value, int):
+            if parameter.minimum is not None and value < parameter.minimum:
+                raise ValueError(f"Parameter is below minimum for {operation.id}: {name}")
+            if parameter.maximum is not None and value > parameter.maximum:
+                raise ValueError(f"Parameter is above maximum for {operation.id}: {name}")
+        parsed[name] = value
+    return parsed
+
+
+def _run_runtime_health(*, mirror_home: Path | None, start: Path | None) -> dict[str, object]:
     report = build_runtime_status(start=start, mirror_home_arg=mirror_home)
     return {
-        "operationId": operation.id,
+        "operationId": "runtime-health",
         "status": "completed",
         "outcome": report.status,
         "summary": _runtime_health_summary(report),
@@ -189,10 +241,46 @@ def run_operation(
     }
 
 
-def _operation_by_id(operation_id: str) -> WebOperation | None:
-    return next(
-        (operation for operation in OPERATION_CATALOG if operation.id == operation_id), None
-    )
+def _run_database_backup(
+    *, mirror_home: Path | None, parameters: dict[str, object]
+) -> dict[str, object]:
+    if mirror_home is None:
+        raise ValueError("Mirror home is required for database backup")
+    backup_path = create_backup(silent=True, mirror_home=mirror_home)
+    if backup_path is None:
+        raise ValueError(f"Database not found for Mirror home: {mirror_home}")
+
+    verify = parameters.get("verify", True)
+    verification = verify_backup_archive(backup_path) if verify else None
+    result: dict[str, object] = {
+        "backupPath": str(backup_path),
+        "recoveryRoute": [
+            "Stop active runtime sessions that could write to the database.",
+            "Move current memory.db, memory.db-wal, and memory.db-shm aside.",
+            "Extract memory.db and sidecars from this backup into the Mirror home.",
+            "Run runtime status against the Mirror home.",
+            "Do not retry risky operations until status is ready.",
+        ],
+    }
+    summary = [f"Backup created: {backup_path}"]
+    if verification is not None:
+        result["verification"] = {
+            "valid": verification.valid,
+            "entries": list(verification.entries),
+            "note": verification.note,
+        }
+        summary.append(f"Verification result: {'valid' if verification.valid else 'invalid'}")
+    else:
+        result["verification"] = None
+        summary.append("Verification skipped")
+
+    return {
+        "operationId": "database-backup",
+        "status": "completed",
+        "outcome": "backup_created",
+        "summary": summary,
+        "result": result,
+    }
 
 
 def _runtime_health_summary(report: RuntimeStatusReport) -> list[str]:

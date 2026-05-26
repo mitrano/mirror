@@ -99,7 +99,8 @@ def test_operations_catalog_api_exposes_read_only_allowlist(tmp_path: Path) -> N
         "batch-conversation-retitle",
     ]
     assert payload[0]["execution"] == "runnable"
-    assert all(operation["execution"] == "future" for operation in payload[1:])
+    assert payload[1]["execution"] == "runnable"
+    assert all(operation["execution"] == "future" for operation in payload[2:])
     assert payload[2]["dryRun"] == "required"
     assert payload[2]["parameters"][0]["name"] == "limit"
 
@@ -149,6 +150,56 @@ def test_operations_run_api_rejects_unknown_and_command_like_requests(tmp_path: 
     assert "Unsupported operation request fields" in payload["error"]
 
 
+def test_operations_run_api_executes_database_backup(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    mirror_home.mkdir()
+    (mirror_home / "memory.db").write_text("database", encoding="utf-8")
+    server = WebTestServer(
+        root=make_docs_root(tmp_path),
+        mirror_home=mirror_home,
+        db_path=mirror_home / "memory.db",
+    )
+    try:
+        status, payload = server.request(
+            "POST",
+            "/api/operations/run",
+            {"operationId": "database-backup", "parameters": {"verify": True}},
+        )
+    finally:
+        server.close()
+
+    backup_path = Path(payload["result"]["backupPath"])
+    assert status == 200
+    assert payload["operationId"] == "database-backup"
+    assert payload["outcome"] == "backup_created"
+    assert backup_path.exists()
+    assert backup_path.parent == mirror_home.resolve() / "backups"
+    assert payload["result"]["verification"]["valid"] is True
+    assert payload["result"]["verification"]["entries"] == ["memory.db"]
+
+
+def test_operations_run_api_rejects_unsupported_backup_parameters(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    mirror_home.mkdir()
+    (mirror_home / "memory.db").write_text("database", encoding="utf-8")
+    server = WebTestServer(
+        root=make_docs_root(tmp_path),
+        mirror_home=mirror_home,
+        db_path=mirror_home / "memory.db",
+    )
+    try:
+        status, payload = server.request(
+            "POST",
+            "/api/operations/run",
+            {"operationId": "database-backup", "parameters": {"path": "/tmp/unsafe"}},
+        )
+    finally:
+        server.close()
+
+    assert status == 400
+    assert "Unsupported parameters" in payload["error"]
+
+
 def test_operations_run_api_rejects_future_operations(tmp_path: Path) -> None:
     mirror_home = tmp_path / "mirror-home"
     server = WebTestServer(
@@ -160,7 +211,7 @@ def test_operations_run_api_rejects_future_operations(tmp_path: Path) -> None:
         status, payload = server.request(
             "POST",
             "/api/operations/run",
-            {"operationId": "database-backup"},
+            {"operationId": "conversation-journey-repair"},
         )
     finally:
         server.close()

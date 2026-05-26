@@ -27,7 +27,7 @@ This epic introduces a guarded operations layer: operations are named, allowlist
 |------|-------|----------------------|--------|
 | [CV13.E5.S1](cv13-e5-s1-operation-registry-and-dry-run-contract/index.md) | Operation registry and dry-run contract | The web API exposes a read-only catalog of allowed maintenance operations with metadata and parameter schemas | ✅ Done |
 | [CV13.E5.S2](cv13-e5-s2-runtime-health-operation/index.md) | Runtime health operation | The user can run a read-only runtime health check from the web app and see structured results | ✅ Done |
-| CV13.E5.S3 | Backup operation | The user can create and verify a local Mirror database backup through an explicit operation flow | ⚪ Future |
+| [CV13.E5.S3](cv13-e5-s3-backup-operation/index.md) | Backup operation | The user can create and verify a local Mirror database backup through an explicit operation flow | ✅ Done |
 | CV13.E5.S4 | Conversation repair dry-run and apply | The user can preview and approve a bounded repair for conversations missing journey association | ⚪ Future |
 | CV13.E5.S5 | Operation job history and audit evidence | Operation runs are recorded with status, parameters, timestamps, output summary, and errors | ⚪ Future |
 | CV13.E5.S6 | Streaming operations UI | The web app shows operation progress/events without blocking the browser | ⚪ Future |

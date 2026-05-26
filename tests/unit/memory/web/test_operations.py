@@ -19,10 +19,11 @@ def test_operation_catalog_exposes_stable_allowlisted_operations() -> None:
     ]
     operations = {operation["id"]: operation for operation in payload}
     assert operations["runtime-health"]["execution"] == "runnable"
+    assert operations["database-backup"]["execution"] == "runnable"
     assert all(
         operation["execution"] == "future"
         for operation in payload
-        if operation["id"] != "runtime-health"
+        if operation["id"] not in {"runtime-health", "database-backup"}
     )
 
 
@@ -100,6 +101,48 @@ def test_run_operation_rejects_unknown_operation(tmp_path: Path) -> None:
         run_operation("unsafe-shell", mirror_home=tmp_path / "mirror-home", start=tmp_path)
 
 
+def test_run_operation_creates_and_verifies_database_backup(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    mirror_home.mkdir()
+    (mirror_home / "memory.db").write_text("database", encoding="utf-8")
+
+    result = run_operation("database-backup", mirror_home=mirror_home, parameters={"verify": True})
+
+    backup_path = Path(result["result"]["backupPath"])
+    assert result["operationId"] == "database-backup"
+    assert result["status"] == "completed"
+    assert result["outcome"] == "backup_created"
+    assert backup_path.exists()
+    assert backup_path.parent == mirror_home / "backups"
+    assert result["result"]["verification"] == {
+        "valid": True,
+        "entries": ["memory.db"],
+        "note": None,
+    }
+    assert "Stop active runtime sessions" in result["result"]["recoveryRoute"][0]
+
+
+def test_run_operation_rejects_database_backup_when_database_is_missing(
+    tmp_path: Path,
+) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    mirror_home.mkdir()
+
+    with pytest.raises(ValueError, match="Database not found"):
+        run_operation("database-backup", mirror_home=mirror_home)
+
+
+def test_run_operation_rejects_unsupported_parameters(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="Unsupported parameters"):
+        run_operation(
+            "database-backup",
+            mirror_home=tmp_path / "mirror-home",
+            parameters={"path": "/tmp/unsafe"},
+        )
+
+
 def test_run_operation_rejects_future_operation(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="not runnable yet"):
-        run_operation("database-backup", mirror_home=tmp_path / "mirror-home", start=tmp_path)
+        run_operation(
+            "conversation-journey-repair", mirror_home=tmp_path / "mirror-home", start=tmp_path
+        )

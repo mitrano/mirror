@@ -165,12 +165,11 @@ class MirrorWebHandler(BaseHTTPRequestHandler):
             parameters = payload.get("parameters", {})
             if not isinstance(parameters, dict):
                 raise ValueError("parameters must be an object")
-            if parameters:
-                raise ValueError("runtime-health does not accept parameters")
             result = run_operation(
                 operation_id,
                 mirror_home=self.__class__.mirror_home,
                 start=self.browser.root,
+                parameters=parameters,
             )
         except (json.JSONDecodeError, ValueError, TypeError) as exc:
             self._send_json({"error": str(exc)}, status=400)
