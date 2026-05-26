@@ -40,6 +40,17 @@ class MirrorWebHandler(BaseHTTPRequestHandler):
             self._send_json(build_configuration_overview(self.__class__.mirror_home).to_dict())
             return
 
+        if parsed.path == "/api/conversations/detail":
+            query = parse_qs(parsed.query)
+            conversation_id = query.get("id", [""])[0]
+            with MemoryClient(db_path=self._db_path()) as mem:
+                detail = self._conversation_detail_payload(mem, conversation_id)
+            if detail is None:
+                self._send_json({"error": "Conversation not found"}, status=404)
+                return
+            self._send_json(detail)
+            return
+
         if parsed.path == "/api/surface/atlas":
             with MemoryClient(db_path=self._db_path()) as mem:
                 self._send_json(mem.surfaces.atlas_home().to_dict())
@@ -211,6 +222,41 @@ class MirrorWebHandler(BaseHTTPRequestHandler):
             return
 
         self._send_json({"journeyId": journey_id, "metadata": metadata})
+
+    def _conversation_detail_payload(
+        self, mem: MemoryClient, conversation_id: str
+    ) -> dict[str, object] | None:
+        if not conversation_id:
+            return None
+        conversation = mem.store.get_conversation(conversation_id)
+        if conversation is None:
+            conversation = mem.conversations.find_by_id_prefix(conversation_id)
+        if conversation is None:
+            return None
+        messages = mem.store.get_messages(conversation.id)
+        return {
+            "id": conversation.id,
+            "title": conversation.title or conversation.id[:8],
+            "description": conversation.summary or f"{len(messages)} stored messages",
+            "startedAt": conversation.started_at,
+            "endedAt": conversation.ended_at,
+            "status": "ended" if conversation.ended_at else "open",
+            "interface": conversation.interface,
+            "persona": conversation.persona,
+            "journey": conversation.journey,
+            "summary": conversation.summary,
+            "messageCount": len(messages),
+            "messages": [
+                {
+                    "id": message.id,
+                    "role": message.role,
+                    "content": message.content,
+                    "createdAt": message.created_at,
+                    "tokenCount": message.token_count,
+                }
+                for message in messages
+            ],
+        }
 
     def _write_theme(self) -> None:
         try:

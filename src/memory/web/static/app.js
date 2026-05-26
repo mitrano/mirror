@@ -25,15 +25,15 @@ async function boot() {
   applyShell(shell);
   document.addEventListener('click', closeMirrorSelectorOnOutsideClick);
 
-  if (!shell.defaultPerspective) {
-    chooser.hidden = true;
-    activeView = 'workspace';
-    await showView('workspace', { updateHash: false });
-  } else {
-    chooser.hidden = true;
-    activeView = shell.defaultPerspective;
-    await showView(activeView, { updateHash: false });
+  const hashView = viewFromHash();
+  chooser.hidden = true;
+  if (hashView?.view === 'conversation') {
+    await loadConversation(hashView.id, { updateHistory: false });
+    return;
   }
+
+  activeView = hashView?.view || shell.defaultPerspective || 'workspace';
+  await showView(activeView, { updateHash: false });
 }
 
 function applyShell(shell) {
@@ -510,6 +510,7 @@ function renderConversationCard(card) {
   const messageCount = Number(metadata.message_count || 0);
   const messageLabel = messageCount === 1 ? '1 message' : `${messageCount} messages`;
   const chips = [
+    card.id ? `ID: ${card.id}` : null,
     metadata.persona ? `✣ ${metadata.persona}` : null,
     metadata.journey ? `⌁ ${metadata.journey}` : null,
     started ? `◷ ${started}` : null,
@@ -608,6 +609,99 @@ function renderSearchResultCard(result) {
       </div>
     </article>
   `;
+}
+
+async function loadConversation(id, { updateHistory = true } = {}) {
+  activeView = 'conversation';
+  if (docsPanel) docsPanel.hidden = true;
+  currentPath.hidden = true;
+  contentGrid.classList.remove('docs-active');
+  tabs.forEach((tab) => tab.classList.remove('active'));
+  const response = await fetch(`/api/conversations/detail?id=${encodeURIComponent(id)}`);
+  const detail = await response.json();
+  if (!response.ok) {
+    content.innerHTML = renderConversationError(detail.error || 'Conversation not found');
+    return;
+  }
+  content.innerHTML = renderConversationDetail(detail);
+  if (updateHistory) {
+    window.history.pushState({ view: 'conversation', id }, '', `#conversation/${encodeURIComponent(id)}`);
+  }
+  window.scrollTo({ top: 0 });
+}
+
+function renderConversationError(message) {
+  return `
+    <section class="surface-intro">
+      <button type="button" class="text-link" data-back-view="workspace">← Back to Workspace</button>
+      <p class="eyebrow">Conversation</p>
+      <h2>Conversation not found</h2>
+      <p>${escapeHtml(message)}</p>
+    </section>
+  `;
+}
+
+function renderConversationDetail(detail) {
+  const chips = [
+    detail.interface ? `Interface: ${detail.interface}` : null,
+    detail.status ? `Status: ${detail.status}` : null,
+    detail.journey ? `Journey: ${detail.journey}` : null,
+    detail.persona ? `Persona: ${detail.persona}` : null,
+    detail.startedAt ? `Started: ${formatDateTime(detail.startedAt)}` : null,
+    detail.endedAt ? `Ended: ${formatDateTime(detail.endedAt)}` : null,
+  ].filter(Boolean).map((value) => `<span>${escapeHtml(value)}</span>`).join('');
+  const messages = (detail.messages || []).map(renderConversationMessage).join('');
+  const count = Number(detail.messageCount || 0);
+  const countLabel = count === 1 ? '1 message' : `${count} messages`;
+  return `
+    <button type="button" class="text-link detail-back" data-back-view="workspace">← Back to Workspace</button>
+    <section class="conversation-detail">
+      <header class="conversation-detail-head">
+        <p class="concept-kicker">Conversation transcript</p>
+        <h2>${escapeHtml(detail.title || detail.id)}</h2>
+        <p>${escapeHtml(detail.description || countLabel)}</p>
+        ${chips ? `<div class="workspace-card-detail">${chips}</div>` : ''}
+      </header>
+      ${detail.summary ? `
+        <section class="conversation-summary">
+          <p class="eyebrow">Summary</p>
+          <p>${escapeHtml(detail.summary)}</p>
+        </section>
+      ` : ''}
+      <section class="conversation-transcript" aria-label="Conversation messages">
+        <div class="conversation-transcript-head">
+          <p class="eyebrow">Transcript</p>
+          <strong>${escapeHtml(countLabel)}</strong>
+        </div>
+        ${messages || '<p class="empty-state">No messages are stored for this conversation yet.</p>'}
+      </section>
+    </section>
+  `;
+}
+
+function renderConversationMessage(message) {
+  const role = message.role || 'unknown';
+  const roleLabel = conversationRoleLabel(role);
+  return `
+    <article class="conversation-message role-${escapeHtml(role)}">
+      <div class="conversation-message-meta">
+        <strong>${escapeHtml(roleLabel)}</strong>
+        <span>${escapeHtml(formatDateTime(message.createdAt))}</span>
+        ${message.tokenCount ? `<span>${escapeHtml(message.tokenCount)} tokens</span>` : ''}
+      </div>
+      <div class="conversation-message-content">${renderPlainTranscript(message.content || '')}</div>
+    </article>
+  `;
+}
+
+function conversationRoleLabel(role) {
+  if (role === 'assistant') return 'Mirror';
+  if (role === 'user') return shellState?.profile?.displayName || shellState?.mirror?.name || 'User';
+  return role;
+}
+
+function renderPlainTranscript(content) {
+  return `<pre>${escapeHtml(content)}</pre>`;
 }
 
 async function loadObject(kind, id) {
@@ -1120,12 +1214,23 @@ window.addEventListener('popstate', async (event) => {
     await loadSearchResults(state.query || '', { updateHistory: false });
     return;
   }
-  await showView(state.view || viewFromHash() || 'workspace', { updateHash: false });
+  if (state.view === 'conversation' && state.id) {
+    await loadConversation(state.id, { updateHistory: false });
+    return;
+  }
+  const hashView = viewFromHash();
+  if (hashView?.view === 'conversation') {
+    await loadConversation(hashView.id, { updateHistory: false });
+    return;
+  }
+  await showView(state.view || hashView?.view || 'workspace', { updateHash: false });
 });
 
 function viewFromHash() {
   const hash = window.location.hash.replace(/^#/, '');
-  if (['workspace', 'atlas', 'docs', 'preferences', 'configuration'].includes(hash)) return hash;
+  const conversation = hash.match(/^conversation\/(.+)$/);
+  if (conversation) return { view: 'conversation', id: decodeURIComponent(conversation[1]) };
+  if (['workspace', 'atlas', 'docs', 'preferences', 'configuration'].includes(hash)) return { view: hash };
   return null;
 }
 
@@ -1183,6 +1288,13 @@ async function fetchJson(url, options = {}) {
   return payload;
 }
 
+
+function formatDateTime(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
 
 function formatDate(value) {
   if (!value) return '';

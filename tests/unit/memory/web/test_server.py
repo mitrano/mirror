@@ -310,6 +310,70 @@ def test_profile_preferences_api_rejects_invalid_payload(tmp_path: Path) -> None
     assert "displayName" in payload["error"]
 
 
+def test_conversation_detail_api_returns_read_only_transcript(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    db_path = mirror_home / "memory.db"
+    with MemoryClient(db_path=db_path) as mem:
+        conversation = mem.conversations.start_conversation(
+            interface="pi",
+            persona="architect",
+            journey="mirror-mind",
+            title="Plan conversation intelligence",
+        )
+        mem.conversations.add_message(conversation.id, "user", "Can we read transcripts?")
+        mem.conversations.add_message(conversation.id, "assistant", "Yes, as read-only pages.")
+        mem.store.update_conversation(conversation.id, summary="Transcript detail planning")
+
+    server = WebTestServer(root=make_docs_root(tmp_path), mirror_home=mirror_home, db_path=db_path)
+    try:
+        status, payload = server.request("GET", f"/api/conversations/detail?id={conversation.id}")
+    finally:
+        server.close()
+
+    assert status == 200
+    assert payload["id"] == conversation.id
+    assert payload["title"] == "Plan conversation intelligence"
+    assert payload["interface"] == "pi"
+    assert payload["persona"] == "architect"
+    assert payload["journey"] == "mirror-mind"
+    assert payload["summary"] == "Transcript detail planning"
+    assert payload["messageCount"] == 2
+    assert payload["messages"] == [
+        {
+            "id": payload["messages"][0]["id"],
+            "role": "user",
+            "content": "Can we read transcripts?",
+            "createdAt": payload["messages"][0]["createdAt"],
+            "tokenCount": None,
+        },
+        {
+            "id": payload["messages"][1]["id"],
+            "role": "assistant",
+            "content": "Yes, as read-only pages.",
+            "createdAt": payload["messages"][1]["createdAt"],
+            "tokenCount": None,
+        },
+    ]
+    assert "metadata" not in payload
+    assert "metadata" not in payload["messages"][0]
+
+
+def test_conversation_detail_api_returns_404_for_missing_conversation(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    server = WebTestServer(
+        root=make_docs_root(tmp_path),
+        mirror_home=mirror_home,
+        db_path=mirror_home / "memory.db",
+    )
+    try:
+        status, payload = server.request("GET", "/api/conversations/detail?id=missing")
+    finally:
+        server.close()
+
+    assert status == 404
+    assert payload["error"] == "Conversation not found"
+
+
 def test_journey_metadata_api_updates_selected_safe_fields(tmp_path: Path) -> None:
     mirror_home = tmp_path / "mirror-home"
     db_path = mirror_home / "memory.db"

@@ -1228,6 +1228,80 @@ input {
   font-size: 18px;
 }
 
+.conversation-detail {
+  display: grid;
+  gap: 18px;
+}
+
+.conversation-detail-head,
+.conversation-summary,
+.conversation-transcript {
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--panel);
+  box-shadow: var(--shadow-soft);
+  padding: 22px;
+}
+
+.conversation-detail-head h2 {
+  margin: 0 0 8px;
+  font-size: clamp(28px, 4vw, 44px);
+}
+
+.conversation-summary p:last-child {
+  margin-bottom: 0;
+}
+
+.conversation-transcript {
+  display: grid;
+  gap: 14px;
+}
+
+.conversation-transcript-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.conversation-message {
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border-radius: 18px;
+  padding: 16px;
+  background: color-mix(in srgb, var(--panel-strong) 42%, transparent);
+}
+
+.conversation-message.role-user {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
+.conversation-message.role-assistant {
+  border-color: color-mix(in srgb, var(--accent-strong) 28%, var(--border));
+}
+
+.conversation-message-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.conversation-message-meta strong {
+  color: var(--text);
+}
+
+.conversation-message-content pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font: inherit;
+  line-height: 1.6;
+}
+
 .workspace-card h4,
 .workspace-card p {
   margin: 0;

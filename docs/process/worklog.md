@@ -12,6 +12,19 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-05-25 — CV13.E4.S1 conversation detail page validated
+
+Started the `v0.14.0 — Conversation Intelligence` slice and added a read-only
+conversation transcript page. The web API now serves one conversation with
+bounded metadata and ordered messages at `/api/conversations/detail`, and the
+web app supports direct `#conversation/<id>` navigation. Transcript labels use
+`Mirror` for assistant messages and the active web profile display name for user
+messages. No retitle, edit, delete, batch, or LLM action is exposed.
+
+Validation: focused Workspace/web tests passed, ruff checks passed,
+`node --check` passed, `git diff --check` passed, the web server was restarted,
+and Navigator browser validation accepted the direct transcript flow.
+
 ### 2026-05-25 — v0.13.0 release candidate prepared
 
 Prepared `v0.13.0 — Configuration Console` as the minor release candidate for
