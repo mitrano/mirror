@@ -16,7 +16,7 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 Prepared `v0.16.1 — Runtime Update Preflight Resilience` to publish the CV9.E2.S3 updater hardening fix. The release note explains the production failure mode, the narrow update-safe preflight lane for core migration drift, SQLite WAL sidecar status recovery, and the preserved safety gates.
 
-Validation: pending release-note smoke, release doctor, and production update validation.
+Validation: release-note smoke passed, release doctor was ready with expected pre-promotion warnings, promotion created and pushed tag/stable for `v0.16.1`, and production updated successfully from `0.16.0` to `0.16.1` with backup `memory_20260527_184143.zip`, fast-forward `5e805ae -> b23d869`, post-update status ready, and update check reporting `up_to_date`. GitHub Actions did not show a new workflow run for the branch or stable push in `gh run list`.
 
 ### 2026-05-27 — Runtime update preflight resilience validated in production
 
