@@ -225,17 +225,17 @@ Aplicar os tamanhos abaixo:
 | Subtítulo / identificação da prova | 11 pt | Negrito |
 | Cabeçalho de nome, turma e data | 11 pt | Negrito |
 | Título de questão | 13 pt | Negrito |
-| Enunciado das questões | 11 pt | Negrito |
+| Enunciado das questões | 11 pt | Normal |
 | Banco de palavras / instruções auxiliares | 10 pt | Negrito |
 | Campo “Resposta:” | 10 pt | Negrito |
-| Linhas de resposta | 10 pt | Negrito |
+| Linhas de resposta | 10 pt | Normal |
 | Título do gabarito comentado | 16 pt | Negrito |
 | Título das questões no gabarito | 12 pt | Negrito |
 | Rótulos “Resposta esperada:” e “Comentário:” | 10 pt | Negrito |
-| Texto da resposta esperada | 11 pt | Negrito |
-| Texto do comentário | 10 pt | Negrito |
+| Texto da resposta esperada | 11 pt | Normal |
+| Texto do comentário | 10 pt | Normal |
 
-Regra prática: corpo do simulado em **11 pt**, títulos de questão em **13 pt**, títulos principais em **16 pt** e elementos auxiliares/resposta/gabarito em **10 pt**.
+Regra prática: corpo do simulado em **11 pt normal**, títulos de questão em **13 pt negrito**, títulos principais em **16 pt negrito** e elementos auxiliares/rótulos em **10 pt**. Não gerar o documento inteiro em negrito.
 
 ### 7.2. Estrutura e diagramação
 
