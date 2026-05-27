@@ -274,7 +274,7 @@ def add_video_durations(youtube: Any, videos: list[Video]) -> list[Video]:
     return [replace(video, duration_seconds=durations.get(video.video_id, 0)) for video in videos]
 
 
-def render_html(videos: list[Video], generated_at: datetime, published_after: datetime) -> str:
+def render_video_cards(videos: list[Video]) -> str:
     rows = []
     for video in videos:
         description = " ".join(video.description.split())[:220]
@@ -296,9 +296,23 @@ def render_html(videos: list[Video], generated_at: datetime, published_after: da
             """
         )
 
-    body = "\n".join(rows) if rows else "<p class='empty'>Nenhum vídeo de filosofia encontrado nas últimas 24 horas.</p>"
-    video_links = "\n".join(html.escape(video.url) for video in videos)
-    unique_channels = sorted({video.channel_title for video in videos}, key=str.casefold)
+    return "\n".join(rows)
+
+
+def render_html(
+    videos: list[Video],
+    generated_at: datetime,
+    published_after: datetime,
+    short_duration_seconds: int = 60,
+) -> str:
+    main_videos = [video for video in videos if video.duration_seconds >= short_duration_seconds]
+    short_videos = [video for video in videos if 0 < video.duration_seconds < short_duration_seconds]
+
+    body = render_video_cards(main_videos) if main_videos else "<p class='empty'>Nenhum vídeo de filosofia com 60 segundos ou mais encontrado nas últimas 24 horas.</p>"
+    shorts_body = render_video_cards(short_videos) if short_videos else "<p class='empty'>Nenhum vídeo com menos de 60 segundos encontrado.</p>"
+    ordered_videos = main_videos + short_videos
+    video_links = "\n".join(html.escape(video.url) for video in ordered_videos)
+    unique_channels = sorted({video.channel_title for video in ordered_videos}, key=str.casefold)
     channel_items = "\n".join(
         f"<li>{html.escape(channel)}</li>" for channel in unique_channels
     ) or "<li>Nenhum canal encontrado.</li>"
@@ -342,15 +356,21 @@ def render_html(videos: list[Video], generated_at: datetime, published_after: da
     <div class="logo">▶</div>
     <div>
       <h1>Filosofia nas suas inscrições</h1>
-      <div class="sub">Últimas 24h desde {html.escape(since)} · gerado em {html.escape(generated)} · ordenado por duração, do menor para o maior</div>
+      <div class="sub">Últimas 24h desde {html.escape(since)} · gerado em {html.escape(generated)} · vídeos principais ordenados por duração; vídeos com menos de 60s ao final</div>
     </div>
   </header>
   <main>
     {body}
 
     <section class="copy-section">
+      <h2>Vídeos com menos de 60 segundos</h2>
+      <p class="hint">Separados da lista principal para facilitar triagem.</p>
+      {shorts_body}
+    </section>
+
+    <section class="copy-section">
       <h2>Links dos vídeos para copiar</h2>
-      <p class="hint">Um link por linha, na mesma ordem do feed: do vídeo mais curto para o mais longo.</p>
+      <p class="hint">Um link por linha, na mesma ordem do feed: lista principal primeiro; vídeos com menos de 60s ao final.</p>
       <textarea class="link-box" readonly>{video_links}</textarea>
     </section>
 
@@ -374,7 +394,8 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=Path("exports/youtube_filosofia_24h.html"))
     parser.add_argument("--hours", type=int, default=24)
     parser.add_argument("--pages-per-channel", type=int, default=2)
-    parser.add_argument("--min-duration-seconds", type=int, default=30)
+    parser.add_argument("--min-duration-seconds", type=int, default=0)
+    parser.add_argument("--short-duration-seconds", type=int, default=60)
     parser.add_argument("--keywords", nargs="*", default=DEFAULT_KEYWORDS)
     parser.add_argument("--auth-port", type=int, default=8080)
     parser.add_argument("--auth-timeout-seconds", type=int, default=300)
@@ -408,7 +429,10 @@ def main() -> None:
     videos = sorted(videos, key=lambda video: (video.duration_seconds or 10**9, video.published_at))
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(render_html(videos, now, published_after), encoding="utf-8")
+    args.output.write_text(
+        render_html(videos, now, published_after, args.short_duration_seconds),
+        encoding="utf-8",
+    )
     print(f"Canais inscritos: {len(channels)}")
     print(f"Vídeos de filosofia encontrados: {len(videos)}")
     print(f"HTML gerado: {args.output}")
