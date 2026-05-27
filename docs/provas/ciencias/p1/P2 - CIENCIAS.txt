@@ -1,0 +1,178 @@
+Olá, meu nome é Danilo Carvalho. Eu sou professor de ciência e biologia aqui no PEN e hoje eu vou guar vocês pela revisão da P2 do sétimo ano de ciências.
+Vamos juntos. Opa.
+Na P2 de vocês, pessoal, vão cair os capítulos 6, 7 e 8 da apostila 1. E é legal a gente lembrar que o objetivo principal dessa revisão é relembrar os
+assuntos mais importantes vistos nesses dois capítulos e reforçar através das cinco questões que nós preparamos para cá os conteúdos mais importantes e
+estudados em sala de aula. Essa revisão, ela não substitui uma aula propriamente dita e também não é o objetivo dela de conseguir contemplar todo o conteúdo
+visto nesses três capítulos aqui, de fato, são só os conteúdos, né, os assuntos mais importantes. Então não deixem de estudar pelo material didático
+de vocês, pelas anotações que vocês fizeram em sala de aula e todas as orientações que o professor ou professora de você de vocês passaram durante as aulas, combinado?
+Vamos começar primeiro falando um pouco sobre calor. Calor, por definição, é o grau de agitação das moléculas, a energia que essas moléculas vão ter. Se
+a gente, por exemplo, compara um cubo de gelo e vapor d'água, esses dois elementos, esses dois corpos, eles vão ser compostos pela mesma molécula, que é
+a molécula de água. Só que um cubo de gelo, essas moléculas vão estar uma do lado da outra. Então, por isso que a gente tem, né, ela de estado físico
+sólido. E já na no vapor d'água, essas moléculas vão estar espalhadas, vão estar agitadas, elas vão ter movimento entre elas. Por isso que ela dá esse
+estado físico, né, gasoso. Então, a gente vai dizer que o calor é a o grau de agitação, o grau de energia que flui
+esses corpos. Para poder a gente medir esse calor, a gente vai usar uma grandeza física que nós chamamos de temperatura. E para poder aferir, para
+poder essa esse grau de calor, a gente vai falar, né, a gente vai usar, vamos falar melhor, um termômetro. Então, um
+termômetro ele vai medir o grau de calor de corpo, ele vai medir a temperatura. E a gente vai ter três escalas para poder medir a temperatura. Fahrenheit, grau
+fahrenheit, Kelvin e os graus Cus que a gente usa aqui no Brasil. Uma outra coisa legal de falar sobre esse estudo de calor na ciência é que a gente vai
+ter o fluxo de calor. Então, dois corpos com quantidade de calor, né, com temperatura diferente, vão existir, né,
+vai existir, falando melhor, um fluxo de calor. Esse fluxo de calor sempre vai ser do corpo de maior calor pro corpo de
+menor calor. Normalmente no nosso dia a dia, né, a gente vai falar que um corpo tá quente, outro corpo tá frio. a gente normalmente não usa na hora que a gente
+vai estudar em ciências eh essa parte de calor. A gente não vai usar muito a palavra fria. A gente pode falar que tem menos calor ou um corpo tá ausente de
+calor, porque o fluxo vai acontecer de um corpo com mais calor para um corpo com menos calor. Esse fluxo de calor,
+ele vai acontecer até que os dois corpos tenham a mesma quantidade de calor, basicamente atinjam a mesma temperatura.
+Quando dois corpos estão com a mesma temperatura, eles vão atingir o que a gente chama de equilíbrio térmico, porque a quantidade, né, a quantidade de
+energia térmica, quantidade de calor entre os dois está equilibrada.
+Tranquilo? Mas também é legal a gente falar que diferentes, né, por diferentes pessoas vão ter sensações térmicas
+diferentes. Não é que essa a temperatura varia de pessoa para pessoa, mas sim de como que os sensores que essa pessoa tem
+vão perceber essa temperatura. Imagina o que aconteça na sala de aula de vocês o seguinte: uma pessoa fala que tá
+sentindo muito frio no na sala, quer que o ar condicionado eh fique mais, né, que aumente a temperatura desse ar condicionado. A outra pessoa não fala:
+"Ah, não, para mim tá tá tranquilo, não precisa baixar, não precisa aumentar a temperatura do ar condicionado". Isso significa o seguinte, que eles vão sentir a temperatura diferente, mas não
+que a temperatura está diferente pros dois. Fez sentido? E como que a gente tem esses sensores térmicos, né? Como que a gente consegue ver essa sensação térmica? Ela é pela temperatura, mas
+também pode ser pela corrente de vento, pela umidade do lugar. E aí, pensando num caso, né, de sala de aula, talvez
+uma pessoa, ela tá sem casaco, outra tá com casaco, pode ser que a pessoa ela tá bem na frente da saída do ar condicionado, a outra pessoa de repente
+tá lá no fundo da sala, então ar condicionado não chega. Então essas variações, né, de como que as pessoas sentem temperatura no ambiente é o que a gente chama de sensação térmica.
+Tranquilo?
+Pensando nesses detalhes, né, nessas nessas informações que eu dei para vocês, vamos ver se a gente consegue resolver a questão um. Associe os
+conceitos da primeira coluna com as definições ou situações correspondentes na segunda coluna. E na primeira coluna a gente tem calor, temperatura, sensação
+térmica e equilíbrio térmico. Vamos ler a primeira. É a medida do grau, é a medida do grau de agitação das moléculas de um pouco. A medida, ou seja, a gente
+vai medir, a gente vai aferir o grau de agitação, né? Energia térmica. a gente vai medir o calor das moléculas de um
+corpo. Então isso é a temperatura. Letra B. Ocorre quando dois corpos atingem a mesma temperatura após trocarem energia.
+5:005 minutosEsse fluxo de calor cessou, né? Ele parou. Esses corpos atingiram a mesma temperatura. Isso é o caso de equilíbrio
+térmico. Letra D. Energia térmica em trânsito, né? A terceira aqui, energia térmica em trânsito, trânsito que flui
+do corpo mais com mais calor para o corpo com menos calor. Isso é a definição de calor, energia térmica, né?
+Grau de agitação das moléculas. E por último, percepção do nosso corpo sobre o quão quente ou frio está ambiente influenciadas por fatores como o vento.
+Nesse caso, a gente falando a percepção individual de cada pessoa. A gente tá falando sobre a sensação térmica. Então, em ordem ficou a medida do grau de
+agitação, temperatura ocorre quando dois corpos atingem a mesma temperatura, equilíbrio térmico, energia térmica
+entro corpo em corpo, calor e percepção do nosso corpo sobre o quão quente ou fluído tá ao ambiente. Sensação térmica.
+Tranquilo?
+Vamos continuar falando um pouco sobre calor, mas eu v falar agora sobre propagação, tipos de propagação de calor. Vocês estudaram que existem
+basicamente três tipos de propagação de calor e a gente consegue representar com apenas uma imagem esses três tipos. Nós vamos ter a condução, a irradiação e a
+convexção. Na irradiação, o calor ele vai passar através de ondas eletromagnéticas. Então ele, né, as zas eletromagnéticas conseguem se propagar
+pelo espaço. Então é a forma como, por exemplo, nós temos a propagação de valor lá dos raios solares até a nossa
+atmosfera. Esses raios solares vão passar o vácuo, né, passar o espaço entre os planetas, entre os ácidos e vão
+chegar aqui na Terra e vão esquentar o nosso planeta. A radiação também vai acontecer em outros dois exemplos, né?
+Em fogueiras, quando a gente tá, por exemplo, aqui nesse exemplo, a gente tem um fogo a lenha, então essa lenha ela vai esquentar pela irradiação. E um
+outro exemplo legal de se falar são pelos fornos microondas, né? Os microondas eles vão ter um sensor, um dispositivo que vai transformar energia
+elétrica em energia térmica. E essa energia térmica ela vem através dos microondas, OK? das microondas falando
+melhor. O outro tipo de propagação de calor é a condução. A condução ela vai acontecer em materiais sólidos e ela vai
+acontecer de molécula a molécula, ou seja, de ponto de um ponto até outro ponto desse corpo vai ser esquentado de forma gradual. Nesse exemplo aqui, a
+fonte de calor tá aqui na parte de baixo dessa panela, provavelmente feita de ferro. Então o que vai acontecer?
+Primeiro as camadas mais próximas da fonte de calor vão ser esquentadas e aí de pouquinho em pouquinho todo toda essa
+panela vai ser esquentada e aí pode chegar, né, se esse cabo aqui foi de ferro, depois esse cabo vai começar a ser esquentado, iniciando aqui, né, na
+parte mais próxima do que já tava quente, chegando até a extremidade. OK?
+Então a condução vai ser a propagação de calor de molécula a molécula, normalmente, né, presente em eh materiais sólidos. E por último, a gente
+tem a convexão. A convexão, ela vai acontecer em fluidos, então ela vai acontecer em gases ou em líquidos. Como que a confecção funciona? Ela vai
+funcionar, né? Um líquido ou um gás, ele vai ser esquentado através de correntes de convexão. Que que é isso? Correntes
+de convecção elas vão ser quando uma fonte de calor vai começar a esquentar esse fluido. E o que que vai acontecer?
+as moléculas que tão mais próximas da fonte de calor vão ficar mais quentes e por serem mais quentes elas vão ficar mais agitadas, então elas vão ficar
+menos densas, então elas vão começar a subir no espaço onde tá esse fluído. E aí com por consequência as moléculas que
+estavam mais longe da fonte de calor, no caso desse exemplo aqui a parte de cima dessa água, vão começar a ficar mais densas porque elas têm menos calor,
+estão mais juntinhas. Lembra que eu falei para vocês que o calor é o grau de agitação de molécula? Então, se elas estão com menos calor, elas estão mais juntas, elas ficam mais densas e começam
+a a baixar, a cair nesse fluido. Então esse movimento de subida do líquido mais quente, de descida do do líquido mais
+frio, vai fazer com que existam essas correntes de convexão até que todo líquido, né, entre equilíbrio e térmico, ele consiga ser esquentado por completo.
+A gente consegue ver isso muito bem, né, em chaleiras, panelas, quando a gente vê a água borbulhando, né, a gente vê aquelas borbulhas de água subindo. Por quê? Porque é água que já se formou, né,
+já está em forma de gás subindo e virando vapor. E também a gente consegue ver isso muito claro quando a gente vê, por exemplo, uma chaleira, né, ou uma
+panela de pressão, que a o gás ele nunca tá descendo, ele tá sempre subindo, porque como ele é menos denso, ele vai subir. Tranquilo?
+Então, pensando nesses trê três tipos de propagação de calor, vamos ver se a gente consegue responder a questão dois.
+Classifique o tipo de o tipo de de propagação, desculpa, de calor das situações abaixo. A barra de ferro
+esquentando em uma chama. A gente acabou de falar, né? Quando a gente tá pensando na propagação de calor de molécula a molécula em objetos sólidos, a gente tá
+falando sobre a condução, OK? Então, uma ponta da barra de ferro vai ser esquentada primeiro porque ela tá perto
+da fonte de calor e depois todo o comprimento dessa barra de ferro vai ser esquentado. B. Um ar- condicionado
+resfriando uma sala de aula. Nesse caso vai ser por convicção, porque o trabalho do ar condicionado é reesfriar, né,
+retirar calor do ar que tá, né, tá dentro de uma sala de aula. Isso vai acontecer por correntes de convexão. Se
+você, se vocês observarem normalmente os ar os ares condicionados, as máquinas de ar condicionado vão ser instaladas na
+parte de cima das salas. Por quê? Porque o vento frio, né, o vento sem calor que vai sair desse ar condicionado, vai descer, o ar quente vai subir, então ele
+consegue fazer uma corrente de convecção mais eficiente. OK? Se água dentro de baixareira sendo esquentada, também é um
+exemplo de correntes de convicção. Então é uma é uma troca de calor, uma propagação, falando melhor de calor
+através da conveção. E por último, raio solares chegando ao planeta Terra, falei lá no início para vocês, ela vai ser do
+tipo irradiação. Então, repetindo, barra de ferro esquentada, condução, ar condicionado, convexão, água dentro de
+uma chaleira, convecção e raios solares, irradiação. OK?
+Questão três, pessoal. Diferencie materiais condutores térmicos isolantes térmicos. Dando exemplos de cada, vamos ver aqui essas duas figuras. A gente vai
+ter uma embalagem feita de zip e uma latinha feita de metal, uma lata de alumínio, por exemplo. Normalmente, vou dar um exemplo do nosso dia a dia, né? a
+gente pede um lanche em casa ou uma marmita, né, seja o que for, e essa marmita tá quentinha ou lanche, o hambúrguer tá quentinho e ele fica
+dentro desse recipiente, né, dessa embalagem de isopor. Qual é o trabalho?
+Qual é a função do isopor nisso? Ele vai isolar o calor, né? Ele vai impedir, vai dificultar a troca de calor com a parte
+externa da parte interna. Então, ao longo ao longo de um tempo, ele vai manter o calor dentro desse, né, dentro dessa embalagem para que manter o lanche mais quentinho durante mais tempo.
+Tranquilo? Então, a gente pode dizer que o isopor teve um isolante térmico que ele vai dificultar a passagem de calor, a troca de calor da parte interna com a
+parte externa. Tranquilo? Já uma latinha de metal, uma latinha de alumínio, quando ela tá fechada, obviamente, ela
+vai facilitar a passagem de calor. A gente compra uma latinha quente no mercado, coloca ela num congelador e
+depois de meia hora, 40 minutos, esse líquido já tá gelado. Por quê? Porque esse alumínio ele vai ser um facilitador, vai ser um bom condutor
+térmico. Ele vai permitir que o líquido que tá tava com menos calor dentro da latinha começa comece, desculpa, a ser resfriado de uma forma mais fácil.
+Então, voltando aqui pro exercício, a gente vai diferenciar materiais condutores térmicos isolantes térmicos.
+a gente pode falar da seguinte forma, né, que os condutores vão facilitar a troca de calor e os isolantes térmicos vão impedir dificultar a troca de calor
+13:0113 minutos e 1 segundoentre duas partes, entre dois objetos. E a gente pode colocar como exemplo nos condutores térmicos os metais, como eu falei para vocês, em isolantes a gente
+pode falar madeira, o isopor. Tranquilo, pessoal? Indo agora pra questão quatro,
+ela fala um pouco sobre sistemas. Então vamos primeiro entender o que que são sistemas. Por definição, um sistema é região do espaço ou uma quantidade de
+matéria com propriedades características por meio das quais podem ocorrer diversas interações. Então, basicamente,
+sistema ele é um recorte, né, assim, um recorte do espaço físico. Se eu quero analisar, por exemplo, uma relação, né,
+uma troca de calor, por exemplo, entre uma garrafa e um copo, eu tô falando de um sistema. Se eu tô analisando um corpo
+de um cachorro, é um sistema. Então ela vai ser basicamente uma região que a gente tá usando como objeto de estudo naquele momento para uma determinada
+função. Esse sistemas eles podem ser classificados de acordo com a troca de calor e a troca de matéria com o
+ambiente. Se um se o ambiente não, desculpa, se um sistema ele tem troca de calor, né, troca de energia e troca de matéria, a gente considera ele aberto.
+Se ele só tem troca de energia, mas não tem troca de matéria, ele é fechado.
+Como assim, Dan? Vamos pensar, por exemplo, nesse sistema aqui. Qualquer que seja, a gente vai ter entrada de
+matéria aqui pelo verde, saída de matéria aqui pelo verde, entrada de energia térmica pelo laranja, saída de
+energia térmica pelo laranja. Então, se existe saída de energia, entrada de energia, saída de matéria, entrada de matéria, ele tá trocando tanto matéria quanto energia com o meio ambiente.
+Então é um sistema aberto. Já nesse exemplo aqui, a gente vai ter troca de calor, né? Troca de energia. Ele vai trocar energia, vai existir fluxo de
+calor nesse corpo, mas ele não troca a matéria. Tanto que as setinhas, né, elas tentam entrar, mas não entram. E aqui é a mesma coisa dentro. a gente vai chamar
+isso de sistema fechado. Em cima dessa definição, a gente vai tentar resolver essa questão quatro, que é uma questão que fala sobre classificação de
+sistemas. E ele relembrando, sistema aberto troca matéria e energia, sistema fechado só troca energia. Tranquilo?
+Então, uma planta no jardim, essa planta ela vai trocar calor com o ambiente, porque o sol vai esquentar essa planta,
+o, né, a falta de sol, sei lá, no momento de inverno, no momento de chuva, essa planta também vai ser resfriada.
+Então ela troca energia com o ambiente e além disso as plantas vão trocar matéria com o ambiente através da fotossíntese, por exemplo, elas vão absorver gás
+carbônico e devolver gás oxigênio. Elas vão absorver água através das raízes.
+Então se ela troca matéria e troca calor, ela é uma um sistema aberto. Uma lata fechada de refrigerante, falei para
+vocês, né, que a gente pode usar uma lata de refrigerante, como aquele exemplo lá de bom condutor térmico. uma lata fechada de refrigerante, o líquido
+16:0116 minutos e 1 segundoque tá dentro e o líquido que tá fora ou o gás que tá fora também não vai entrar.
+Mas a gente consegue ter um fluxo de calor. Se a gente coloca uma lata de Coca-Cola, por exemplo, no direto embaixo do sol, ela vai ficar quente. Se
+a gente coloca ela durante um tempo na no refrigerador, ela vai esfriar. Então, se ela troca eh calor com ambiente, mas não troca
+matéria, ela é um exemplo de sistema fechado. Algumas pessoas podem confundir naquele exemplo de, por exemplo, ah, acabei de pegar uma lata de Coca-Cola e
+ela começou a suar, né? Começou a ter aquelas botículas fora da lata. Então, é um sistema aberto porque tá saindo água de dentro da Coca-Cola. Aquilo não é
+água de dentro da poo, aquilo é o vapor d'água que tá na atmosfera, encontrou uma superfície muito fria, resfriou, né,
+esse vapor d'água, ele começou a descer de forma eh líquida, né, virou gotícula de água. Tranquilo? Uma cachoeira, a
+gente, por exemplo, pode jogar uma pedra dentro da cachoeira, a gente pode pegar um pouco d'água da cachoeira e usar para, enfim, para molhar uma planta.
+Então ela troca a matéria e além disso a cachoeira ela é esquentada ou esfriada de acordo com a estação do ano que ela tá. Então por trocar a matéria e trocar
+eh energia, ela é um sistema eh aberto, desculpa, um sistema aberto. Uma bolsa térmica a gente consegue trocar calor,
+né? A gente pode usar uma bolsa térmica se a gente, né? bota ela no microondas, ela fica quente. Ou se a gente deixar ela no congelador o tempo, ela vai ficar
+fria. Então a gente vai usar ela para diferentes fins, mas a gente não perde conteúdo que tá dentro, naquele gelzinho que tá dentro da bolsa térmica. Então só
+existe troca ali de calor e não existe troca de matéria. É um sistema fechado.
+E por último, o corpo humano. Nós trocamos calor para ambiente, né? a gente vai sentir mais frio, vai sentir mais calor de acordo com a estação do
+under, de acordo se a gente tá numa sala para condicionado ou não. E além disso, a gente come, bebe água, vai ao banheiro, então a gente também troca
+matéria com ambiente. Então por trocar matéria e trocar a energia, o corpo humano ele é classificado sistema
+aberto. Repetindo desde o início, uma planta no jardim aberto, uma lata fechada de refrigerante fechado, uma
+cachoeira aberto, uma bolsa térmica fechado e o corpo humano aberto.
+Tranquilo? aqueles sistemas que a gente tá falando.
+E para poder a gente conseguir terminar a nossa revisão, vamos tentar explicar como uma garrafa térmica evita ou diminui as propagações de calor abaixo.
+E a gente tem os três tipos de propagação: convexão, condução e radiação.
+A garrafa térmica, ela é considerada o mais próximo que a gente tem de um sistema isolado, porque na teoria essa
+garrafa térmica não trocaria calor e não trocaria matéria com o meio. Só que um sistema perfeitamente isolado no mundo
+real não existe. Mas a garrafa térmica, ela é um exemplo de uma coisa que poderia se assemelhar a esse sistema isolado. Tranquilo? Quais são as
+características? Quais são as os mecanismos por trás desse sistema que forma garrafa térmica? A primeira coisa é uma tampa isolante, né? uma tampa
+consiga vedar muito bem a entrada da garrafa térmica para poder evitar a passagem, né, a troca de calor desse
+buraco, né, da saída de água com o ambiente. E além disso, a garrafa térmica, ela normalmente vai ter duas
+paredes, né, a parede externa e a parede interna. E o tubo que forma essas paredes aqui dentro, eles são
+espelhados. Além disso, é normal, é comum que as garrafas elas apresentam uma camada fina de ar rar efeito ou
+vácuo. Normalmente, né, é de ar rar efeito. O que que é o ar rar efeito? É um ar que não tem tantas
+moléculas de ar dentro dele. Até explicar de uma outra forma. a gente vai tirar um pouco das moléculas já que
+formam tal ambiente, né, tal sistema para poder com a convexção que a passagem de calor através dos gases, né,
+20:0120 minutos e 1 segundoatravés dos fluidos, sejam mais difíceis. Então, ao final essa molécul essa molecula, desculpa, essa garrafa térmica, ela pode evitar a passagem por
+convecão, porque essa camadinha de ar rar efeito, ela diminui, né? ela não vai conseguir propagar tão bem calor por
+convecção. Além disso, esses tubos com parede interna e externa que são espelhadas vão evitar que o calor, o
+calor ou a falta de calor, né? Ou enfim, se a gente tá pensando, vamos pensar numa garrafa térmica de café. Então, o calor que tá dentro dessa garrafa, ele
+vai se manter dentro pela parede espelhada e o calor que tá fora, né, tá na parede externa dessa garrafa também vai se manter. Então, não é que esse
+sistema ele seja isolado 100%, por ainda existe ali, né, uma perda, não uma perda, mas uma troca de calor entre a parte interna e a parte externa. Mas em
+comparação a sistemas abertos, ela vai ser muito mais eficiente para poder manter a quantidade de calor dentro da garrafa térmica. Então, voltando ao
+21:0021 minutosexercício, como que vai existir a como que a garrafa térmica vai evitar ou diminuir a propagação de calor por
+convecção, ela vai ter uma parede, né, uma compartimento com ar efeito que vai diminuir a passagem de calor entre o
+gás. A condução e a radiação, ela vai acontecer da mesma forma, né? Ela vai ser evitada pelas paredes espelhadas dos
+tubos que formam aqui a parede interna dela. Bem, então, repetindo, a convicção vai ser pelo ar efeito e a condução e
+irradiação vai ser pelos tubos externos e internos que formam a garrafa de material espelhado. OK, pessoal? Terminamos a revisão de hoje.
+Espero que tenha sido legal para vocês, mas vamos relembrar os detalhes que eu falei lá no início da aula. Essa revisão, ela não substitui a todo o
+conteúdo, né? Ela não consegue ver todo o conteúdo de uma forma muito aprofundada. Então, não deixem de ver os exercícios da apostila, os exercícios da
+revisão, as anotações de vocês e as orientações dos professores de vocês.
+Evitem excessos eletrônicos durante o estudo, durante, né, eh, a prévia, né, o dia anterior da sua prova, porque não
+tem alguém programa de concentração, enfim, não é uma uma recomendação nossa.
+Tenta ter uma boa noite de sono, uma alimentação saudável no dia antes da prova para vocês acordarem 100% e fazerem a prova da melhor forma
+possível. E eu desejo para vocês calma, atenção durante o processo de de fazer a prova. Tomem cuidado com os verbos de
+comando, né? Se a questão pede para citar dois exemplos, não esqueçam de citar os dois exemplos, explicar, justificar, enumerar, marcar verdadeiro
+ou falso. Tomem cuidado com as ações, né, com os comandos da prova. Eu fico por aqui, desejo uma boa prova para vocês, tô torcendo por vocês. Até a próxima.
