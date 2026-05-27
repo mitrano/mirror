@@ -259,6 +259,88 @@ ________________________________________________________________________________
 
 Evitar `.docx` gerado de forma pobre, sem espaçamento ou com colunas quebradas.
 
+### 7.3. Regras obrigatórias de negrito
+
+Não gerar o documento inteiro em negrito.
+
+Usar negrito apenas em:
+
+1. Título principal da prova.
+2. Subtítulo / identificação da prova.
+3. Cabeçalho de nome, turma e data.
+4. Título de questão, como `Questão 01`.
+5. Títulos de seções estruturais, como `TEXT I`, quando existirem.
+6. Letras isoladas de subitens somente quando estiverem sozinhas por necessidade estrutural.
+7. Banco de palavras / caixas de apoio.
+8. Rótulos `Resposta:`, `Resposta esperada:` e `Comentário:`.
+9. Título do gabarito comentado.
+10. Títulos das questões dentro do gabarito.
+
+Não usar negrito em:
+
+1. Texto corrido dos enunciados.
+2. Textos de leitura.
+3. Alternativas comuns.
+4. Frases que o aluno deve completar.
+5. Linhas de resposta com underscores.
+6. Texto da resposta esperada.
+7. Texto do comentário do gabarito.
+
+### 7.4. Regras obrigatórias para subitens
+
+Quando uma questão tiver subitens com letra e pergunta curta, a letra e o texto devem ficar na **mesma linha**.
+
+Formato correto:
+
+```text
+a. Where did Emma meet her friends?
+```
+
+Formato incorreto:
+
+```text
+a.
+Where did Emma meet her friends?
+```
+
+Aplicar esta regra para todos os subitens `a.`, `b.`, `c.`, etc., em qualquer matéria.
+
+Só separar a letra em linha própria quando o subitem for composto por bloco longo, tabela, imagem, múltiplas linhas ou quando a separação melhorar claramente a legibilidade.
+
+### 7.5. Regras obrigatórias de espaçamento
+
+O padrão de espaçamento do `.docx` deve seguir o `simulado-p2-artes-04.docx`:
+
+| Elemento | Antes | Depois | Linha |
+|---|---:|---:|---:|
+| Título principal | 0 | 40 | 269 |
+| Subtítulo | 0 | 160 | 269 |
+| Cabeçalho de nome/turma/data | 0 | 200 | 269 |
+| Título de questão | 200 | 80 | 269 |
+| Primeira linha de enunciado após título | 0 | 80 | 269 |
+| Continuação de enunciado | 0 | 120 | 269 |
+| Campo `Resposta:` | 0 | 40 | 269 |
+| Linha de resposta | 0 | 20 | 269 |
+| Título do gabarito | 0 | 200 | 269 |
+| Rótulos do gabarito | 0 | 0 | 269 |
+
+Não aplicar espaçamento único genérico em todos os parágrafos. O espaçamento deve variar conforme o tipo de elemento.
+
+### 7.6. Checklist obrigatório antes de entregar o `.docx`
+
+Antes de entregar qualquer simulado em `.docx`, verificar:
+
+1. O documento não está inteiro em negrito.
+2. O corpo dos enunciados está em Arial 11 pt normal.
+3. Os títulos de questão estão em Arial 13 pt negrito.
+4. O título principal está em Arial 16 pt negrito.
+5. Os rótulos de resposta estão em Arial 10 pt negrito.
+6. As linhas de resposta estão em Arial 10 pt normal.
+7. Subitens curtos estão na mesma linha da pergunta: `a. Pergunta...`.
+8. Não há cabeçalho duplicado de nome/turma/data.
+9. O espaçamento segue o padrão por tipo de elemento, não um espaçamento único para tudo.
+10. O gabarito começa em nova página.
+
 ---
 
 ## 8. Scripts de upload
