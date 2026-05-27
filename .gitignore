@@ -2,6 +2,10 @@
 __pycache__/
 *.pyc
 .env
+.google-drive-token.json
+google-oauth-credentials.json
+**/.google-drive-token.json
+**/google-oauth-credentials.json
 claude.sh
 .claude/settings.local.json
 .claude/worktrees/
@@ -14,3 +18,8 @@ conversas/
 .pytest_cache/
 .ruff_cache/
 node_modules/
+.local/upload-scripts/
+.local/youtube_client_secret.json
+.local/youtube_token.json
+exports/youtube_filosofia_24h.html
+*.json:Zone.Identifier
