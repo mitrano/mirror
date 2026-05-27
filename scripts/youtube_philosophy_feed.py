@@ -290,6 +290,7 @@ def render_video_cards(videos: list[Video]) -> str:
                 <a class="title" href="{html.escape(video.url)}" target="_blank" rel="noopener">{html.escape(video.title)}</a>
                 <div class="channel">{html.escape(video.channel_title)}</div>
                 <div class="date">Publicado em {html.escape(published)} · duração: {html.escape(duration)}</div>
+                <button class="copy-prompt" type="button" data-video-url="{html.escape(video.url, quote=True)}">Copiar prompt para resumo</button>
                 <p>{html.escape(description)}</p>
               </div>
             </article>
@@ -341,6 +342,10 @@ def render_html(
     .channel, .date, p {{ color:var(--muted); font-size:14px; }}
     .channel {{ margin-top:8px; }}
     .date {{ margin-top:3px; }}
+    .copy-prompt {{ margin-top:10px; padding:8px 12px; border:1px solid var(--line); border-radius:999px; background:#272727; color:var(--text); cursor:pointer; font-size:13px; }}
+    .copy-prompt:hover {{ background:#3a3a3a; }}
+    .toast {{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); padding:12px 16px; border-radius:10px; background:#f1f1f1; color:#0f0f0f; font-size:14px; font-weight:700; opacity:0; pointer-events:none; transition:opacity .2s ease, bottom .2s ease; z-index:10; }}
+    .toast.visible {{ opacity:1; bottom:34px; }}
     p {{ line-height:1.4; margin:10px 0 0; }}
     .copy-section {{ margin-top:34px; padding:22px; background:var(--panel); border:1px solid var(--line); border-radius:14px; }}
     .copy-section h2 {{ font-size:18px; margin:0 0 12px; }}
@@ -382,6 +387,32 @@ def render_html(
       </ul>
     </section>
   </main>
+  <div id="copy-toast" class="toast" role="status" aria-live="polite">Prompt copiado com sucesso.</div>
+  <script>
+    const toast = document.getElementById('copy-toast');
+    let toastTimer;
+
+    function showCopyConfirmation(message) {{
+      toast.textContent = message;
+      toast.classList.add('visible');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('visible'), 1800);
+    }}
+
+    async function copySummaryPrompt(videoUrl) {{
+      const text = `Faça um resumo estruturado deste vídeo: ${{videoUrl}}`;
+      try {{
+        await navigator.clipboard.writeText(text);
+        showCopyConfirmation('Prompt copiado com sucesso.');
+      }} catch (error) {{
+        window.prompt('Não foi possível copiar automaticamente. Copie o texto abaixo:', text);
+      }}
+    }}
+
+    document.querySelectorAll('.copy-prompt').forEach((button) => {{
+      button.addEventListener('click', () => copySummaryPrompt(button.dataset.videoUrl));
+    }});
+  </script>
 </body>
 </html>
 """
