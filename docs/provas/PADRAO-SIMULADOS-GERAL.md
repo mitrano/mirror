@@ -2,6 +2,14 @@
 
 Este arquivo registra diretrizes gerais para análise de provas reais, geração de simulados, criação de documentos e upload/compartilhamento. Ele vale para qualquer matéria, salvo quando houver um padrão específico da disciplina que complemente ou restrinja estas regras.
 
+A formatação visual obrigatória dos simulados está registrada em:
+
+```text
+docs/provas/PADRAO-FORMATACAO-SIMULADOS.md
+```
+
+Esse padrão global de formatação deve ser aplicado a todos os simulados futuros, independentemente da matéria.
+
 Padrões específicos por matéria devem ficar na pasta da matéria. Exemplo:
 
 ```text
