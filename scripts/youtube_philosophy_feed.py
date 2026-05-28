@@ -119,6 +119,24 @@ def timestamped_path(path: Path, generated_at: datetime) -> Path:
     return path.with_name(f"{path.stem}_{timestamp}{path.suffix}")
 
 
+def latest_timestamped_path(base_path: Path) -> Path | None:
+    candidates = [
+        path
+        for path in base_path.parent.glob(f"{base_path.stem}_*{base_path.suffix}")
+        if path.is_file()
+    ]
+    if not candidates:
+        return base_path if base_path.exists() else None
+    return max(candidates, key=lambda path: path.stat().st_mtime)
+
+
+def extract_youtube_urls_from_html(path: Path | None) -> set[str]:
+    if not path or not path.exists():
+        return set()
+    content = path.read_text(encoding="utf-8", errors="replace")
+    return set(re.findall(r"https://www\.youtube\.com/watch\?v=[A-Za-z0-9_-]+", content))
+
+
 def get_youtube_service(
     client_secrets: Path,
     token_path: Path,
@@ -323,11 +341,17 @@ def render_html(
     generated_at: datetime,
     published_after: datetime,
     short_duration_seconds: int = 60,
+    repeated_urls: set[str] | None = None,
+    previous_output: Path | None = None,
 ) -> str:
-    main_videos, short_videos = split_main_and_short_videos(videos, short_duration_seconds)
+    repeated_urls = repeated_urls or set()
+    new_videos = [video for video in videos if video.url not in repeated_urls]
+    repeated_videos = [video for video in videos if video.url in repeated_urls]
+    main_videos, short_videos = split_main_and_short_videos(new_videos, short_duration_seconds)
 
-    body = render_video_cards(main_videos) if main_videos else "<p class='empty'>Nenhum vídeo de filosofia com 60 segundos ou mais encontrado nas últimas 24 horas.</p>"
-    shorts_body = render_video_cards(short_videos) if short_videos else "<p class='empty'>Nenhum vídeo com menos de 60 segundos encontrado.</p>"
+    body = render_video_cards(main_videos) if main_videos else "<p class='empty'>Nenhum vídeo novo de filosofia com 60 segundos ou mais encontrado nas últimas 24 horas.</p>"
+    shorts_body = render_video_cards(short_videos) if short_videos else "<p class='empty'>Nenhum vídeo novo com menos de 60 segundos encontrado.</p>"
+    repeated_body = render_video_cards(repeated_videos) if repeated_videos else "<p class='empty'>Nenhum vídeo repetido em relação ao arquivo anterior.</p>"
     ordered_videos = main_videos + short_videos
     video_links = "\n".join(html.escape(video.url) for video in ordered_videos)
     unique_channels = sorted({video.channel_title for video in ordered_videos}, key=str.casefold)
@@ -336,6 +360,7 @@ def render_html(
     ) or "<li>Nenhum canal encontrado.</li>"
     generated = generated_at.astimezone().strftime("%d/%m/%Y %H:%M")
     since = published_after.astimezone().strftime("%d/%m/%Y %H:%M")
+    previous_note = html.escape(str(previous_output)) if previous_output else "nenhum arquivo anterior encontrado"
     return f"""<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -381,7 +406,7 @@ def render_html(
     <div class="logo">▶</div>
     <div>
       <h1>Filosofia nas suas inscrições</h1>
-      <div class="sub">Últimas 24h desde {html.escape(since)} · gerado em {html.escape(generated)} · vídeos principais ordenados por duração; vídeos com menos de 60s ao final; vídeos programados/sem duração continuam na lista principal</div>
+      <div class="sub">Últimas 24h desde {html.escape(since)} · gerado em {html.escape(generated)} · principais mostram apenas vídeos novos; repetidos ficam no final · comparação: {previous_note}</div>
     </div>
   </header>
   <main>
@@ -403,11 +428,17 @@ def render_html(
     </section>
 
     <section class="copy-section">
-      <h2>Canais presentes neste feed</h2>
-      <p class="hint">Lista única dos canais, sem repetição.</p>
+      <h2>Canais presentes nos vídeos novos</h2>
+      <p class="hint">Lista única dos canais dos vídeos novos, sem repetição.</p>
       <ul class="channel-list">
         {channel_items}
       </ul>
+    </section>
+
+    <section class="copy-section">
+      <h2>Vídeos repetidos do arquivo anterior</h2>
+      <p class="hint">Vídeos que já apareciam no arquivo anterior e foram separados da lista principal.</p>
+      {repeated_body}
     </section>
   </main>
   <div id="copy-toast" class="toast" role="status" aria-live="polite">Prompt copiado com sucesso.</div>
@@ -455,8 +486,13 @@ def render_whatsapp(
     generated_at: datetime,
     published_after: datetime,
     short_duration_seconds: int = 60,
+    repeated_urls: set[str] | None = None,
+    previous_output: Path | None = None,
 ) -> str:
-    main_videos, short_videos = split_main_and_short_videos(videos, short_duration_seconds)
+    repeated_urls = repeated_urls or set()
+    new_videos = [video for video in videos if video.url not in repeated_urls]
+    repeated_videos = [video for video in videos if video.url in repeated_urls]
+    main_videos, short_videos = split_main_and_short_videos(new_videos, short_duration_seconds)
     generated = generated_at.astimezone().strftime("%d/%m/%Y %H:%M")
     since = published_after.astimezone().strftime("%d/%m/%Y %H:%M")
 
@@ -464,6 +500,7 @@ def render_whatsapp(
         "🧠 *Vídeos de filosofia nas últimas 24h*",
         f"Gerado em {generated}",
         f"Desde {since}",
+        f"Comparação: {previous_output if previous_output else 'nenhum arquivo anterior encontrado'}",
         "",
     ]
 
@@ -487,12 +524,13 @@ def render_whatsapp(
             )
 
     append_section("▶️ *Lista principal*", main_videos)
-    append_section("⚡ *Vídeos com menos de 60s*", short_videos)
+    append_section("⚡ *Vídeos novos com menos de 60s*", short_videos)
 
     unique_channels = sorted({video.channel_title for video in main_videos + short_videos}, key=str.casefold)
-    lines.append("📺 *Canais presentes*")
+    lines.append("📺 *Canais presentes nos vídeos novos*")
     lines.extend(f"- {channel}" for channel in unique_channels)
     lines.append("")
+    append_section("🔁 *Vídeos repetidos do arquivo anterior*", repeated_videos)
     return "\n".join(lines)
 
 
@@ -543,21 +581,40 @@ def main() -> None:
     videos = [video for video in videos if video.duration_seconds > args.min_duration_seconds]
     videos = sorted(videos, key=lambda video: (video.duration_seconds or 10**9, video.published_at))
 
+    previous_output = latest_timestamped_path(args.output)
+    repeated_urls = extract_youtube_urls_from_html(previous_output)
     html_output = timestamped_path(args.output, now)
     whatsapp_output = timestamped_path(args.whatsapp_output, now)
 
     html_output.parent.mkdir(parents=True, exist_ok=True)
     html_output.write_text(
-        render_html(videos, now, published_after, args.short_duration_seconds),
+        render_html(
+            videos,
+            now,
+            published_after,
+            args.short_duration_seconds,
+            repeated_urls,
+            previous_output,
+        ),
         encoding="utf-8",
     )
     whatsapp_output.parent.mkdir(parents=True, exist_ok=True)
     whatsapp_output.write_text(
-        render_whatsapp(videos, now, published_after, args.short_duration_seconds),
+        render_whatsapp(
+            videos,
+            now,
+            published_after,
+            args.short_duration_seconds,
+            repeated_urls,
+            previous_output,
+        ),
         encoding="utf-8",
     )
     print(f"Canais inscritos: {len(channels)}")
     print(f"Vídeos de filosofia encontrados: {len(videos)}")
+    print(f"Arquivo anterior comparado: {previous_output or 'nenhum'}")
+    print(f"Vídeos novos: {sum(1 for video in videos if video.url not in repeated_urls)}")
+    print(f"Vídeos repetidos: {sum(1 for video in videos if video.url in repeated_urls)}")
     print(f"HTML gerado: {html_output}")
     print(f"WhatsApp TXT gerado: {whatsapp_output}")
 
