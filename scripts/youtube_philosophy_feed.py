@@ -322,7 +322,13 @@ def render_video_cards(videos: list[Video]) -> str:
                 <a class="title" href="{html.escape(video.url)}" target="_blank" rel="noopener">{html.escape(video.title)}</a>
                 <div class="channel">{html.escape(video.channel_title)}</div>
                 <div class="date">Publicado em {html.escape(published)} · duração: {html.escape(duration)}</div>
-                <button class="copy-prompt" type="button" data-video-url="{html.escape(video.url, quote=True)}">Copiar prompt para resumo</button>
+                <div class="actions">
+                  <button class="copy-prompt" type="button" data-video-url="{html.escape(video.url, quote=True)}">Copiar prompt para resumo</button>
+                  <button class="status-button" type="button" data-video-url="{html.escape(video.url, quote=True)}" data-status="watched">✓ Assistido</button>
+                  <button class="status-button" type="button" data-video-url="{html.escape(video.url, quote=True)}" data-status="discarded">✕ Descartado</button>
+                  <button class="status-button" type="button" data-video-url="{html.escape(video.url, quote=True)}" data-status="unseen">↺ Não visto</button>
+                </div>
+                <div class="status-label" aria-live="polite">Status: não visto</div>
                 <p>{html.escape(description)}</p>
               </div>
             </article>
@@ -393,8 +399,15 @@ def render_html(
     .channel, .date, p {{ color:var(--muted); font-size:14px; }}
     .channel {{ margin-top:8px; }}
     .date {{ margin-top:3px; }}
-    .copy-prompt {{ margin-top:10px; padding:8px 12px; border:1px solid var(--line); border-radius:999px; background:#272727; color:var(--text); cursor:pointer; font-size:13px; }}
-    .copy-prompt:hover {{ background:#3a3a3a; }}
+    .actions {{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }}
+    .copy-prompt, .status-button {{ padding:8px 12px; border:1px solid var(--line); border-radius:999px; background:#272727; color:var(--text); cursor:pointer; font-size:13px; }}
+    .copy-prompt:hover, .status-button:hover {{ background:#3a3a3a; }}
+    .status-label {{ display:inline-block; margin-top:8px; padding:4px 8px; border-radius:999px; background:#242424; color:var(--muted); font-size:12px; }}
+    .video-card.watched {{ opacity:.58; border-left:4px solid #22c55e; padding-left:12px; }}
+    .video-card.discarded {{ opacity:.34; border-left:4px solid #ef4444; padding-left:12px; filter:grayscale(.7); }}
+    .video-card.watched .status-label {{ background:#14351f; color:#86efac; }}
+    .video-card.discarded .status-label {{ background:#3b1515; color:#fca5a5; }}
+    .video-card .status-button.active {{ outline:2px solid var(--text); background:#444; }}
     .toast {{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); padding:12px 16px; border-radius:10px; background:#f1f1f1; color:#0f0f0f; font-size:14px; font-weight:700; opacity:0; pointer-events:none; transition:opacity .2s ease, bottom .2s ease; z-index:10; }}
     .toast.visible {{ opacity:1; bottom:34px; }}
     p {{ line-height:1.4; margin:10px 0 0; }}
@@ -483,6 +496,47 @@ def render_html(
     document.querySelector('.copy-links-button')?.addEventListener('click', () => {{
       const linksBox = document.getElementById('video-links-box');
       copyToClipboard(linksBox.value, 'Links copiados com sucesso.');
+    }});
+
+    const statusLabels = {{
+      unseen: 'Status: não visto',
+      watched: 'Status: assistido',
+      discarded: 'Status: descartado',
+    }};
+
+    function storageKeyForVideo(videoUrl) {{
+      return `youtube-feed-status:${{videoUrl}}`;
+    }}
+
+    function applyVideoStatus(videoUrl, status) {{
+      const normalizedStatus = statusLabels[status] ? status : 'unseen';
+      document.querySelectorAll(`.status-button[data-video-url="${{CSS.escape(videoUrl)}}"]`).forEach((button) => {{
+        const card = button.closest('.video-card');
+        if (!card) return;
+        card.classList.remove('watched', 'discarded');
+        if (normalizedStatus !== 'unseen') card.classList.add(normalizedStatus);
+        card.querySelector('.status-label').textContent = statusLabels[normalizedStatus];
+        card.querySelectorAll('.status-button').forEach((statusButton) => {{
+          statusButton.classList.toggle('active', statusButton.dataset.status === normalizedStatus);
+        }});
+      }});
+    }}
+
+    document.querySelectorAll('.status-button').forEach((button) => {{
+      const videoUrl = button.dataset.videoUrl;
+      const savedStatus = localStorage.getItem(storageKeyForVideo(videoUrl)) || 'unseen';
+      applyVideoStatus(videoUrl, savedStatus);
+
+      button.addEventListener('click', () => {{
+        const status = button.dataset.status;
+        if (status === 'unseen') {{
+          localStorage.removeItem(storageKeyForVideo(videoUrl));
+        }} else {{
+          localStorage.setItem(storageKeyForVideo(videoUrl), status);
+        }}
+        applyVideoStatus(videoUrl, status);
+        showCopyConfirmation(statusLabels[status]);
+      }});
     }});
   </script>
 </body>
