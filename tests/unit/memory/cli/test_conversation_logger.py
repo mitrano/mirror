@@ -236,6 +236,9 @@ class TestSessionStart:
         backfill = mocker.patch(
             "memory.cli.conversation_logger.backfill_pi_sessions", return_value=0
         )
+        retitle = mocker.patch(
+            "memory.cli.conversation_logger.retitle_pending_conversations", return_value=0
+        )
 
         from memory.cli.conversation_logger import session_start_fast
 
@@ -245,12 +248,14 @@ class TestSessionStart:
         extract.assert_not_called()
         close.assert_not_called()
         backfill.assert_not_called()
+        retitle.assert_not_called()
 
     def test_unmutes_and_returns_active(self, mocker, tmp_path):
         mocker.patch("memory.cli.conversation_logger._MUTE_FLAG_PATH", tmp_path / "mute")
         mocker.patch("memory.cli.conversation_logger.extract_pending", return_value=0)
         mocker.patch("memory.cli.conversation_logger.close_stale_orphans", return_value=0)
         mocker.patch("memory.cli.conversation_logger.backfill_pi_sessions", return_value=0)
+        mocker.patch("memory.cli.conversation_logger.retitle_pending_conversations", return_value=0)
 
         from memory.cli.conversation_logger import session_start
 
@@ -262,13 +267,67 @@ class TestSessionStart:
         mocker.patch("memory.cli.conversation_logger.extract_pending", return_value=3)
         mocker.patch("memory.cli.conversation_logger.close_stale_orphans", return_value=2)
         mocker.patch("memory.cli.conversation_logger.backfill_pi_sessions", return_value=1)
+        mocker.patch("memory.cli.conversation_logger.retitle_pending_conversations", return_value=4)
 
         from memory.cli.conversation_logger import session_start
 
         result = session_start()
         assert "Closed stale conversations: 2" in result
         assert "Backfilled Pi sessions: 1" in result
+        assert "Retitled pending conversations: 4" in result
         assert "Extracted pending conversations: 3" in result
+
+
+class TestRetitlePendingConversations:
+    def test_retitle_pending_conversations_improves_bounded_ended_conversations(self, mocker):
+        class Row(dict):
+            def __getitem__(self, key):
+                return super().__getitem__(key)
+
+        needs_title = Conversation(
+            id="conv-needs-title",
+            interface="pi",
+            title="long provisional title...",
+            ended_at="2026-05-27T10:00:00Z",
+        )
+        already_good = Conversation(
+            id="conv-good",
+            interface="pi",
+            title="Good title",
+            ended_at="2026-05-27T09:00:00Z",
+        )
+        updated = Conversation(
+            id="conv-needs-title",
+            interface="pi",
+            title="Generated title",
+            ended_at="2026-05-27T10:00:00Z",
+        )
+        mock_mem = MagicMock()
+        mock_mem.store.conn.execute.return_value.fetchall.return_value = [
+            Row(id="conv-needs-title"),
+            Row(id="conv-good"),
+        ]
+        mock_mem.store.get_conversation.side_effect = [needs_title, already_good]
+        mock_mem.conversations.title_needs_improvement.side_effect = [True, False]
+        mock_mem.conversations.maybe_generate_title.return_value = updated
+        mocker.patch("memory.cli.conversation_logger._memory_client", return_value=mock_mem)
+
+        from memory.cli.conversation_logger import retitle_pending_conversations
+
+        count = retitle_pending_conversations(limit=5)
+
+        assert count == 1
+        mock_mem.conversations.maybe_generate_title.assert_called_once_with(
+            "conv-needs-title",
+            source="startup_maintenance",
+        )
+
+    def test_retitle_pending_conversations_is_fail_quiet(self, mocker):
+        mocker.patch("memory.cli.conversation_logger._memory_client", side_effect=RuntimeError)
+
+        from memory.cli.conversation_logger import retitle_pending_conversations
+
+        assert retitle_pending_conversations(limit=5) == 0
 
 
 class TestCloseStaleOrphans:
@@ -340,6 +399,7 @@ class TestBackfillPiSessions:
         count = backfill_pi_sessions()
         assert count == 1
         mock_mem.start_conversation.assert_called_once_with(interface="pi")
+        mock_mem.conversations.set_provisional_title.assert_called_once_with("new-conv-1", "hello")
         mock_mem.store.upsert_runtime_session.assert_called_once()
 
     def test_skips_already_imported(self, mocker, tmp_path):

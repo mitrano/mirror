@@ -12,6 +12,12 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-05-27 — v0.17.0 conversation title hardening prepared
+
+Prepared `v0.17.0 — Conversation Title Hardening` as a minor release after validating the title-repair arc in production. The release hardens title provenance in the core, marks first-message titles as provisional, retitles safely at conversation close, adds bounded startup maintenance for missed/backfilled conversations, makes batch conversation retitle runnable from the web with dry-run cost estimates and backups, and polishes Operations console feedback for long title-generation runs.
+
+Validation: production batches retitled legacy conversations with backups, dry-run showed remaining counts and estimated cost, the long-run polling failure was diagnosed as a browser timeout rather than backend failure, the web server was restarted after UI changes, focused tests and the full pytest suite passed, and ruff checks passed for touched files.
+
 ### 2026-05-27 — v0.16.2 updater validation stub prepared
 
 Prepared `v0.16.2 — Runtime Update Validation Stub` as a minimal stable release after v0.16.1. The release intentionally contains no functional runtime change; it exists to validate the corrected updater installed in production by v0.16.1 executing a normal update to a newer stable release.

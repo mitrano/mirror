@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import sys
 import time
 from collections.abc import Callable
@@ -185,23 +186,21 @@ OPERATION_CATALOG: tuple[WebOperation, ...] = (
         ),
     ),
     WebOperation(
-        id="conversation-logger-health",
-        title="Conversation logger health",
-        description="Check recent logger warnings and errors so silent persistence failures become visible without blocking runtime sessions.",
-        category="conversations",
-        risk_level="read_only",
-        dry_run="unsupported",
-        execution="future",
-    ),
-    WebOperation(
         id="batch-conversation-retitle",
         title="Batch conversation retitle",
         description="Suggest improved titles for older conversations using an LLM, with limits, preview, and approval before database writes.",
         category="conversations",
         risk_level="external_llm",
         dry_run="required",
-        execution="future",
+        execution="runnable",
         parameters=(
+            OperationParameter(
+                name="dryRun",
+                label="Dry run",
+                kind="boolean",
+                description="Preview retitle candidates and estimated cost without LLM calls or database writes.",
+                default=True,
+            ),
             OperationParameter(
                 name="limit",
                 label="Maximum conversations",
@@ -266,6 +265,12 @@ def run_operation(
         return _run_conversation_journey_repair(
             mirror_home=mirror_home, parameters=parsed_parameters
         )
+    if operation.id == "batch-conversation-retitle":
+        return _run_batch_conversation_retitle(
+            mirror_home=mirror_home,
+            parameters=parsed_parameters,
+            emit_event=emit_event,
+        )
     if operation.id == "run-console-demo":
         return _run_console_demo(parameters=parsed_parameters, emit_event=emit_event)
     if operation.id == "agent-run-prototype":
@@ -324,9 +329,7 @@ def _run_runtime_health(*, mirror_home: Path | None, start: Path | None) -> dict
     }
 
 
-def _run_runtime_diagnose(
-    *, mirror_home: Path | None, start: Path | None
-) -> dict[str, object]:
+def _run_runtime_diagnose(*, mirror_home: Path | None, start: Path | None) -> dict[str, object]:
     argv = [sys.executable, "-m", "memory", "runtime", "diagnose"]
     if mirror_home is not None:
         argv.extend(["--mirror-home", str(mirror_home)])
@@ -340,7 +343,9 @@ def _run_runtime_diagnose(
     outcome = "ready" if result.succeeded else "attention needed"
     summary = [
         f"Command exit: {result.return_code if result.return_code is not None else 'timeout'}",
-        "Runtime diagnosis command completed." if not result.timed_out else "Runtime diagnosis timed out.",
+        "Runtime diagnosis command completed."
+        if not result.timed_out
+        else "Runtime diagnosis timed out.",
     ]
     return {
         "operationId": "runtime-diagnose",
@@ -449,6 +454,206 @@ def _run_conversation_journey_repair(
     }
 
 
+def _run_batch_conversation_retitle(
+    *,
+    mirror_home: Path | None,
+    parameters: dict[str, object],
+    emit_event: Callable[[str, str, dict[str, object] | None], None] | None,
+) -> dict[str, object]:
+    if mirror_home is None:
+        raise ValueError("Mirror home is required for batch conversation retitle")
+
+    dry_run = bool(parameters.get("dryRun", True))
+    limit = int(parameters.get("limit", 10))
+    journey = str(parameters["journey"]).strip() if parameters.get("journey") else None
+    candidates, total_candidates = _conversation_retitle_candidates(
+        mirror_home=mirror_home,
+        limit=limit,
+        journey=journey,
+    )
+    estimate = _retitle_cost_estimate(candidates)
+    result: dict[str, object] = {
+        "candidateCount": len(candidates),
+        "totalCandidateCount": total_candidates,
+        "remainingAfterBatch": max(total_candidates - len(candidates), 0),
+        "appliedCount": 0,
+        "candidates": candidates,
+        "estimate": estimate,
+        "backupPath": None,
+    }
+
+    if dry_run or not candidates:
+        outcome = "dry_run" if dry_run else "no_candidates"
+        return {
+            "operationId": "batch-conversation-retitle",
+            "status": "completed",
+            "outcome": outcome,
+            "summary": [
+                f"Retitle candidates in this batch: {len(candidates)}",
+                f"Total candidates remaining before this run: {total_candidates}",
+                f"Estimated remaining after this batch: {max(total_candidates - len(candidates), 0)}",
+                f"Estimated input tokens: {estimate['estimatedInputTokens']}",
+                f"Estimated cost: ${estimate['estimatedCostUsd']:.4f}",
+                "No conversations changed.",
+            ],
+            "result": result,
+        }
+
+    if emit_event is not None:
+        emit_event(
+            "progress",
+            f"Preparing to retitle {len(candidates)} conversation(s).",
+            {"candidateCount": len(candidates), "estimatedCostUsd": estimate["estimatedCostUsd"]},
+        )
+
+    backup_path = create_backup(silent=True, mirror_home=mirror_home)
+    if backup_path is None:
+        raise ValueError("Database backup failed; refusing to retitle conversations")
+
+    if emit_event is not None:
+        emit_event("progress", f"Backup created: {backup_path}", {"backupPath": str(backup_path)})
+
+    applied = 0
+    with MemoryClient(db_path=db_path_from_mirror_home(mirror_home)) as mem:
+        for index, candidate in enumerate(candidates, start=1):
+            before = mem.store.get_conversation(str(candidate["conversationId"]))
+            if before is None:
+                continue
+            updated = mem.conversations.maybe_generate_title(
+                before.id,
+                source="batch_retitle",
+            )
+            if updated is not None and updated.title != before.title:
+                candidate["newTitle"] = updated.title
+                applied += 1
+                if emit_event is not None:
+                    emit_event(
+                        "progress",
+                        f"Generated title {index}/{len(candidates)}: {updated.title}",
+                        {
+                            "conversationId": before.id,
+                            "index": index,
+                            "total": len(candidates),
+                            "oldTitle": before.title,
+                            "newTitle": updated.title,
+                        },
+                    )
+            elif emit_event is not None:
+                emit_event(
+                    "progress",
+                    f"No replacement title generated for {before.id[:8]}.",
+                    {
+                        "conversationId": before.id,
+                        "index": index,
+                        "total": len(candidates),
+                        "oldTitle": before.title,
+                    },
+                )
+
+    result["appliedCount"] = applied
+    result["backupPath"] = str(backup_path)
+    return {
+        "operationId": "batch-conversation-retitle",
+        "status": "completed",
+        "outcome": "retitled",
+        "summary": [
+            f"Retitle candidates in this batch: {len(candidates)}",
+            f"Total candidates remaining before this run: {total_candidates}",
+            f"Estimated remaining after this batch: {max(total_candidates - applied, 0)}",
+            f"Retitled conversations: {applied}",
+            f"Backup created: {backup_path}",
+        ],
+        "result": result,
+    }
+
+
+def _conversation_retitle_candidates(
+    *, mirror_home: Path, limit: int, journey: str | None
+) -> tuple[list[dict[str, object]], int]:
+    candidates: list[dict[str, object]] = []
+    total_candidates = 0
+    with MemoryClient(db_path=db_path_from_mirror_home(mirror_home)) as mem:
+        conditions = ["1=1"]
+        params: list[object] = []
+        if journey:
+            conditions.append("c.journey = ?")
+            params.append(journey)
+        rows = mem.store.conn.execute(
+            f"""
+            SELECT c.id, c.title, c.started_at, c.journey,
+                   COUNT(m.id) AS message_count,
+                   SUM(CASE WHEN m.role = 'user' THEN 1 ELSE 0 END) AS user_count,
+                   SUM(CASE WHEN m.role = 'assistant' THEN 1 ELSE 0 END) AS assistant_count,
+                   SUM(length(m.content)) AS content_chars
+            FROM conversations c
+            JOIN messages m ON m.conversation_id = c.id
+            WHERE {" AND ".join(conditions)}
+            GROUP BY c.id
+            HAVING user_count > 0 AND assistant_count > 0
+            ORDER BY c.started_at DESC
+            """,
+            params,
+        ).fetchall()
+        for row in rows:
+            conversation = mem.store.get_conversation(row["id"])
+            if conversation is None or not mem.conversations.title_needs_improvement(conversation):
+                continue
+            total_candidates += 1
+            if len(candidates) < limit:
+                reasons = _retitle_candidate_reasons(conversation.title)
+                estimated_input_tokens = _estimate_retitle_input_tokens(
+                    int(row["content_chars"] or 0)
+                )
+                candidates.append(
+                    {
+                        "conversationId": conversation.id,
+                        "title": conversation.title,
+                        "journey": conversation.journey,
+                        "startedAt": conversation.started_at,
+                        "messageCount": int(row["message_count"]),
+                        "estimatedInputTokens": estimated_input_tokens,
+                        "reasons": reasons,
+                    }
+                )
+    return candidates, total_candidates
+
+
+def _retitle_candidate_reasons(title: str | None) -> list[str]:
+    clean = (title or "").strip()
+    reasons: list[str] = []
+    if not clean:
+        reasons.append("blank_title")
+    if "..." in clean:
+        reasons.append("truncated_title")
+    if len(clean) >= 55:
+        reasons.append("long_title")
+    if clean.lower().startswith("<skill"):
+        reasons.append("skill_payload_title")
+    return reasons or ["provisional_title"]
+
+
+def _estimate_retitle_input_tokens(content_chars: int) -> int:
+    prompt_overhead_chars = 400
+    return max(1, math.ceil((content_chars + prompt_overhead_chars) / 4))
+
+
+def _retitle_cost_estimate(candidates: list[dict[str, object]]) -> dict[str, object]:
+    input_tokens = sum(int(candidate["estimatedInputTokens"]) for candidate in candidates)
+    output_tokens = len(candidates) * 20
+    input_cost = input_tokens * 0.0000001
+    output_cost = output_tokens * 0.0000004
+    return {
+        "model": "google/gemini-2.5-flash-lite",
+        "estimatedInputTokens": input_tokens,
+        "estimatedOutputTokens": output_tokens,
+        "estimatedCostUsd": round(input_cost + output_cost, 6),
+        "pricing": {
+            "inputPerTokenUsd": 0.0000001,
+            "outputPerTokenUsd": 0.0000004,
+        },
+    }
+
+
 def _run_console_demo(
     *,
     parameters: dict[str, object],
@@ -475,9 +680,7 @@ def _run_console_demo(
 def _run_agent_run_prototype(
     *, mirror_home: Path | None, parameters: dict[str, object]
 ) -> dict[str, object]:
-    result = run_agent_prototype(
-        intent=str(parameters.get("intent", "")), mirror_home=mirror_home
-    )
+    result = run_agent_prototype(intent=str(parameters.get("intent", "")), mirror_home=mirror_home)
     return {
         "operationId": "agent-run-prototype",
         "status": "completed",

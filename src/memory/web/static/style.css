@@ -2329,6 +2329,8 @@ summary:hover {
 
 .run-terminal {
   display: grid;
+  align-content: end;
+  grid-auto-rows: max-content;
   gap: 8px;
   min-height: 340px;
   margin: 18px 0;

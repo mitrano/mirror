@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
 from memory.config import LOG_LLM_CALLS, SUMMARIZE_ENABLED, TWO_PASS_ENABLED
@@ -98,7 +99,37 @@ class ConversationService:
             raise ValueError("title must be a string")
         clean_title = self._clean_title(title)
         conversation = self._get_conversation_for_title_operation(conversation_id)
-        self.store.update_conversation(conversation.id, title=clean_title)
+        metadata = self._title_metadata(
+            conversation,
+            source="manual",
+            status="manual",
+            previous_title=conversation.title,
+        )
+        self.store.update_conversation(
+            conversation.id,
+            title=clean_title,
+            metadata=json.dumps(metadata, ensure_ascii=False),
+        )
+        updated = self.store.get_conversation(conversation.id)
+        if updated is None:
+            raise ValueError(f"Conversation '{conversation_id}' not found")
+        return updated
+
+    def set_provisional_title(self, conversation_id: str, title: str) -> Conversation:
+        """Set a first-message title that may later be improved automatically."""
+        clean_title = self._clean_title(title)
+        conversation = self._get_conversation_for_title_operation(conversation_id)
+        metadata = self._title_metadata(
+            conversation,
+            source="first_user",
+            status="provisional",
+            previous_title=conversation.title,
+        )
+        self.store.update_conversation(
+            conversation.id,
+            title=clean_title,
+            metadata=json.dumps(metadata, ensure_ascii=False),
+        )
         updated = self.store.get_conversation(conversation.id)
         if updated is None:
             raise ValueError(f"Conversation '{conversation_id}' not found")
@@ -145,11 +176,45 @@ class ConversationService:
         from memory.models import _now
 
         self.store.update_conversation(conversation_id, ended_at=_now())
+        self.maybe_generate_title(conversation_id)
 
         if not extract:
             return []
 
         return self._run_extraction(conversation_id)
+
+    def maybe_generate_title(
+        self, conversation_id: str, *, source: str = "llm_auto"
+    ) -> Conversation | None:
+        """Generate and persist a better title when the current title is safe to replace."""
+        conversation = self.store.get_conversation(conversation_id)
+        if conversation is None or not self.title_needs_improvement(conversation):
+            return conversation
+        messages = self.store.get_messages(conversation.id)
+        if not self._messages_are_titleable(messages):
+            return conversation
+        try:
+            suggestion = generate_conversation_title(
+                messages,
+                on_llm_call=self._make_logger("conversation_title", conversation.id),
+            )
+            if not suggestion:
+                return conversation
+            clean_title = self._clean_title(suggestion)
+            metadata = self._title_metadata(
+                conversation,
+                source=source,
+                status="generated",
+                previous_title=conversation.title,
+            )
+            self.store.update_conversation(
+                conversation.id,
+                title=clean_title,
+                metadata=json.dumps(metadata, ensure_ascii=False),
+            )
+            return self.store.get_conversation(conversation.id)
+        except Exception:
+            return conversation
 
     def extract_conversation(self, conversation_id: str) -> list[Memory]:
         """Extract memories from an already-ended conversation."""
@@ -175,8 +240,6 @@ class ConversationService:
 
     def _run_extraction(self, conversation_id: str) -> list[Memory]:
         """Run memory/task extraction. Marks metadata.extracted=True on success."""
-        import json
-
         conv = self.store.get_conversation(conversation_id)
         messages = self.store.get_messages(conversation_id)
 
@@ -285,8 +348,55 @@ class ConversationService:
             stored_memories.append(stored)
 
         # Mark as extracted so extract_pending skips this conversation.
-        meta = json.loads(conv.metadata or "{}")
+        meta = self._metadata_dict(conv)
         meta["extracted"] = True
-        self.store.update_conversation(conversation_id, metadata=json.dumps(meta))
+        self.store.update_conversation(
+            conversation_id, metadata=json.dumps(meta, ensure_ascii=False)
+        )
 
         return stored_memories
+
+    def title_needs_improvement(self, conversation: Conversation) -> bool:
+        """Return True when the title is missing or known to be low quality."""
+        metadata = self._metadata_dict(conversation)
+        if metadata.get("title_status") == "manual" or metadata.get("title_source") == "manual":
+            return False
+        title = (conversation.title or "").strip()
+        if not title:
+            return True
+        if metadata.get("title_status") == "provisional":
+            return True
+        if title.endswith("...") or "..." in title:
+            return True
+        if len(title) >= 55:
+            return True
+        if title.lower().startswith("<skill"):
+            return True
+        return False
+
+    def _messages_are_titleable(self, messages: list[Message]) -> bool:
+        has_user = any(msg.role == "user" and msg.content.strip() for msg in messages)
+        has_assistant = any(msg.role == "assistant" and msg.content.strip() for msg in messages)
+        return has_user and has_assistant
+
+    def _metadata_dict(self, conversation: Conversation) -> dict:
+        try:
+            value = json.loads(conversation.metadata or "{}")
+        except json.JSONDecodeError:
+            return {}
+        return value if isinstance(value, dict) else {}
+
+    def _title_metadata(
+        self,
+        conversation: Conversation,
+        *,
+        source: str,
+        status: str,
+        previous_title: str | None,
+    ) -> dict:
+        metadata = self._metadata_dict(conversation)
+        if previous_title and previous_title != metadata.get("previous_title"):
+            metadata["previous_title"] = previous_title
+        metadata["title_source"] = source
+        metadata["title_status"] = status
+        return metadata

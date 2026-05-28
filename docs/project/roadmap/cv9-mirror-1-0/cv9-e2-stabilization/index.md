@@ -43,6 +43,7 @@ recoverable.
 | [CV9.E2.S1](cv9-e2-s1-embedding-resilience/index.md) | Embedding Resilience | Planned |
 | [CV9.E2.S2](cv9-e2-s2-external-extension-runtime-surface/index.md) | External Extension Runtime Surface Parity | Planned |
 | [CV9.E2.S3](cv9-e2-s3-runtime-update-preflight-resilience/index.md) | Runtime Update Preflight Resilience | Done |
+| [CV9.E2.S4](cv9-e2-s4-conversation-title-hardening/index.md) | Conversation Title Hardening | Done |
 
 ---
 

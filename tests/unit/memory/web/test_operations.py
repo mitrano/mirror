@@ -18,7 +18,6 @@ def test_operation_catalog_exposes_stable_allowlisted_operations() -> None:
         "conversation-journey-repair",
         "run-console-demo",
         "agent-run-prototype",
-        "conversation-logger-health",
         "batch-conversation-retitle",
     ]
     operations = {operation["id"]: operation for operation in payload}
@@ -28,6 +27,7 @@ def test_operation_catalog_exposes_stable_allowlisted_operations() -> None:
     assert operations["conversation-journey-repair"]["execution"] == "runnable"
     assert operations["run-console-demo"]["execution"] == "runnable"
     assert operations["agent-run-prototype"]["execution"] == "runnable"
+    assert operations["batch-conversation-retitle"]["execution"] == "runnable"
     assert all(
         operation["execution"] == "future"
         for operation in payload
@@ -39,6 +39,7 @@ def test_operation_catalog_exposes_stable_allowlisted_operations() -> None:
             "conversation-journey-repair",
             "run-console-demo",
             "agent-run-prototype",
+            "batch-conversation-retitle",
         }
     )
 
@@ -82,7 +83,17 @@ def test_operation_catalog_parameters_are_declarative_and_bounded() -> None:
     ]
 
     retitle_parameters = operations["batch-conversation-retitle"]["parameters"]
-    assert {parameter["name"] for parameter in retitle_parameters} == {"limit", "journey"}
+    assert {parameter["name"] for parameter in retitle_parameters} == {
+        "dryRun",
+        "limit",
+        "journey",
+    }
+    assert (
+        next(parameter for parameter in retitle_parameters if parameter["name"] == "dryRun")[
+            "default"
+        ]
+        is True
+    )
     assert (
         next(parameter for parameter in retitle_parameters if parameter["name"] == "limit")[
             "maximum"
@@ -206,9 +217,91 @@ def test_run_operation_applies_conversation_journey_repair_with_backup(
         assert mem.store.get_conversation(conversation_id).journey == "mirror-mind"
 
 
-def test_run_operation_rejects_future_operation(tmp_path: Path) -> None:
-    with pytest.raises(ValueError, match="not runnable yet"):
-        run_operation("conversation-logger-health", mirror_home=tmp_path / "mirror-home")
+def test_run_operation_dry_runs_batch_conversation_retitle_without_llm(
+    tmp_path: Path, mocker
+) -> None:
+    mirror_home, conversation_id = _mirror_with_poorly_titled_conversation(tmp_path)
+    title_mock = mocker.patch("memory.services.conversation.generate_conversation_title")
+
+    result = run_operation(
+        "batch-conversation-retitle",
+        mirror_home=mirror_home,
+        parameters={"dryRun": True, "limit": 10},
+    )
+
+    assert result["operationId"] == "batch-conversation-retitle"
+    assert result["outcome"] == "dry_run"
+    assert result["result"]["candidateCount"] == 1
+    assert result["result"]["totalCandidateCount"] == 1
+    assert result["result"]["remainingAfterBatch"] == 0
+    assert result["result"]["appliedCount"] == 0
+    assert result["result"]["backupPath"] is None
+    candidate = result["result"]["candidates"][0]
+    assert candidate["conversationId"] == conversation_id
+    assert "truncated_title" in candidate["reasons"]
+    assert result["result"]["estimate"]["estimatedCostUsd"] > 0
+    title_mock.assert_not_called()
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        assert mem.store.get_conversation(conversation_id).title.endswith("...")
+
+
+def test_run_operation_applies_batch_conversation_retitle_with_backup(
+    tmp_path: Path, mocker
+) -> None:
+    mirror_home, conversation_id = _mirror_with_poorly_titled_conversation(tmp_path)
+    mocker.patch(
+        "memory.services.conversation.generate_conversation_title",
+        return_value="Conversation Title Repair",
+    )
+    events: list[tuple[str, str, dict[str, object] | None]] = []
+
+    result = run_operation(
+        "batch-conversation-retitle",
+        mirror_home=mirror_home,
+        parameters={"dryRun": False, "limit": 10},
+        emit_event=lambda kind, message, details=None: events.append((kind, message, details)),
+    )
+
+    backup_path = Path(result["result"]["backupPath"])
+    assert result["outcome"] == "retitled"
+    assert result["result"]["candidateCount"] == 1
+    assert result["result"]["totalCandidateCount"] == 1
+    assert result["result"]["remainingAfterBatch"] == 0
+    assert result["result"]["appliedCount"] == 1
+    assert backup_path.exists()
+    assert any("Backup created" in message for _, message, _ in events)
+    generated_events = [event for event in events if "Generated title" in event[1]]
+    assert generated_events[0][2]["newTitle"] == "Conversation Title Repair"
+    assert generated_events[0][2]["conversationId"] == conversation_id
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        conversation = mem.store.get_conversation(conversation_id)
+        assert conversation.title == "Conversation Title Repair"
+        assert '"title_source": "batch_retitle"' in conversation.metadata
+
+
+def test_run_operation_batch_conversation_retitle_preserves_manual_titles(
+    tmp_path: Path, mocker
+) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        conversation = mem.conversations.start_conversation(
+            interface="pi",
+            title="This manual title is intentionally long enough to look suspicious",
+        )
+        mem.conversations.add_message(conversation.id, "user", "Please help with titles")
+        mem.conversations.add_message(conversation.id, "assistant", "Yes, let's repair them")
+        mem.conversations.update_title(conversation.id, conversation.title or "Manual title")
+    title_mock = mocker.patch("memory.services.conversation.generate_conversation_title")
+
+    result = run_operation(
+        "batch-conversation-retitle",
+        mirror_home=mirror_home,
+        parameters={"dryRun": True, "limit": 10},
+    )
+
+    assert result["result"]["candidateCount"] == 0
+    assert result["result"]["totalCandidateCount"] == 0
+    title_mock.assert_not_called()
 
 
 def _mirror_with_journeyless_conversation(tmp_path: Path) -> tuple[Path, str]:
@@ -217,4 +310,18 @@ def _mirror_with_journeyless_conversation(tmp_path: Path) -> tuple[Path, str]:
         mem.identity.set_identity("journey", "mirror-mind", "# Mirror Mind\n**Status:** active")
         conversation = mem.conversations.start_conversation(interface="pi", title="Builder")
         mem.conversations.add_message(conversation.id, "user", "$mm-build mirror-mind")
+    return mirror_home, conversation.id
+
+
+def _mirror_with_poorly_titled_conversation(tmp_path: Path) -> tuple[Path, str]:
+    mirror_home = tmp_path / "mirror-home"
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        conversation = mem.conversations.start_conversation(
+            interface="pi",
+            title="vamos trabalhar na jornada mirror mind. Eu quero trabalhar...",
+        )
+        mem.conversations.add_message(conversation.id, "user", "Quero corrigir títulos")
+        mem.conversations.add_message(
+            conversation.id, "assistant", "Vamos criar uma operação segura"
+        )
     return mirror_home, conversation.id

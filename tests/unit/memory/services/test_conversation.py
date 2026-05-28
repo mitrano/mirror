@@ -82,6 +82,59 @@ class TestConversationServiceEndConversation:
         stored = store.get_conversation(conv.id)
         assert stored.ended_at is not None
 
+    def test_end_conversation_generates_title_for_provisional_title(
+        self, conversation_service, store, mocker
+    ):
+        import json
+
+        mocker.patch(
+            "memory.services.conversation.generate_conversation_title",
+            return_value="Conversation Title Repair",
+        )
+        conv = conversation_service.start_conversation(interface="cli")
+        conversation_service.set_provisional_title(
+            conv.id,
+            "vamos trabalhar na jornada mirror mind. Eu quero trabalhar...",
+        )
+        conversation_service.add_message(conv.id, "user", "Quero corrigir títulos")
+        conversation_service.add_message(conv.id, "assistant", "Vamos desenhar a correção")
+
+        conversation_service.end_conversation(conv.id, extract=False)
+
+        stored = store.get_conversation(conv.id)
+        assert stored.title == "Conversation Title Repair"
+        metadata = json.loads(stored.metadata)
+        assert metadata["title_status"] == "generated"
+        assert metadata["title_source"] == "llm_auto"
+        assert metadata["previous_title"].endswith("...")
+
+    def test_end_conversation_preserves_manual_title(self, conversation_service, store, mocker):
+        mock_title = mocker.patch("memory.services.conversation.generate_conversation_title")
+        conv = conversation_service.start_conversation(
+            interface="cli",
+            title="This manual title is intentionally long enough to look suspicious",
+        )
+        conversation_service.add_message(conv.id, "user", "Quero corrigir títulos")
+        conversation_service.add_message(conv.id, "assistant", "Vamos desenhar a correção")
+        conversation_service.update_title(conv.id, conv.title or "Manual title")
+
+        conversation_service.end_conversation(conv.id, extract=False)
+
+        stored = store.get_conversation(conv.id)
+        assert stored.title == "This manual title is intentionally long enough to look suspicious"
+        mock_title.assert_not_called()
+
+    def test_set_provisional_title_records_metadata(self, conversation_service, store):
+        import json
+
+        conv = conversation_service.start_conversation(interface="cli")
+        conversation_service.set_provisional_title(conv.id, "First message fragment")
+
+        stored = store.get_conversation(conv.id)
+        metadata = json.loads(stored.metadata)
+        assert metadata["title_status"] == "provisional"
+        assert metadata["title_source"] == "first_user"
+
     def test_empty_messages_returns_empty_list(
         self, conversation_service, mock_conversation_embedding
     ):

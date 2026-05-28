@@ -444,6 +444,8 @@ function showRunConsole(result, operation = null) {
       </section>
     </section>
   `;
+  const terminalEl = content.querySelector('.run-terminal');
+  if (terminalEl) terminalEl.scrollTop = terminalEl.scrollHeight;
 }
 
 function renderRunCompletionInvite(result) {
@@ -688,7 +690,7 @@ function runStatusTone(run) {
   return 'completed';
 }
 
-async function pollRunConsole(runId, attempts = 120) {
+async function pollRunConsole(runId, attempts = 1800) {
   for (let index = 0; index < attempts; index += 1) {
     const run = await fetchJson(`/api/operations/runs/${encodeURIComponent(runId)}`);
     showRunConsole(operationRunToResult(run), catalogOperationById(run.operationId));
@@ -698,6 +700,7 @@ async function pollRunConsole(runId, attempts = 120) {
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
+  showWarning('Operation is still running; polling timed out. Reopen the run from history to continue watching.');
   return null;
 }
 

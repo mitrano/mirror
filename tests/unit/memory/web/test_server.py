@@ -111,7 +111,6 @@ def test_operations_catalog_api_exposes_read_only_allowlist(tmp_path: Path) -> N
         "conversation-journey-repair",
         "run-console-demo",
         "agent-run-prototype",
-        "conversation-logger-health",
         "batch-conversation-retitle",
     ]
     assert payload[0]["execution"] == "runnable"
@@ -120,9 +119,11 @@ def test_operations_catalog_api_exposes_read_only_allowlist(tmp_path: Path) -> N
     assert payload[3]["execution"] == "runnable"
     assert payload[4]["execution"] == "runnable"
     assert payload[5]["execution"] == "runnable"
-    assert all(operation["execution"] == "future" for operation in payload[6:])
+    assert payload[6]["execution"] == "runnable"
     assert payload[3]["dryRun"] == "required"
     assert payload[3]["parameters"][0]["name"] == "dryRun"
+    assert payload[6]["dryRun"] == "required"
+    assert payload[6]["parameters"][0]["name"] == "dryRun"
 
 
 def test_operations_run_api_executes_runtime_health_only(tmp_path: Path) -> None:
@@ -251,7 +252,9 @@ def test_operations_run_api_executes_agent_run_prototype(tmp_path: Path) -> None
     assert completed["events"][-1]["kind"] == "completed"
 
 
-def test_operations_run_api_requires_approval_before_conversation_repair_apply(tmp_path: Path) -> None:
+def test_operations_run_api_requires_approval_before_conversation_repair_apply(
+    tmp_path: Path,
+) -> None:
     mirror_home = tmp_path / "mirror-home"
     with MemoryClient(db_path=mirror_home / "memory.db") as mem:
         mem.identity.set_identity("journey", "mirror-mind", "# Mirror Mind\n**Status:** active")
@@ -467,7 +470,7 @@ def test_operations_run_api_rejects_future_operations(tmp_path: Path) -> None:
         server.close()
 
     assert status == 400
-    assert "not runnable yet" in payload["error"]
+    assert "Unknown operation" in payload["error"]
 
 
 def test_operations_execute_api_does_not_exist(tmp_path: Path) -> None:

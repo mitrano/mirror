@@ -148,7 +148,7 @@ def log_user_message(
     )
     if is_new:
         title = _generate_title(content)
-        mem.store.update_conversation(conv_id, title=title)
+        mem.conversations.set_provisional_title(conv_id, title)
     mem.add_message(conv_id, role="user", content=content)
 
 
@@ -276,6 +276,52 @@ def extract_pending(mirror_home: str | Path | None = None) -> int:
     return len(pending)
 
 
+def retitle_pending_conversations(
+    mirror_home: str | Path | None = None,
+    *,
+    limit: int = 5,
+) -> int:
+    """Opportunistically improve a small batch of ended conversation titles at startup."""
+    if limit <= 0:
+        return 0
+    try:
+        mem = _memory_client(mirror_home)
+        scan_limit = max(limit * 10, 50)
+        rows = mem.store.conn.execute(
+            """
+            SELECT c.id
+              FROM conversations c
+             WHERE c.ended_at IS NOT NULL
+               AND EXISTS (SELECT 1 FROM messages m WHERE m.conversation_id = c.id AND m.role = 'user')
+               AND EXISTS (SELECT 1 FROM messages m WHERE m.conversation_id = c.id AND m.role = 'assistant')
+             ORDER BY c.ended_at DESC, c.started_at DESC
+             LIMIT ?
+            """,
+            (scan_limit,),
+        ).fetchall()
+    except Exception:
+        return 0
+
+    changed = 0
+    for row in rows:
+        if changed >= limit:
+            break
+        try:
+            conversation = mem.store.get_conversation(row["id"])
+            if conversation is None or not mem.conversations.title_needs_improvement(conversation):
+                continue
+            before_title = conversation.title
+            updated = mem.conversations.maybe_generate_title(
+                conversation.id,
+                source="startup_maintenance",
+            )
+            if updated is not None and updated.title != before_title:
+                changed += 1
+        except Exception:
+            continue
+    return changed
+
+
 def session_start_fast(mirror_home: str | Path | None = None) -> str:
     """Start logging without running expensive maintenance work."""
     set_mute(False, mirror_home)
@@ -302,6 +348,10 @@ def session_maintenance(mirror_home: str | Path | None = None) -> str:
         ),
         _timed_step(
             "Backfilled Pi sessions", lambda: backfill_pi_sessions(mirror_home=mirror_home)
+        ),
+        _timed_step(
+            "Retitled pending conversations",
+            lambda: retitle_pending_conversations(mirror_home=mirror_home),
         ),
         _timed_step(
             "Extracted pending conversations", lambda: extract_pending(mirror_home=mirror_home)
@@ -422,7 +472,7 @@ def backfill_pi_sessions(
         first_user = next((m for m in messages if m["role"] == "user"), None)
         if first_user:
             title = first_user["content"].strip().split("\n")[0][:60]
-            mem.store.update_conversation(conv.id, title=title)
+            mem.conversations.set_provisional_title(conv.id, title)
         mem.store.update_conversation(conv.id, ended_at=messages[-1]["created_at"])
         mem.store.upsert_runtime_session(
             session_id,
