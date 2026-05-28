@@ -113,6 +113,12 @@ def format_duration(seconds: int) -> str:
     return f"{minutes}:{secs:02d}"
 
 
+def timestamped_path(path: Path, generated_at: datetime) -> Path:
+    """Return a new path with generation date/time before the extension."""
+    timestamp = generated_at.astimezone().strftime("%Y%m%d_%H%M%S")
+    return path.with_name(f"{path.stem}_{timestamp}{path.suffix}")
+
+
 def get_youtube_service(
     client_secrets: Path,
     token_path: Path,
@@ -537,20 +543,23 @@ def main() -> None:
     videos = [video for video in videos if video.duration_seconds > args.min_duration_seconds]
     videos = sorted(videos, key=lambda video: (video.duration_seconds or 10**9, video.published_at))
 
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(
+    html_output = timestamped_path(args.output, now)
+    whatsapp_output = timestamped_path(args.whatsapp_output, now)
+
+    html_output.parent.mkdir(parents=True, exist_ok=True)
+    html_output.write_text(
         render_html(videos, now, published_after, args.short_duration_seconds),
         encoding="utf-8",
     )
-    args.whatsapp_output.parent.mkdir(parents=True, exist_ok=True)
-    args.whatsapp_output.write_text(
+    whatsapp_output.parent.mkdir(parents=True, exist_ok=True)
+    whatsapp_output.write_text(
         render_whatsapp(videos, now, published_after, args.short_duration_seconds),
         encoding="utf-8",
     )
     print(f"Canais inscritos: {len(channels)}")
     print(f"Vídeos de filosofia encontrados: {len(videos)}")
-    print(f"HTML gerado: {args.output}")
-    print(f"WhatsApp TXT gerado: {args.whatsapp_output}")
+    print(f"HTML gerado: {html_output}")
+    print(f"WhatsApp TXT gerado: {whatsapp_output}")
 
 
 if __name__ == "__main__":
