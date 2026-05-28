@@ -367,6 +367,7 @@ def render_html(
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Feed YouTube — Filosofia 24h</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23ff0033'/%3E%3Cpath d='M26 20v24l20-12z' fill='white'/%3E%3C/svg%3E">
   <style>
     :root {{ color-scheme: dark; --bg:#0f0f0f; --panel:#181818; --text:#f1f1f1; --muted:#aaa; --line:#303030; --red:#ff0033; }}
     * {{ box-sizing: border-box; }}
