@@ -36,10 +36,29 @@ def _extract_query(journey_content: str, slug: str) -> str:
     return text[:500] if text else slug
 
 
+def _is_mirror_mind_checkout(start: Path | None = None) -> bool:
+    """Return True when ``start`` is inside a Mirror Mind source checkout."""
+    start_path = (start or Path.cwd()).expanduser().resolve()
+    candidates = (start_path, *start_path.parents)
+    for candidate in candidates:
+        pyproject = candidate / "pyproject.toml"
+        memory_package = candidate / "src" / "memory"
+        if not pyproject.is_file() or not memory_package.is_dir():
+            continue
+        try:
+            pyproject_text = pyproject.read_text(encoding="utf-8")
+        except OSError:
+            return False
+        return 'name = "mirror"' in pyproject_text
+    return False
+
+
 def _check_clone_role_guard(
     *, ignore_production_role: bool, project_path: str | None = None
 ) -> None:
     role_start = Path(project_path) if project_path else None
+    if not _is_mirror_mind_checkout(role_start):
+        return
     role = inspect_clone_role(role_start)
     if not role.is_production:
         return

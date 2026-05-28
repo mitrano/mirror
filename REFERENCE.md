@@ -188,7 +188,7 @@ If the full status gate crashes before update planning, `runtime update` automat
 Each Mirror Mind clone declares its role through a `.mirror-clone-role` file at the repository root. Valid values are `production` and `dev`. The file is local to each clone and ignored by git. When the file is missing, unreadable, or contains an unknown value, the role defaults to `production`.
 
 - `runtime status` and `runtime version` report the current clone role.
-- `python -m memory build load <slug>` refuses to start Builder Mode when the journey `project_path` points at a clone marked `production` unless `--ignore-production-role` is passed. When no `project_path` is configured, it falls back to inspecting the current directory.
+- `python -m memory build load <slug>` applies the clone-role guard only when the journey `project_path` points at a Mirror Mind source checkout. In that case it refuses `production` clones unless `--ignore-production-role` is passed. Non-Mirror journey projects are not blocked by missing `.mirror-clone-role`. When no `project_path` is configured, Builder falls back to inspecting the current directory.
 - Production clones receive code through `runtime update`, not by direct development edits.
 
 See [Runtime Repair Policy](docs/process/runtime-repair-policy.md) and [Decisions](docs/project/decisions.md#mirror-mind-clones-declare-a-role) for the boundary and rationale.

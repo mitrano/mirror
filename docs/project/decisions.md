@@ -208,7 +208,7 @@ Each Mirror Mind clone now declares its role through `.mirror-clone-role` at the
 Consequences:
 
 - Production is the safe default. Dev is the explicit opt-in.
-- Builder Mode (`python -m memory build load <slug>`) refuses to start when the journey `project_path` points at a `production` clone unless the user passes `--ignore-production-role`. If no `project_path` is configured, it falls back to the current directory. The override exists for real-life exceptions and is logged in the command output, not hidden.
+- Builder Mode (`python -m memory build load <slug>`) applies the guard only when the journey `project_path` points at a Mirror Mind source checkout. It refuses a Mirror project checkout marked `production` unless the user passes `--ignore-production-role`, but ordinary journey projects are not blocked by a missing Mirror clone-role marker. If no `project_path` is configured, it falls back to the current directory. The override exists for real-life exceptions and is logged in the command output, not hidden.
 - Runtime status and runtime version both report the current clone role, so the boundary is visible in every read-only inspection.
 - Production clones receive code through `git pull` today and through `runtime update` later. They are not edited directly.
 

@@ -29,6 +29,7 @@ def test_build_load_reads_project_path_from_journey_service(mocker, tmp_path, ca
     mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
     mocker.patch("memory.cli.build.switch_conversation")
     mocker.patch("memory.cli.build._persist_global_sticky_defaults")
+    mocker.patch("memory.cli.build._is_mirror_mind_checkout", return_value=True)
     inspect = mocker.patch(
         "memory.cli.build.inspect_clone_role",
         return_value=CloneRole("dev", Path("/repo/.mirror-clone-role")),
@@ -52,6 +53,7 @@ def test_build_load_refuses_when_journey_project_path_is_production_clone(mocker
     mem.journeys.set_project_path("mirror-poc", str(project_path))
 
     mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+    mocker.patch("memory.cli.build._is_mirror_mind_checkout", return_value=True)
     inspect = mocker.patch(
         "memory.cli.build.inspect_clone_role",
         return_value=CloneRole("production", Path("/repo/.mirror-clone-role")),
@@ -68,6 +70,29 @@ def test_build_load_refuses_when_journey_project_path_is_production_clone(mocker
     inspect.assert_called_once_with(project_path.resolve())
 
 
+def test_build_load_allows_non_mirror_project_without_clone_role_guard(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "softwarezen", JOURNEY_CONTENT)
+    project_path = tmp_path / "szen_play"
+    mem.journeys.set_project_path("softwarezen", str(project_path))
+
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+    mocker.patch("memory.cli.build.switch_conversation")
+    mocker.patch("memory.cli.build._persist_global_sticky_defaults")
+    mocker.patch("memory.cli.build._is_mirror_mind_checkout", return_value=False)
+    inspect = mocker.patch("memory.cli.build.inspect_clone_role")
+    mocker.patch.object(mem, "load_mirror_context", return_value="context")
+    mocker.patch.object(mem, "search", return_value=[])
+
+    build.cmd_load("softwarezen")
+
+    captured = capsys.readouterr()
+    assert f"project_path={project_path.resolve()}" in captured.out
+    inspect.assert_not_called()
+
+
 def test_build_load_allows_production_clone_when_override_passed(mocker, tmp_path, capsys):
     mirror_home = tmp_path / ".mirror" / "pati"
     db_path = default_db_path_for_home(mirror_home)
@@ -77,6 +102,7 @@ def test_build_load_allows_production_clone_when_override_passed(mocker, tmp_pat
     mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
     mocker.patch("memory.cli.build.switch_conversation")
     mocker.patch("memory.cli.build._persist_global_sticky_defaults")
+    mocker.patch("memory.cli.build._is_mirror_mind_checkout", return_value=True)
     mocker.patch(
         "memory.cli.build.inspect_clone_role",
         return_value=CloneRole("production", Path("/repo/.mirror-clone-role")),

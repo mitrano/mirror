@@ -10,7 +10,7 @@ Diagnosis comes before repair. Backup comes before database mutation. No command
 
 A clean status is only meaningful when the route to that cleanliness is documented. Preserve historical evidence until provenance is understood.
 
-Development does not happen in `production` clones. Mirror Mind clones declare their role through `.mirror-clone-role` at the repository root, with default `production`. Builder Mode refuses to start when the active journey's `project_path` points at a `production` clone unless explicitly overridden with `--ignore-production-role`; when no `project_path` is configured, it falls back to the current directory. Production clones are updated through controlled paths (`git pull` today, `runtime update` later), not through direct edits.
+Development does not happen in `production` Mirror Mind clones. Mirror Mind clones declare their role through `.mirror-clone-role` at the repository root, with default `production`. Builder Mode applies this guard only when the active journey's `project_path` points at a Mirror Mind source checkout; ordinary journey projects are not blocked by a missing Mirror clone-role marker. If the Mirror project checkout is `production`, Builder refuses unless explicitly overridden with `--ignore-production-role`; when no `project_path` is configured, it falls back to the current directory. Production clones are updated through controlled paths (`git pull` today, `runtime update` later), not through direct edits.
 
 ## Drift Classes
 

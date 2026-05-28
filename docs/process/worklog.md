@@ -14,9 +14,9 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ### 2026-05-28 — Builder clone-role guard scoped to journey project path
 
-Fixed a Builder Mode guard regression where `memory build load <slug>` inspected the current Mirror runtime checkout and refused to start when that checkout was marked `production`, even if the selected journey pointed at a separate development project. The guard now loads the journey first, inspects the clone role of the journey `project_path`, and only falls back to the current directory when no project path is configured. Documentation now describes the journey-scoped boundary.
+Fixed a Builder Mode guard regression where `memory build load <slug>` inspected the current Mirror runtime checkout and refused to start when that checkout was marked `production`, even if the selected journey pointed at a separate development project. The guard now loads the journey first and applies clone-role inspection only when the journey `project_path` points at a Mirror Mind source checkout; ordinary journey projects without `.mirror-clone-role` are not blocked. When no project path is configured, Builder falls back to the current directory. Documentation now describes the Mirror-specific boundary.
 
-Validation: focused Builder CLI tests passed and ruff checks passed for the touched files. Prepared v0.17.1 as the behavior patch, then v0.17.2 as the follow-up CI-formatting validation patch after the v0.17.1 main run failed at the repository-wide ruff format gate.
+Validation: focused Builder CLI tests passed and ruff checks passed for the touched files. Prepared v0.17.1 as the behavior patch, v0.17.2 as the follow-up CI-formatting validation patch after the v0.17.1 main run failed at the repository-wide ruff format gate, and v0.17.3 as the completed non-Mirror project fix after production validation showed the remaining false block.
 
 ### 2026-05-27 — v0.17.0 conversation title hardening prepared
 
