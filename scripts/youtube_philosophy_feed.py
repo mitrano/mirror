@@ -306,7 +306,11 @@ def render_html(
     published_after: datetime,
     short_duration_seconds: int = 60,
 ) -> str:
-    main_videos = [video for video in videos if video.duration_seconds >= short_duration_seconds]
+    main_videos = [
+        video
+        for video in videos
+        if video.duration_seconds == 0 or video.duration_seconds >= short_duration_seconds
+    ]
     short_videos = [video for video in videos if 0 < video.duration_seconds < short_duration_seconds]
 
     body = render_video_cards(main_videos) if main_videos else "<p class='empty'>Nenhum vídeo de filosofia com 60 segundos ou mais encontrado nas últimas 24 horas.</p>"
@@ -349,6 +353,9 @@ def render_html(
     p {{ line-height:1.4; margin:10px 0 0; }}
     .copy-section {{ margin-top:34px; padding:22px; background:var(--panel); border:1px solid var(--line); border-radius:14px; }}
     .copy-section h2 {{ font-size:18px; margin:0 0 12px; }}
+    .section-title {{ display:flex; align-items:center; justify-content:space-between; gap:12px; }}
+    .copy-links-button {{ width:40px; height:40px; display:grid; place-items:center; border:1px solid var(--line); border-radius:999px; background:#272727; color:var(--text); cursor:pointer; font-size:20px; line-height:1; }}
+    .copy-links-button:hover {{ background:#3a3a3a; }}
     .copy-section .hint {{ color:var(--muted); font-size:13px; margin:0 0 12px; }}
     .link-box {{ width:100%; min-height:180px; resize:vertical; padding:14px; border-radius:10px; border:1px solid var(--line); background:#0b0b0b; color:var(--text); font:14px/1.45 monospace; }}
     .channel-list {{ margin:0; padding-left:22px; color:var(--text); line-height:1.7; }}
@@ -361,7 +368,7 @@ def render_html(
     <div class="logo">▶</div>
     <div>
       <h1>Filosofia nas suas inscrições</h1>
-      <div class="sub">Últimas 24h desde {html.escape(since)} · gerado em {html.escape(generated)} · vídeos principais ordenados por duração; vídeos com menos de 60s ao final</div>
+      <div class="sub">Últimas 24h desde {html.escape(since)} · gerado em {html.escape(generated)} · vídeos principais ordenados por duração; vídeos com menos de 60s ao final; vídeos programados/sem duração continuam na lista principal</div>
     </div>
   </header>
   <main>
@@ -374,9 +381,12 @@ def render_html(
     </section>
 
     <section class="copy-section">
-      <h2>Links dos vídeos para copiar</h2>
+      <div class="section-title">
+        <h2>Links dos vídeos para copiar</h2>
+        <button class="copy-links-button" type="button" aria-label="Copiar todos os links" title="Copiar todos os links">⧉</button>
+      </div>
       <p class="hint">Um link por linha, na mesma ordem do feed: lista principal primeiro; vídeos com menos de 60s ao final.</p>
-      <textarea class="link-box" readonly>{video_links}</textarea>
+      <textarea id="video-links-box" class="link-box" readonly>{video_links}</textarea>
     </section>
 
     <section class="copy-section">
@@ -399,18 +409,27 @@ def render_html(
       toastTimer = setTimeout(() => toast.classList.remove('visible'), 1800);
     }}
 
-    async function copySummaryPrompt(videoUrl) {{
-      const text = `Faça um resumo estruturado deste vídeo: ${{videoUrl}}`;
+    async function copyToClipboard(text, successMessage) {{
       try {{
         await navigator.clipboard.writeText(text);
-        showCopyConfirmation('Prompt copiado com sucesso.');
+        showCopyConfirmation(successMessage);
       }} catch (error) {{
         window.prompt('Não foi possível copiar automaticamente. Copie o texto abaixo:', text);
       }}
     }}
 
+    async function copySummaryPrompt(videoUrl) {{
+      const text = `Faça um resumo estruturado deste vídeo: ${{videoUrl}}`;
+      await copyToClipboard(text, 'Prompt copiado com sucesso.');
+    }}
+
     document.querySelectorAll('.copy-prompt').forEach((button) => {{
       button.addEventListener('click', () => copySummaryPrompt(button.dataset.videoUrl));
+    }});
+
+    document.querySelector('.copy-links-button')?.addEventListener('click', () => {{
+      const linksBox = document.getElementById('video-links-box');
+      copyToClipboard(linksBox.value, 'Links copiados com sucesso.');
     }});
   </script>
 </body>
@@ -425,7 +444,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=Path("exports/youtube_filosofia_24h.html"))
     parser.add_argument("--hours", type=int, default=24)
     parser.add_argument("--pages-per-channel", type=int, default=2)
-    parser.add_argument("--min-duration-seconds", type=int, default=0)
+    parser.add_argument("--min-duration-seconds", type=int, default=-1)
     parser.add_argument("--short-duration-seconds", type=int, default=60)
     parser.add_argument("--keywords", nargs="*", default=DEFAULT_KEYWORDS)
     parser.add_argument("--auth-port", type=int, default=8080)
