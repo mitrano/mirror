@@ -12,6 +12,7 @@ Future release notes should use the structure defined in [Release Notes](../proc
 
 ## Releases
 
+- [v0.17.1 — Builder Project-Path Guard](v0.17.1.md) — patch release that scopes Builder Mode's production-clone guard to the selected journey project path.
 - [v0.17.0 — Conversation Title Hardening](v0.17.0.md) — minor release that hardens conversation titles across runtime close, startup maintenance, Pi backfill, and bounded web batch retitle operations.
 - [v0.16.2 — Runtime Update Validation Stub](v0.16.2.md) — minimal stable release used to validate the corrected v0.16.1 updater executing a normal production update.
 - [v0.16.1 — Runtime Update Preflight Resilience](v0.16.1.md) — patch release that publishes the updater hardening fix for core migration drift and SQLite WAL sidecar status recovery.
