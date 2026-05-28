@@ -22,4 +22,5 @@ node_modules/
 .local/youtube_client_secret.json
 .local/youtube_token.json
 exports/youtube_filosofia_24h.html
+exports/youtube_filosofia_24h_whatsapp.txt
 *.json:Zone.Identifier

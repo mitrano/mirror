@@ -300,18 +300,25 @@ def render_video_cards(videos: list[Video]) -> str:
     return "\n".join(rows)
 
 
-def render_html(
-    videos: list[Video],
-    generated_at: datetime,
-    published_after: datetime,
-    short_duration_seconds: int = 60,
-) -> str:
+def split_main_and_short_videos(
+    videos: list[Video], short_duration_seconds: int
+) -> tuple[list[Video], list[Video]]:
     main_videos = [
         video
         for video in videos
         if video.duration_seconds == 0 or video.duration_seconds >= short_duration_seconds
     ]
     short_videos = [video for video in videos if 0 < video.duration_seconds < short_duration_seconds]
+    return main_videos, short_videos
+
+
+def render_html(
+    videos: list[Video],
+    generated_at: datetime,
+    published_after: datetime,
+    short_duration_seconds: int = 60,
+) -> str:
+    main_videos, short_videos = split_main_and_short_videos(videos, short_duration_seconds)
 
     body = render_video_cards(main_videos) if main_videos else "<p class='empty'>Nenhum vídeo de filosofia com 60 segundos ou mais encontrado nas últimas 24 horas.</p>"
     shorts_body = render_video_cards(short_videos) if short_videos else "<p class='empty'>Nenhum vídeo com menos de 60 segundos encontrado.</p>"
@@ -437,11 +444,63 @@ def render_html(
 """
 
 
+def render_whatsapp(
+    videos: list[Video],
+    generated_at: datetime,
+    published_after: datetime,
+    short_duration_seconds: int = 60,
+) -> str:
+    main_videos, short_videos = split_main_and_short_videos(videos, short_duration_seconds)
+    generated = generated_at.astimezone().strftime("%d/%m/%Y %H:%M")
+    since = published_after.astimezone().strftime("%d/%m/%Y %H:%M")
+
+    lines = [
+        "🧠 *Vídeos de filosofia nas últimas 24h*",
+        f"Gerado em {generated}",
+        f"Desde {since}",
+        "",
+    ]
+
+    def append_section(title: str, section_videos: list[Video]) -> None:
+        lines.append(title)
+        if not section_videos:
+            lines.append("Nenhum vídeo encontrado.")
+            lines.append("")
+            return
+        for index, video in enumerate(section_videos, start=1):
+            duration = format_duration(video.duration_seconds)
+            published = video.published_at.astimezone().strftime("%d/%m %H:%M")
+            lines.extend(
+                [
+                    f"{index}. *{video.title}*",
+                    f"Canal: {video.channel_title}",
+                    f"Duração: {duration} · Publicado: {published}",
+                    video.url,
+                    "",
+                ]
+            )
+
+    append_section("▶️ *Lista principal*", main_videos)
+    append_section("⚡ *Vídeos com menos de 60s*", short_videos)
+
+    unique_channels = sorted({video.channel_title for video in main_videos + short_videos}, key=str.casefold)
+    lines.append("📺 *Canais presentes*")
+    lines.extend(f"- {channel}" for channel in unique_channels)
+    lines.append("")
+    return "\n".join(lines)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--client-secrets", type=Path, required=True)
     parser.add_argument("--token", type=Path, default=Path(".local/youtube_token.json"))
     parser.add_argument("--output", type=Path, default=Path("exports/youtube_filosofia_24h.html"))
+    parser.add_argument(
+        "--whatsapp-output",
+        type=Path,
+        default=Path("exports/youtube_filosofia_24h_whatsapp.txt"),
+        help="Arquivo TXT formatado para copiar e enviar pelo WhatsApp",
+    )
     parser.add_argument("--hours", type=int, default=24)
     parser.add_argument("--pages-per-channel", type=int, default=2)
     parser.add_argument("--min-duration-seconds", type=int, default=-1)
@@ -483,9 +542,15 @@ def main() -> None:
         render_html(videos, now, published_after, args.short_duration_seconds),
         encoding="utf-8",
     )
+    args.whatsapp_output.parent.mkdir(parents=True, exist_ok=True)
+    args.whatsapp_output.write_text(
+        render_whatsapp(videos, now, published_after, args.short_duration_seconds),
+        encoding="utf-8",
+    )
     print(f"Canais inscritos: {len(channels)}")
     print(f"Vídeos de filosofia encontrados: {len(videos)}")
     print(f"HTML gerado: {args.output}")
+    print(f"WhatsApp TXT gerado: {args.whatsapp_output}")
 
 
 if __name__ == "__main__":
