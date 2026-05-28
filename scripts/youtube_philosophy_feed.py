@@ -38,6 +38,8 @@ BOILERPLATE_PATTERNS = [
     r"car[aá]ter de presta[cç][aã]o de informa[cç][oõ]es",
 ]
 
+ALWAYS_INCLUDE_CHANNELS = ["Instituto Borborema"]
+
 DEFAULT_KEYWORDS = [
     "filosofia",
     "philosophy",
@@ -207,12 +209,18 @@ def text_matches(text: str, keywords: list[str]) -> bool:
     return any(keyword.lower() in lowered for keyword in keywords)
 
 
+def channel_is_always_included(channel_title: str, always_include_channels: list[str]) -> bool:
+    normalized = channel_title.casefold().strip()
+    return any(channel.casefold().strip() == normalized for channel in always_include_channels)
+
+
 def list_recent_philosophy_videos(
     youtube: Any,
     playlists: dict[str, str],
     published_after: datetime,
     keywords: list[str],
     pages_per_channel: int,
+    always_include_channels: list[str],
 ) -> list[Video]:
     videos: list[Video] = []
     for playlist_id in playlists.values():
@@ -255,7 +263,7 @@ def list_recent_philosophy_videos(
                 channel_title = snippet.get("channelTitle", "")
                 description = snippet.get("description", "")
                 searchable = f"{title}\n{channel_title}\n{description}"
-                if not text_matches(searchable, keywords):
+                if not channel_is_always_included(channel_title, always_include_channels) and not text_matches(searchable, keywords):
                     continue
 
                 thumbnails = snippet.get("thumbnails", {})
@@ -551,6 +559,7 @@ def main() -> None:
     parser.add_argument("--min-duration-seconds", type=int, default=-1)
     parser.add_argument("--short-duration-seconds", type=int, default=60)
     parser.add_argument("--keywords", nargs="*", default=DEFAULT_KEYWORDS)
+    parser.add_argument("--always-include-channel", action="append", default=ALWAYS_INCLUDE_CHANNELS)
     parser.add_argument("--auth-port", type=int, default=8080)
     parser.add_argument("--auth-timeout-seconds", type=int, default=300)
     parser.add_argument("--no-browser", action="store_true", help="Mostra a URL de OAuth sem abrir o navegador automaticamente")
@@ -577,6 +586,7 @@ def main() -> None:
         published_after=published_after,
         keywords=args.keywords,
         pages_per_channel=args.pages_per_channel,
+        always_include_channels=args.always_include_channel,
     )
     videos = add_video_durations(youtube, videos)
     videos = [video for video in videos if video.duration_seconds > args.min_duration_seconds]
