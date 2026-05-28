@@ -36,7 +36,9 @@ def _extract_query(journey_content: str, slug: str) -> str:
     return text[:500] if text else slug
 
 
-def _check_clone_role_guard(*, ignore_production_role: bool, project_path: str | None = None) -> None:
+def _check_clone_role_guard(
+    *, ignore_production_role: bool, project_path: str | None = None
+) -> None:
     role_start = Path(project_path) if project_path else None
     role = inspect_clone_role(role_start)
     if not role.is_production:

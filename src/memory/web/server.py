@@ -550,7 +550,9 @@ def _execute_operation_run(
     with MemoryClient(db_path=db_path) as mem:
         current = mem.operation_runs.get(run_id)
         if current.status == "cancellation_requested":
-            mem.operation_runs.cancel(run_id, reason="Operation cancelled after execution completed.")
+            mem.operation_runs.cancel(
+                run_id, reason="Operation cancelled after execution completed."
+            )
             return
         mem.operation_runs.complete(
             run_id,

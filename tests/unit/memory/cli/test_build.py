@@ -43,9 +43,7 @@ def test_build_load_reads_project_path_from_journey_service(mocker, tmp_path, ca
     inspect.assert_called_once_with(project_path.resolve())
 
 
-def test_build_load_refuses_when_journey_project_path_is_production_clone(
-    mocker, tmp_path, capsys
-):
+def test_build_load_refuses_when_journey_project_path_is_production_clone(mocker, tmp_path, capsys):
     mirror_home = tmp_path / ".mirror" / "pati"
     db_path = default_db_path_for_home(mirror_home)
     mem = MemoryClient(env="test", db_path=db_path)
