@@ -83,13 +83,23 @@ Criar um simulado com estrutura semelhante à prova real de Geografia:
 1. Questões discursivas.
 2. Uso de notícia, trecho, publicação, mapa, esquema ou situação contextual como base.
 3. Questões com comandos como explique, cite, indique, identifique e compare.
-4. Pelo menos uma questão sobre domínios morfoclimáticos.
-5. Pelo menos uma questão sobre climas do Brasil e fatores climáticos.
-6. Pelo menos uma questão sobre Cerrado e impactos ambientais.
-7. Pelo menos uma questão sobre latitude e distribuição de temperaturas.
-8. Pelo menos uma questão sobre bacia hidrográfica e região hidrográfica.
-9. Questão de Excelência com interpretação de esquema/processo e síntese.
-10. Gabarito comentado ao final.
+4. Quantidade e estrutura de questões compatíveis com a prova real analisada.
+5. Questão de Excelência com interpretação de esquema/processo e síntese, se o padrão da prova real exigir.
+6. Gabarito comentado ao final.
+
+## Distribuição temática e cobertura
+
+Os conteúdos listados neste prompt são inventário da revisão P2, não um checklist obrigatório para todas as versões de simulado.
+
+Para o Simulado 01, pode haver cobertura mais ampla dos principais eixos da revisão.
+
+Para o Simulado 02 ou superior:
+
+1. consultar `docs/provas/geografia/p2/COBERTURA-SIMULADOS.md`;
+2. priorizar temas, detalhes, exemplos e habilidades ainda não explorados ou pouco explorados;
+3. não repetir mecanicamente todos os eixos centrais;
+4. se repetir um tema central, mudar detalhe, exemplo, contexto ou habilidade cobrada;
+5. atualizar a cobertura após gerar o simulado.
 
 ## Regras de linguagem
 

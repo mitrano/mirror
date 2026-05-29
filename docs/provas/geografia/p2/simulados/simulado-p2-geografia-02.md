@@ -6,13 +6,13 @@ Nome: ___________________________________________  Turma: ___________________  D
 
 ## Questão 01
 
-Leia o trecho abaixo:
+Um aluno afirmou: “Domínio morfoclimático é a mesma coisa que bioma, porque os dois falam apenas da vegetação de uma área”.
 
-> Para estudar a paisagem brasileira, os geógrafos podem observar a combinação entre clima, vegetação, relevo, solo e rios. Quando esses elementos aparecem relacionados em uma grande área, é possível identificar um domínio morfoclimático.
-
-**Explique por que domínio morfoclimático não é a mesma coisa que bioma.**
+**Explique por que essa afirmação está incorreta, diferenciando domínio morfoclimático e bioma.**
 
 Resposta:
+
+_____________________________________________________________________________________________
 
 _____________________________________________________________________________________________
 
@@ -22,9 +22,11 @@ ________________________________________________________________________________
 
 ## Questão 02
 
-Aziz Ab’Saber identificou seis grandes domínios morfoclimáticos no Brasil, mas também reconheceu áreas intermediárias entre eles.
+Observe a descrição abaixo:
 
-**O que são zonas de transição e por que elas são importantes para entender a paisagem brasileira?**
+> Uma região apresenta chuvas irregulares, longos períodos de seca e temperaturas elevadas durante boa parte do ano.
+
+**Identifique o clima descrito e cite uma característica importante desse tipo climático.**
 
 Resposta:
 
@@ -36,11 +38,24 @@ ________________________________________________________________________________
 
 ## Questão 03
 
-Observe a descrição:
+Observe o quadro abaixo:
 
-> Uma área apresenta chuvas irregulares, longos períodos de seca e temperaturas elevadas durante boa parte do ano.
+| Situação | Fator climático |
+|---|---|
+| Área próxima ao oceano, com maior umidade | ____________________ |
+| Área distante do mar, com estação seca mais marcada | ____________________ |
+| Área elevada, com temperaturas mais amenas | ____________________ |
+| Área próxima à Linha do Equador, com altas temperaturas | ____________________ |
 
-**Identifique o clima descrito e cite uma característica importante dele.**
+**Complete o quadro com os fatores climáticos estudados.**
+
+---
+
+## Questão 04
+
+O Cerrado possui diferentes formas de vegetação, com presença de estratos herbáceo, arbustivo e arbóreo. Muitas plantas apresentam adaptações à estação seca.
+
+**Explique como a vegetação do Cerrado se adapta ao clima tropical típico.**
 
 Resposta:
 
@@ -48,26 +63,15 @@ ________________________________________________________________________________
 
 _____________________________________________________________________________________________
 
----
-
-## Questão 04
-
-Complete o quadro com o fator climático mais relacionado a cada situação.
-
-| Situação | Fator climático |
-|---|---|
-| Área próxima ao oceano, com maior umidade | ____________________ |
-| Área mais distante do mar, com estação seca mais marcada | ____________________ |
-| Área elevada, com temperaturas mais amenas | ____________________ |
-| Área próxima à Linha do Equador, com muito calor | ____________________ |
+_____________________________________________________________________________________________
 
 ---
 
 ## Questão 05
 
-O clima subtropical ocorre no Brasil em áreas mais afastadas da Linha do Equador.
+O Cerrado é considerado um hotspot de biodiversidade.
 
-**Explique duas características desse clima e relacione uma delas à latitude.**
+**Explique o que isso significa e relacione essa ideia aos problemas ambientais enfrentados pelo Cerrado.**
 
 Resposta:
 
@@ -81,11 +85,11 @@ ________________________________________________________________________________
 
 ## Questão 06
 
-Leia o trecho abaixo:
+Leia a situação abaixo:
 
-> O Cerrado possui árvores espaçadas, vegetação adaptada à estação seca e raízes profundas. Apesar de sua grande biodiversidade, vem sendo transformado pelo avanço das atividades agropecuárias.
+> Uma obra de captação de água em um rio pode alterar a quantidade de água disponível para cidades, agricultores e comunidades ribeirinhas localizadas mais abaixo no curso do rio.
 
-**Explique como a vegetação do Cerrado se adapta ao clima e cite um impacto ambiental atual nesse domínio.**
+**Explique por que o conceito de região hidrográfica ajuda a analisar esse tipo de situação.**
 
 Resposta:
 
@@ -99,17 +103,13 @@ ________________________________________________________________________________
 
 ## Questão 07
 
-Compare os conceitos abaixo:
+Uma região hidrográfica não considera apenas os rios e seus afluentes. Ela também permite analisar o uso da água pela sociedade.
 
-### a. Bacia hidrográfica
+**Cite dois aspectos sociais ou econômicos que podem ser considerados no estudo de uma região hidrográfica.**
 
 Resposta:
 
 _____________________________________________________________________________________________
-
-### b. Região hidrográfica
-
-Resposta:
 
 _____________________________________________________________________________________________
 
@@ -117,9 +117,11 @@ ________________________________________________________________________________
 
 ## Questão 08
 
-Uma prefeitura pretende construir uma obra para captar água de um rio. Antes da obra, precisa avaliar impactos em cidades próximas, atividades econômicas e comunidades ribeirinhas.
+Observe a descrição de um climograma:
 
-**Por que o conceito de região hidrográfica é mais adequado para esse tipo de planejamento do que apenas o conceito de bacia hidrográfica?**
+> As barras de chuva são muito altas em praticamente todos os meses do ano. A linha de temperatura permanece elevada e quase não varia durante o ano.
+
+**Qual tipo climático brasileiro essa descrição representa? Justifique sua resposta.**
 
 Resposta:
 
@@ -133,14 +135,9 @@ ________________________________________________________________________________
 
 ## Questão 09
 
-Observe a relação abaixo:
+O clima subtropical ocorre em áreas brasileiras mais afastadas da Linha do Equador.
 
-```text
-Linha do Equador → maior incidência solar → temperaturas mais elevadas
-Maior distância do Equador → menor incidência direta → temperaturas mais amenas
-```
-
-**Explique essa relação usando os climas equatorial e subtropical como exemplos.**
+**Explique duas características desse clima e relacione uma delas ao fator latitude.**
 
 Resposta:
 
@@ -154,18 +151,18 @@ ________________________________________________________________________________
 
 ## Questão de Excelência
 
-Observe o esquema:
+Observe o esquema abaixo:
 
 ```text
-CERRADO
-clima tropical típico
-+ estação seca e chuvosa
-+ vegetação adaptada
-+ avanço da fronteira agrícola
-= domínio natural importante e ameaçado
+REGIÃO HIDROGRÁFICA
+rios + aspectos naturais + população + economia
+        ↓
+planejamento do uso da água
+        ↓
+captação, abastecimento, hidrelétricas e proteção de comunidades
 ```
 
-**Explique como o clima, a vegetação e a ação humana ajudam a entender a situação atual do Cerrado.**
+Com base no esquema e nos conceitos estudados, **explique por que a divisão do Brasil em regiões hidrográficas é importante para a gestão da água e para a criação de políticas públicas.**
 
 Resposta:
 
@@ -184,80 +181,79 @@ ________________________________________________________________________________
 ## Questão 01
 
 Resposta esperada:
-Domínio morfoclimático considera a relação entre vários elementos naturais, como clima, relevo, solo, vegetação e hidrografia. Bioma está mais ligado ao conjunto de seres vivos e à vegetação predominante.
+A afirmação está incorreta porque domínio morfoclimático não considera apenas a vegetação. Ele envolve a relação entre clima, relevo, solo, hidrografia e vegetação. Bioma está mais ligado ao conjunto de seres vivos e à vegetação predominante.
 
 Comentário:
-A resposta deve mostrar que domínio morfoclimático é uma categoria mais ampla da paisagem natural.
+A resposta deve diferenciar domínio morfoclimático de bioma e evitar reduzir o domínio apenas à vegetação.
 
 ## Questão 02
 
 Resposta esperada:
-Zonas de transição são áreas entre dois domínios morfoclimáticos, com características misturadas. Elas são importantes porque mostram que a passagem entre paisagens naturais pode ser gradual.
+O clima descrito é o semiárido. Ele apresenta chuvas irregulares, períodos de seca prolongados e temperaturas elevadas.
 
 Comentário:
-O aluno deve entender que nem todo limite natural é rígido.
+A resposta deve reconhecer a irregularidade das chuvas e a seca como pistas principais.
 
 ## Questão 03
-
-Resposta esperada:
-Clima semiárido. Possui chuvas irregulares, longos períodos de seca e temperaturas elevadas.
-
-Comentário:
-A principal pista é a irregularidade das chuvas e a seca prolongada.
-
-## Questão 04
 
 Resposta esperada:
 Maritimidade; continentalidade; altitude; latitude.
 
 Comentário:
-A questão verifica se o aluno relaciona cada fator climático ao efeito estudado.
+A questão verifica se o aluno associa corretamente os fatores climáticos às situações apresentadas.
+
+## Questão 04
+
+Resposta esperada:
+A vegetação do Cerrado é adaptada ao clima tropical típico, com estação seca e estação chuvosa. Muitas plantas têm raízes profundas para buscar água, árvores espaçadas e vegetação em diferentes estratos, como herbáceo, arbustivo e arbóreo.
+
+Comentário:
+A resposta deve relacionar adaptação da vegetação à estação seca.
 
 ## Questão 05
 
 Resposta esperada:
-O clima subtropical apresenta temperaturas mais amenas, chuvas bem distribuídas e estações do ano mais definidas. A latitude influencia porque ele ocorre em áreas mais afastadas da Linha do Equador, recebendo menor incidência solar direta.
+Hotspot de biodiversidade é uma área com grande riqueza natural, mas muito ameaçada. O Cerrado é assim porque possui grande biodiversidade e sofre com avanço da agropecuária, queimadas, desmatamento e perda de vegetação nativa.
 
 Comentário:
-A resposta deve relacionar subtropical com maior latitude e temperaturas mais baixas.
+A resposta deve trazer os dois elementos: biodiversidade e ameaça ambiental.
 
 ## Questão 06
 
 Resposta esperada:
-A vegetação do Cerrado é adaptada à estação seca, com árvores espaçadas e raízes profundas. Um impacto atual é o avanço da agropecuária, as queimadas, o desmatamento ou a perda de biodiversidade.
+O conceito de região hidrográfica ajuda porque considera não apenas o rio, mas também os aspectos naturais, sociais e econômicos ligados ao uso da água. Assim, permite avaliar impactos sobre cidades, agricultores e comunidades ribeirinhas.
 
 Comentário:
-A resposta precisa unir característica natural e problema ambiental.
+A resposta deve relacionar região hidrográfica com análise ampla e planejamento.
 
 ## Questão 07
 
 Resposta esperada:
-a. Bacia hidrográfica é a área drenada por um rio principal e seus afluentes.  
-b. Região hidrográfica é uma divisão mais ampla, que considera aspectos naturais, sociais e econômicos relacionados aos recursos hídricos.
+Podem ser citados: abastecimento de cidades, agricultura irrigada, geração de energia, comunidades ribeirinhas, pesca, indústria, turismo, saneamento ou impactos ambientais.
 
 Comentário:
-A diferença central é que a região hidrográfica amplia a análise para gestão e planejamento.
+A resposta deve citar dois usos ou aspectos sociais/econômicos relacionados à água.
 
 ## Questão 08
 
 Resposta esperada:
-Porque a região hidrográfica considera não só os rios, mas também população, cidades, atividades econômicas e impactos sociais. Isso ajuda na criação de políticas públicas e no planejamento do uso da água.
+A descrição representa o clima equatorial, pois ele apresenta temperaturas elevadas durante o ano, baixa amplitude térmica e alta pluviosidade em praticamente todos os meses.
 
 Comentário:
-A resposta deve relacionar hidrografia com tomada de decisão.
+A resposta deve interpretar os elementos do climograma: chuva alta e temperatura elevada com pouca variação.
 
 ## Questão 09
 
 Resposta esperada:
-O clima equatorial ocorre próximo à Linha do Equador, onde há maior incidência solar, por isso é quente. O subtropical ocorre em latitudes mais altas, com menor incidência direta, apresentando temperaturas mais amenas.
+O clima subtropical apresenta temperaturas mais amenas, chuvas bem distribuídas e estações do ano mais definidas. A latitude influencia porque esse clima ocorre em áreas mais afastadas da Linha do Equador, com menor incidência direta dos raios solares.
 
 Comentário:
-A questão cobra aplicação do fator latitude aos climas brasileiros.
+A resposta deve relacionar subtropical com maior latitude e temperaturas mais baixas.
 
 ## Questão de Excelência
 
 Resposta esperada:
-O Cerrado tem clima tropical típico, com estação seca e chuvosa, e vegetação adaptada, como raízes profundas. A ação humana, principalmente agropecuária e queimadas, ameaça esse domínio, causando desmatamento e perda de biodiversidade.
+A divisão em regiões hidrográficas é importante porque ajuda a planejar o uso da água considerando rios, aspectos naturais, população e atividades econômicas. Isso permite criar políticas públicas para abastecimento, captação, hidrelétricas, preservação ambiental e proteção de comunidades afetadas.
 
 Comentário:
-A resposta deve integrar elementos naturais e problemas ambientais atuais.
+A resposta deve integrar região hidrográfica, gestão da água, sociedade, economia e políticas públicas.

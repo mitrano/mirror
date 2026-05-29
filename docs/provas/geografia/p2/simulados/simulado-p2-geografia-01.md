@@ -1,4 +1,4 @@
-# SIMULADO — GEOGRAFIA — P2
+# SIMULADO — GEOGRAFIA — P2 — 01
 
 Nome: ___________________________________________  Turma: ___________________  Data: ____ / ____ / _______
 
@@ -8,9 +8,9 @@ Nome: ___________________________________________  Turma: ___________________  D
 
 Leia o trecho abaixo:
 
-> O geógrafo Aziz Ab’Saber propôs uma forma de compreender o território brasileiro a partir de grandes unidades naturais da paisagem. Nessas áreas, elementos como clima, relevo, solo, vegetação e hidrografia se relacionam e ajudam a formar características semelhantes.
+> O geógrafo Aziz Ab’Saber classificou grandes áreas naturais brasileiras considerando a relação entre clima, vegetação, hidrografia, relevo e solo.
 
-Com base no trecho e no que foi estudado, **explique o que são domínios morfoclimáticos e cite três elementos naturais usados para caracterizá-los.**
+Com base no trecho, **explique o que são domínios morfoclimáticos e cite três elementos naturais usados nessa classificação.**
 
 Resposta:
 
@@ -24,7 +24,7 @@ ________________________________________________________________________________
 
 ## Questão 02
 
-Em algumas áreas do território brasileiro, não é possível perceber características totalmente definidas de apenas um domínio morfoclimático, pois há mistura gradual de elementos naturais de domínios diferentes.
+Em algumas áreas do território brasileiro, é possível perceber características de dois domínios morfoclimáticos diferentes, pois há uma passagem gradual entre eles.
 
 **Como são chamadas essas áreas e por que elas existem?**
 
@@ -40,9 +40,9 @@ ________________________________________________________________________________
 
 Observe a descrição abaixo:
 
-> Em uma região do Brasil, as temperaturas são elevadas durante quase todo o ano, a amplitude térmica é baixa e as chuvas são abundantes. Essa área está próxima à Linha do Equador.
+> Uma área próxima à Linha do Equador apresenta temperaturas elevadas durante todo o ano, baixa amplitude térmica e chuvas abundantes.
 
-**Identifique o tipo climático descrito e explique qual fator climático é mais importante para essa característica.**
+**Identifique o clima descrito e explique qual fator climático mais influencia essas características.**
 
 Resposta:
 
@@ -54,23 +54,15 @@ ________________________________________________________________________________
 
 ## Questão 04
 
-O clima tropical brasileiro pode apresentar variações conforme diferentes fatores climáticos. Explique a diferença entre:
+O clima tropical pode aparecer de formas diferentes no Brasil.
 
-### a. Tropical típico
-
-Resposta:
-
-_____________________________________________________________________________________________
-
-### b. Tropical litorâneo
+**Explique a diferença entre tropical típico, tropical litorâneo e tropical de altitude, relacionando cada um ao principal fator climático que o influencia.**
 
 Resposta:
 
 _____________________________________________________________________________________________
 
-### c. Tropical de altitude
-
-Resposta:
+_____________________________________________________________________________________________
 
 _____________________________________________________________________________________________
 
@@ -78,11 +70,11 @@ ________________________________________________________________________________
 
 ## Questão 05
 
-Observe a situação:
+Leia a situação abaixo:
 
-> Uma cidade localizada no interior do Brasil apresenta uma estação seca bem marcada e uma estação chuvosa bem definida. Outra cidade, localizada no litoral, recebe mais umidade do oceano ao longo do ano.
+> Uma cidade do interior apresenta estação seca e estação chuvosa bem marcadas. Já uma cidade litorânea recebe mais umidade do oceano.
 
-**Explique como a continentalidade e a maritimidade influenciam os climas descritos.**
+**Explique como continentalidade e maritimidade ajudam a entender essa diferença.**
 
 Resposta:
 
@@ -96,9 +88,9 @@ ________________________________________________________________________________
 
 ## Questão 06
 
-O Cerrado é um dos domínios morfoclimáticos brasileiros mais ameaçados atualmente. Ele se localiza principalmente na região central do Brasil e apresenta vegetação adaptada ao clima tropical típico.
+O Cerrado é um domínio morfoclimático localizado principalmente no Brasil central. Sua vegetação apresenta adaptações à estação seca.
 
-**Cite duas características naturais do Cerrado e dois problemas ambientais que esse domínio enfrenta atualmente.**
+**Cite duas características naturais do Cerrado e dois problemas ambientais que ele enfrenta atualmente.**
 
 Resposta:
 
@@ -114,9 +106,9 @@ ________________________________________________________________________________
 
 Leia o trecho abaixo:
 
-> Quanto mais próxima uma área está da Linha do Equador, maior tende a ser a incidência direta dos raios solares. Já em áreas mais afastadas do Equador, a radiação chega de forma mais inclinada, o que contribui para temperaturas menores.
+> Quanto mais distante uma área está da Linha do Equador, menor tende a ser a incidência direta dos raios solares. Isso pode contribuir para temperaturas mais amenas.
 
-Com base no texto, **explique como a latitude influencia os diferentes tipos climáticos brasileiros, citando um exemplo de clima quente e um exemplo de clima mais ameno.**
+**Explique como a latitude influencia os climas brasileiros, citando o clima equatorial e o clima subtropical como exemplos.**
 
 Resposta:
 
@@ -130,7 +122,7 @@ ________________________________________________________________________________
 
 ## Questão 08
 
-A hidrografia brasileira pode ser estudada por meio de dois conceitos importantes: **bacia hidrográfica** e **região hidrográfica**.
+A hidrografia brasileira pode ser estudada por meio dos conceitos de bacia hidrográfica e região hidrográfica.
 
 **Explique a diferença entre bacia hidrográfica e região hidrográfica.**
 
@@ -146,9 +138,9 @@ ________________________________________________________________________________
 
 ## Questão 09
 
-O Brasil é dividido em 12 regiões hidrográficas. Essa divisão não considera apenas a água dos rios, mas também aspectos sociais e econômicos relacionados ao uso da água.
+O Brasil é dividido em 12 regiões hidrográficas para auxiliar o planejamento e a gestão dos recursos hídricos.
 
-**Explique por que a divisão em regiões hidrográficas pode ajudar na criação de políticas públicas.**
+**Explique por que essa divisão pode ajudar na criação de políticas públicas relacionadas à água.**
 
 Resposta:
 
@@ -165,19 +157,17 @@ ________________________________________________________________________________
 Observe o esquema abaixo:
 
 ```text
-ELEMENTOS NATURAIS
-clima + relevo + solo + vegetação + hidrografia
-          ↓
 DOMÍNIOS MORFOCLIMÁTICOS
-          ↓
-Exemplo: Cerrado
-clima tropical típico + estação seca + vegetação adaptada + rios e solos do Brasil central
-          ↓
-PROBLEMAS ATUAIS
+clima + vegetação + relevo + solo + hidrografia
+        ↓
+exemplo: Cerrado
+        ↓
+clima tropical típico + estação seca + vegetação adaptada
+        ↓
 avanço da agropecuária + queimadas + perda de biodiversidade
 ```
 
-Com base no esquema, **explique por que o Cerrado pode ser entendido como um domínio morfoclimático e por que ele é considerado uma área ameaçada.**
+Com base no esquema e nos conceitos estudados, **explique por que o Cerrado pode ser entendido como domínio morfoclimático e por que ele é considerado uma área ameaçada.**
 
 Resposta:
 
@@ -196,46 +186,39 @@ ________________________________________________________________________________
 ## Questão 01
 
 Resposta esperada:
-
-Domínios morfoclimáticos são grandes áreas naturais em que diferentes elementos da paisagem se relacionam, formando características semelhantes. O aluno pode citar clima, relevo, solo, vegetação e hidrografia.
+Domínios morfoclimáticos são grandes áreas naturais em que elementos como clima, vegetação, hidrografia, relevo e solo se relacionam, formando paisagens com características semelhantes.
 
 Comentário:
-A resposta deve mostrar que não se trata apenas de vegetação ou bioma, mas de uma combinação de elementos naturais interrelacionados.
+A resposta deve mostrar que domínio morfoclimático envolve a interrelação de vários elementos naturais, não apenas vegetação.
 
 ## Questão 02
 
 Resposta esperada:
-
-São as zonas de transição. Elas existem porque, entre um domínio e outro, há áreas com características misturadas, sem predomínio totalmente claro de apenas um domínio.
+São zonas de transição. Elas existem porque a passagem entre dois domínios pode ser gradual, misturando características de ambos.
 
 Comentário:
-O ponto principal é reconhecer que a passagem entre domínios não é sempre brusca; pode ser gradual.
+A resposta deve indicar que os limites naturais não são sempre bruscos.
 
 ## Questão 03
 
 Resposta esperada:
-
-O clima descrito é o equatorial. O fator climático mais importante é a latitude, pois a proximidade da Linha do Equador aumenta a incidência de radiação solar, mantendo temperaturas elevadas.
+O clima descrito é o equatorial. O fator climático mais importante é a latitude, pois a proximidade da Linha do Equador aumenta a incidência solar direta, mantendo temperaturas elevadas.
 
 Comentário:
-A resposta deve associar clima equatorial, calor, chuva abundante e baixa latitude.
+A resposta deve associar clima equatorial, calor, chuvas abundantes e baixa latitude.
 
 ## Questão 04
 
 Resposta esperada:
-
-a. Tropical típico: ocorre mais no interior, com influência da continentalidade, e apresenta estação seca e estação chuvosa bem definidas.  
-b. Tropical litorâneo: ocorre no litoral, recebe mais umidade do oceano por causa da maritimidade e tende a ter maior umidade.  
-c. Tropical de altitude: ocorre em áreas mais elevadas, onde a altitude contribui para temperaturas mais amenas.
+O tropical típico ocorre mais no interior e tem influência da continentalidade, com estação seca e chuvosa bem marcadas. O tropical litorâneo sofre influência da maritimidade, recebendo mais umidade do oceano. O tropical de altitude ocorre em áreas elevadas, onde a altitude reduz as temperaturas.
 
 Comentário:
-O aluno deve diferenciar os três tipos tropicais pelo fator climático predominante.
+A resposta deve diferenciar os três tipos tropicais pelo fator climático predominante.
 
 ## Questão 05
 
 Resposta esperada:
-
-A continentalidade influencia áreas mais afastadas do mar, favorecendo maior variação térmica e estações seca e úmida mais marcadas. A maritimidade influencia áreas próximas ao oceano, aumentando a umidade e reduzindo a variação de temperatura.
+A continentalidade influencia áreas distantes do mar, favorecendo maior contraste entre estação seca e chuvosa. A maritimidade influencia áreas próximas ao oceano, aumentando a umidade e reduzindo a variação de temperatura.
 
 Comentário:
 A resposta deve relacionar interior com continentalidade e litoral com maritimidade.
@@ -243,44 +226,39 @@ A resposta deve relacionar interior com continentalidade e litoral com maritimid
 ## Questão 06
 
 Resposta esperada:
-
-Características naturais: clima tropical típico, estação seca e chuvosa, vegetação adaptada, árvores espaçadas, raízes profundas. Problemas ambientais: avanço da agropecuária, queimadas, desmatamento e perda de biodiversidade.
+Características naturais: clima tropical típico, estação seca e chuvosa, árvores espaçadas, vegetação adaptada e raízes profundas. Problemas ambientais: avanço da agropecuária, queimadas, desmatamento e perda de biodiversidade.
 
 Comentário:
-A questão exige dois elementos naturais e dois problemas atuais. Respostas equivalentes são aceitáveis.
+A resposta deve trazer duas características naturais e dois problemas ambientais.
 
 ## Questão 07
 
 Resposta esperada:
-
-A latitude influencia a quantidade de radiação solar recebida. Áreas próximas ao Equador recebem raios solares mais diretos e tendem a ser mais quentes, como no clima equatorial. Áreas mais afastadas do Equador tendem a ter temperaturas mais amenas, como no clima subtropical.
+A latitude influencia a quantidade de radiação solar recebida. O clima equatorial ocorre próximo à Linha do Equador, com altas temperaturas. O clima subtropical ocorre em latitudes mais altas, com temperaturas mais amenas.
 
 Comentário:
-A resposta deve ligar latitude à incidência solar e comparar pelo menos dois tipos climáticos.
+A resposta deve comparar os climas a partir da distância em relação à Linha do Equador.
 
 ## Questão 08
 
 Resposta esperada:
-
 Bacia hidrográfica é a área drenada por um rio principal e seus afluentes. Região hidrográfica é uma divisão mais ampla, que considera aspectos naturais, sociais e econômicos relacionados à água.
 
 Comentário:
-O aluno deve perceber que bacia é um conceito mais natural/físico, enquanto região hidrográfica é mais ampla e útil para gestão.
+A resposta deve diferenciar o conceito natural de bacia do conceito mais amplo de região hidrográfica.
 
 ## Questão 09
 
 Resposta esperada:
-
-A divisão em regiões hidrográficas ajuda na criação de políticas públicas porque permite planejar o uso da água considerando rios, população, cidades, atividades econômicas, abastecimento, impactos ambientais e comunidades que dependem desses recursos.
+Essa divisão ajuda nas políticas públicas porque permite planejar o uso da água considerando rios, cidades, população, atividades econômicas, abastecimento, impactos ambientais e comunidades que dependem dos recursos hídricos.
 
 Comentário:
-A resposta deve relacionar regiões hidrográficas com planejamento, gestão da água e tomada de decisões.
+A resposta deve relacionar regiões hidrográficas com gestão da água e tomada de decisões.
 
 ## Questão de Excelência
 
 Resposta esperada:
-
-O Cerrado é um domínio morfoclimático porque reúne elementos naturais interrelacionados, como clima tropical típico, vegetação adaptada à seca, relevo, solos e hidrografia do Brasil central. Ele é ameaçado pelo avanço da agropecuária, pelas queimadas, pelo desmatamento e pela perda de biodiversidade.
+O Cerrado é um domínio morfoclimático porque reúne elementos naturais interrelacionados, como clima tropical típico, vegetação adaptada, relevo, solo e hidrografia. Ele é ameaçado pelo avanço da agropecuária, pelas queimadas, pelo desmatamento e pela perda de biodiversidade.
 
 Comentário:
-A resposta deve integrar conceito de domínio morfoclimático, características do Cerrado e problemas ambientais atuais. Não basta apenas citar que “é seco” ou que “tem árvores”.
+A resposta deve integrar conceito de domínio morfoclimático, características do Cerrado e problemas ambientais atuais.
