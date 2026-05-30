@@ -1,6 +1,7 @@
 """List recent conversations from the memory database."""
 
 import argparse
+import json
 
 from memory import MemoryClient
 from memory.cli.common import db_path_from_mirror_home
@@ -16,9 +17,21 @@ def main(argv: list[str] | None = None) -> None:
         default=None,
         help="Explicit user home whose database should be read for this command",
     )
+    parser.add_argument(
+        "--metadata-lifecycle-dry-run",
+        metavar="CONVERSATION_ID",
+        help="Report metadata lifecycle decisions for one conversation without changing it",
+    )
     args = parser.parse_args(argv)
 
     mem = MemoryClient(db_path=db_path_from_mirror_home(args.mirror_home))
+
+    if args.metadata_lifecycle_dry_run:
+        report = mem.conversations.dry_run_metadata_lifecycle(
+            args.metadata_lifecycle_dry_run
+        )
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return
 
     summaries = mem.conversations.list_recent(
         limit=args.limit,

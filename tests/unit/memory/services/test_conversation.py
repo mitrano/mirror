@@ -406,3 +406,123 @@ class TestExtractionTracking:
         ids = [c.id for c in pending]
         assert conv_pending.id in ids
         assert conv_done.id not in ids
+
+
+class TestConversationServiceMetadataLifecycleDryRun:
+    def test_reports_repair_for_provisional_generic_title_without_mutation(
+        self, conversation_service, store
+    ):
+        import json
+
+        conv = conversation_service.start_conversation(interface="cli")
+        conversation_service.set_provisional_title(conv.id, "vamos trabalhar no maestro")
+        conversation_service.add_message(conv.id, "user", "Vamos validar checkpoint visibility")
+        conversation_service.add_message(conv.id, "assistant", "Vamos revisar o handoff")
+        before = store.get_conversation(conv.id)
+
+        report = conversation_service.dry_run_metadata_lifecycle(conv.id)
+
+        after = store.get_conversation(conv.id)
+        assert report["mode"] == "dry_run"
+        assert report["mutated"] is False
+        assert report["fields"]["title"]["decision"] == "repair"
+        assert report["fields"]["title"]["readiness"] == "ready"
+        assert report["fields"]["summary"]["decision"] == "defer"
+        assert report["fields"]["tags"]["decision"] == "defer"
+        assert after.title == before.title
+        assert json.loads(after.metadata) == json.loads(before.metadata)
+
+    def test_reports_keep_for_meaningful_opening_title(self, conversation_service):
+        conv = conversation_service.start_conversation(
+            interface="cli",
+            title="Delphi consulting — Mirror/Maestro/Ariad training",
+        )
+        conversation_service.add_message(conv.id, "user", "Você trabalha com Delphi?")
+        conversation_service.add_message(conv.id, "assistant", "Sim, posso ajudar.")
+
+        report = conversation_service.dry_run_metadata_lifecycle(conv.id)
+
+        assert report["fields"]["title"]["decision"] == "keep"
+        assert report["fields"]["title"]["lock_state"] == "unlocked"
+
+    def test_reports_refine_candidate_when_summary_is_more_specific_than_unlocked_title(
+        self, conversation_service, store
+    ):
+        conv = conversation_service.start_conversation(
+            interface="cli",
+            title="vamos trabalhar no projeto antes de mim",
+        )
+        conversation_service.add_message(conv.id, "user", "Vamos trabalhar no projeto")
+        conversation_service.add_message(conv.id, "assistant", "Contexto carregado")
+        store.update_conversation(
+            conv.id,
+            summary=(
+                "Builder Mode ativo na Travessia antes de mim. "
+                "Contexto editorial carregado para Raphael Albino, Scrivener, "
+                "manuscrito, briefing de capa, texto raw, higienização, "
+                "importação Kindle e validação EPUB."
+            ),
+        )
+
+        report = conversation_service.dry_run_metadata_lifecycle(conv.id)
+
+        title_report = report["fields"]["title"]
+        assert title_report["decision"] == "refine_candidate"
+        assert title_report["confidence"] in {"low", "medium"}
+        assert "summary_specific_terms" in title_report["evidence"]
+        assert "briefing" in title_report["evidence"]["summary_specific_terms"]
+
+    def test_refine_candidate_does_not_depend_on_generic_project_phrase(
+        self, conversation_service, store
+    ):
+        conv = conversation_service.start_conversation(
+            interface="cli",
+            title="Initial editorial session",
+        )
+        conversation_service.add_message(conv.id, "user", "Let's begin")
+        conversation_service.add_message(conv.id, "assistant", "Ready")
+        store.update_conversation(
+            conv.id,
+            summary=(
+                "Editorial workflow for Raphael Albino manuscript. "
+                "Scrivener import, cover briefing, Kindle export, EPUB validation, "
+                "chapter cleanup, raw text hygiene, and publishing preparation."
+            ),
+        )
+
+        report = conversation_service.dry_run_metadata_lifecycle(conv.id)
+
+        assert report["fields"]["title"]["decision"] == "refine_candidate"
+
+    def test_reports_manual_title_lock_preserved_without_mutation(
+        self, conversation_service, store
+    ):
+        conv = conversation_service.start_conversation(interface="cli", title="Initial title")
+        conversation_service.add_message(conv.id, "user", "Quero corrigir títulos")
+        conversation_service.add_message(conv.id, "assistant", "Vamos desenhar a correção")
+        conversation_service.update_title(conv.id, "Manual conversation title")
+        before = store.get_conversation(conv.id)
+
+        report = conversation_service.dry_run_metadata_lifecycle(conv.id)
+
+        after = store.get_conversation(conv.id)
+        assert report["fields"]["title"]["decision"] == "preserve"
+        assert report["fields"]["title"]["lock_state"] == "manual_locked"
+        assert after.title == before.title
+        assert after.metadata == before.metadata
+
+    def test_reports_summary_ready_and_tags_deferred_until_summary_exists(
+        self, conversation_service
+    ):
+        conv = conversation_service.start_conversation(interface="cli", title="Metadata lifecycle")
+        conversation_service.add_message(conv.id, "user", "Vamos tratar o título")
+        conversation_service.add_message(conv.id, "assistant", "Podemos criar uma política")
+        conversation_service.add_message(conv.id, "user", "Também resumo e tags")
+        conversation_service.add_message(conv.id, "assistant", "Então precisamos de readiness por campo")
+
+        report = conversation_service.dry_run_metadata_lifecycle(conv.id)
+
+        assert report["fields"]["summary"]["decision"] == "create"
+        assert report["fields"]["summary"]["readiness"] == "ready"
+        assert report["fields"]["tags"]["decision"] == "defer"
+        assert report["fields"]["tags"]["readiness"] == "not_ready"

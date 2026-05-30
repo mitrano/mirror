@@ -1,5 +1,7 @@
 """Tests for conversations CLI behavior."""
 
+import json
+
 from memory import MemoryClient
 from memory.config import default_db_path_for_home
 
@@ -47,3 +49,27 @@ def test_conversations_explicit_mirror_home_overrides_environment_selection(
     captured = capsys.readouterr()
     assert "Explicit conversation" in captured.out
     assert "Environment conversation" not in captured.out
+
+
+def test_conversations_metadata_lifecycle_dry_run_reports_without_mutation(tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    conv = mem.start_conversation("cli")
+    mem.conversations.set_provisional_title(conv.id, "vamos trabalhar no maestro")
+    mem.add_message(conv.id, "user", "Vamos validar checkpoint visibility")
+    mem.add_message(conv.id, "assistant", "Vamos revisar o handoff")
+    before = mem.store.get_conversation(conv.id)
+
+    from memory.cli.conversations import main
+
+    main(["--mirror-home", str(mirror_home), "--metadata-lifecycle-dry-run", conv.id])
+
+    captured = capsys.readouterr()
+    report = json.loads(captured.out)
+    after = mem.store.get_conversation(conv.id)
+    assert report["mode"] == "dry_run"
+    assert report["mutated"] is False
+    assert report["fields"]["title"]["decision"] == "repair"
+    assert after.title == before.title
+    assert after.metadata == before.metadata
