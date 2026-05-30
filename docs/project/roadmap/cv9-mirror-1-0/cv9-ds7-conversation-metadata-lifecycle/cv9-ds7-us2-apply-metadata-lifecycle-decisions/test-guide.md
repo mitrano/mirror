@@ -31,12 +31,13 @@ explicitly named and accepted.
 
 Expected route after implementation:
 
-1. Create or select a fixture conversation.
-2. Run dry-run and inspect decisions.
-3. Run explicit apply path.
-4. Inspect apply report.
+1. Create or select a fixture conversation in a controlled test database.
+2. Run `ConversationService.dry_run_metadata_lifecycle(conversation_id)` and inspect decisions.
+3. Run `ConversationService.apply_metadata_lifecycle(...)` with explicit metadata values.
+4. Inspect the apply report's `changed` and `skipped` fields.
 5. Re-read the conversation and confirm only eligible fields changed.
 6. Confirm manual locks are preserved in a locked-title fixture.
+7. Confirm `refine_candidate` title decisions are skipped rather than applied automatically.
 
 Pass condition:
 

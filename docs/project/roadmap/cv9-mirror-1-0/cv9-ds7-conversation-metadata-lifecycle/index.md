@@ -39,7 +39,9 @@ The Delivery Story expansion has been accepted. No implementation plan has been 
 | [CV9.DS7.TS1](cv9-ds7-ts1-metadata-lifecycle-decision-policy/index.md) | Technical Story | Metadata Lifecycle Decision Policy | Done |
 | [CV9.DS7.US1](cv9-ds7-us1-dry-run-metadata-lifecycle-decision-path/index.md) | User Story | Dry-run Metadata Lifecycle Decision Path | Done |
 | [CV9.DS7.TS2](cv9-ds7-ts2-extract-metadata-lifecycle-policy-boundary/index.md) | Technical Story | Extract Metadata Lifecycle Policy Boundary | Validated |
-| [CV9.DS7.US2](cv9-ds7-us2-apply-metadata-lifecycle-decisions/index.md) | User Story | Apply Metadata Lifecycle Decisions Safely | Active; unblocked, plan proposed |
+| [CV9.DS7.TS3](cv9-ds7-ts3-bounded-metadata-lifecycle-apply-service/index.md) | Technical Story | Bounded Metadata Lifecycle Apply Service | Validated |
+| [CV9.DS7.US2](cv9-ds7-us2-apply-metadata-lifecycle-decisions/index.md) | User Story | Apply Metadata Lifecycle Decisions Safely | Active; blocked by operation surface |
+| [CV9.DS7.US3](cv9-ds7-us3-metadata-lifecycle-operation-report/index.md) | User Story | Metadata Lifecycle Operation Report | Planned |
 
 ---
 

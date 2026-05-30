@@ -526,3 +526,118 @@ class TestConversationServiceMetadataLifecycleDryRun:
         assert report["fields"]["summary"]["readiness"] == "ready"
         assert report["fields"]["tags"]["decision"] == "defer"
         assert report["fields"]["tags"]["readiness"] == "not_ready"
+
+
+class TestConversationServiceMetadataLifecycleApply:
+    def test_applies_safe_repair_title_and_records_metadata(self, conversation_service, store):
+        import json
+
+        conv = conversation_service.start_conversation(interface="cli")
+        conversation_service.set_provisional_title(conv.id, "vamos trabalhar no maestro")
+        conversation_service.add_message(conv.id, "user", "Vamos validar checkpoint visibility")
+        conversation_service.add_message(conv.id, "assistant", "Vamos revisar o handoff")
+
+        report = conversation_service.apply_metadata_lifecycle(
+            conv.id,
+            title="Maestro checkpoint visibility validation",
+        )
+
+        stored = store.get_conversation(conv.id)
+        metadata = json.loads(stored.metadata)
+        assert report["mode"] == "apply"
+        assert report["mutated"] is True
+        assert report["changed"]["title"] == "Maestro checkpoint visibility validation"
+        assert stored.title == "Maestro checkpoint visibility validation"
+        assert metadata["title_status"] == "generated"
+        assert metadata["title_source"] == "metadata_lifecycle_apply"
+        assert metadata["metadata_lifecycle_version"] == 1
+        assert metadata["last_metadata_update_source"] == "metadata_lifecycle_apply"
+
+    def test_preserves_manual_title_lock_even_when_title_provided(
+        self, conversation_service, store
+    ):
+        conv = conversation_service.start_conversation(interface="cli", title="Initial title")
+        conversation_service.add_message(conv.id, "user", "Quero corrigir títulos")
+        conversation_service.add_message(conv.id, "assistant", "Vamos desenhar a correção")
+        conversation_service.update_title(conv.id, "Manual conversation title")
+        before = store.get_conversation(conv.id)
+
+        report = conversation_service.apply_metadata_lifecycle(
+            conv.id,
+            title="Generated replacement title",
+        )
+
+        after = store.get_conversation(conv.id)
+        assert report["mutated"] is False
+        assert report["skipped"]["title"] == "manual_lock_preserved"
+        assert after.title == before.title
+        assert after.metadata == before.metadata
+
+    def test_does_not_apply_refine_candidate_without_explicit_review(
+        self, conversation_service, store
+    ):
+        conv = conversation_service.start_conversation(
+            interface="cli",
+            title="Initial editorial session",
+        )
+        conversation_service.add_message(conv.id, "user", "Let's begin")
+        conversation_service.add_message(conv.id, "assistant", "Ready")
+        store.update_conversation(
+            conv.id,
+            summary=(
+                "Editorial workflow for Raphael Albino manuscript. "
+                "Scrivener import, cover briefing, Kindle export, EPUB validation, "
+                "chapter cleanup, raw text hygiene, and publishing preparation."
+            ),
+        )
+        before = store.get_conversation(conv.id)
+
+        report = conversation_service.apply_metadata_lifecycle(
+            conv.id,
+            title="Better editorial workflow title",
+        )
+
+        after = store.get_conversation(conv.id)
+        assert report["dry_run"]["fields"]["title"]["decision"] == "refine_candidate"
+        assert report["skipped"]["title"] == "candidate_decision_requires_explicit_review"
+        assert after.title == before.title
+        assert after.metadata == before.metadata
+
+    def test_applies_summary_and_tags_when_ready(self, conversation_service, store):
+        import json
+
+        conv = conversation_service.start_conversation(interface="cli", title="Metadata lifecycle")
+        conversation_service.add_message(conv.id, "user", "Vamos tratar o título")
+        conversation_service.add_message(conv.id, "assistant", "Podemos criar uma política")
+        conversation_service.add_message(conv.id, "user", "Também resumo e tags")
+        conversation_service.add_message(conv.id, "assistant", "Então precisamos de readiness por campo")
+
+        report = conversation_service.apply_metadata_lifecycle(
+            conv.id,
+            summary="Conversation metadata lifecycle planning.",
+            tags=["metadata", "conversation"],
+        )
+
+        stored = store.get_conversation(conv.id)
+        metadata = json.loads(stored.metadata)
+        assert report["mutated"] is True
+        assert stored.summary == "Conversation metadata lifecycle planning."
+        assert json.loads(stored.tags) == ["metadata", "conversation"]
+        assert metadata["summary_status"] == "generated"
+        assert metadata["tags_status"] == "generated"
+
+    def test_dry_run_remains_non_mutating_after_apply_path_exists(
+        self, conversation_service, store
+    ):
+        conv = conversation_service.start_conversation(interface="cli")
+        conversation_service.set_provisional_title(conv.id, "vamos trabalhar no maestro")
+        conversation_service.add_message(conv.id, "user", "Vamos validar checkpoint visibility")
+        conversation_service.add_message(conv.id, "assistant", "Vamos revisar o handoff")
+        before = store.get_conversation(conv.id)
+
+        report = conversation_service.dry_run_metadata_lifecycle(conv.id)
+
+        after = store.get_conversation(conv.id)
+        assert report["mutated"] is False
+        assert after.title == before.title
+        assert after.metadata == before.metadata

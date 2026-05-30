@@ -109,6 +109,84 @@ class ConversationService:
             title_needs_improvement=self.title_needs_improvement,
         )
 
+    def apply_metadata_lifecycle(
+        self,
+        conversation_id: str,
+        *,
+        title: str | None = None,
+        summary: str | None = None,
+        tags: list[str] | str | None = None,
+        source: str = "metadata_lifecycle_apply",
+    ) -> dict:
+        """Apply safe metadata lifecycle updates through an explicit bounded path."""
+        conversation = self._get_conversation_for_title_operation(conversation_id)
+        dry_run = self.dry_run_metadata_lifecycle(conversation.id)
+        metadata = self._metadata_dict(conversation)
+        updates: dict[str, str] = {}
+        changed: dict[str, object] = {}
+        skipped: dict[str, str] = {}
+
+        title_decision = dry_run["fields"]["title"]["decision"]
+        if title_decision == "preserve":
+            skipped["title"] = "manual_lock_preserved"
+        elif title_decision == "refine_candidate":
+            skipped["title"] = "candidate_decision_requires_explicit_review"
+        elif title_decision in {"create", "repair"} and title is not None:
+            clean_title = self._clean_title(title)
+            updates["title"] = clean_title
+            metadata = self._title_metadata(
+                conversation,
+                source=source,
+                status="generated",
+                previous_title=conversation.title,
+            )
+            changed["title"] = clean_title
+        elif title is not None:
+            skipped["title"] = f"decision_{title_decision}_not_applied"
+        else:
+            skipped["title"] = "no_value_provided"
+
+        summary_decision = dry_run["fields"]["summary"]["decision"]
+        if summary_decision == "create" and summary is not None:
+            clean_summary = summary.strip()
+            if clean_summary:
+                updates["summary"] = clean_summary[:1000]
+                metadata["summary_status"] = "generated"
+                changed["summary"] = updates["summary"]
+            else:
+                skipped["summary"] = "blank_value"
+        elif summary is not None:
+            skipped["summary"] = f"decision_{summary_decision}_not_applied"
+        else:
+            skipped["summary"] = "no_value_provided"
+
+        tags_decision = dry_run["fields"]["tags"]["decision"]
+        tags_ready_after_summary = tags_decision == "defer" and "summary" in changed
+        if tags_decision == "create" and tags is not None or tags_ready_after_summary and tags is not None:
+            encoded_tags = tags if isinstance(tags, str) else json.dumps(tags, ensure_ascii=False)
+            updates["tags"] = encoded_tags
+            metadata["tags_status"] = "generated"
+            changed["tags"] = tags
+        elif tags is not None:
+            skipped["tags"] = f"decision_{tags_decision}_not_applied"
+        else:
+            skipped["tags"] = "no_value_provided"
+
+        if changed:
+            metadata["metadata_lifecycle_version"] = 1
+            metadata["last_metadata_update_source"] = source
+            updates["metadata"] = json.dumps(metadata, ensure_ascii=False)
+            self.store.update_conversation(conversation.id, **updates)
+
+        return {
+            "conversation_id": conversation.id,
+            "mode": "apply",
+            "mutated": bool(changed),
+            "changed": changed,
+            "skipped": skipped,
+            "dry_run": dry_run,
+        }
+
     def update_title(self, conversation_id: str, title: str) -> Conversation:
         """Update a conversation title through a bounded manual-edit path."""
         if not isinstance(title, str):
