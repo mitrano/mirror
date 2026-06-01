@@ -154,6 +154,35 @@ def test_conversations_metadata_lifecycle_demo_reports_pass_without_production_d
     assert report["checks"]["refine_candidate_skipped"] is True
 
 
+def test_conversations_metadata_backfill_preview_reports_candidates(tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    conv = mem.start_conversation("cli")
+    mem.conversations.set_provisional_title(conv.id, "vamos trabalhar no maestro")
+    mem.add_message(conv.id, "user", "Vamos validar checkpoint visibility")
+    mem.add_message(conv.id, "assistant", "Vamos revisar o handoff")
+
+    from memory.cli.conversations import main
+
+    main([
+        "--mirror-home",
+        str(mirror_home),
+        "--metadata-backfill-preview",
+        "--metadata-backfill-mode",
+        "safe",
+        "--limit",
+        "5",
+    ])
+
+    captured = capsys.readouterr()
+    report = json.loads(captured.out)
+    assert report["mode"] == "metadata_backfill_preview"
+    assert report["mutated"] is False
+    assert report["profile"] == "backfill_safe"
+    assert report["candidates"][0]["actions"]["title"] == "apply"
+
+
 def test_conversations_metadata_lifecycle_preview_at_message_reports_boundary(
     tmp_path, capsys
 ):

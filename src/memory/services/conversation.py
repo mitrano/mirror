@@ -20,6 +20,8 @@ from memory.intelligence.llm_router import LLMResponse
 from memory.models import Conversation, ConversationSummary, Memory, Message
 from memory.services.metadata_lifecycle import (
     dry_run_metadata_lifecycle as dry_run_metadata_lifecycle_policy,
+    metadata_execution_profile,
+    metadata_profile_action,
     messages_are_titleable,
 )
 from memory.storage.store import Store
@@ -165,33 +167,78 @@ class ConversationService:
             "dry_run": dry_run,
         }
 
+    def preview_metadata_backfill(
+        self,
+        *,
+        mode: str = "safe",
+        limit: int = 20,
+        journey: str | None = None,
+    ) -> dict:
+        """Preview historical metadata backfill candidates without mutation."""
+        profile_name = "backfill_force" if mode == "force" else "backfill_safe"
+        profile = metadata_execution_profile(profile_name)
+        summaries = self.list_recent(limit=limit, journey=journey)
+        candidates: list[dict] = []
+        for summary in summaries:
+            report = self.dry_run_metadata_lifecycle(summary.id)
+            actions = {
+                field: metadata_profile_action(profile, field, field_report)
+                for field, field_report in report["fields"].items()
+            }
+            if mode == "force" or any(action in {"apply", "regenerate"} for action in actions.values()):
+                candidates.append(
+                    {
+                        "conversation_id": report["conversation_id"],
+                        "title": summary.title,
+                        "message_count": summary.message_count,
+                        "actions": actions,
+                        "fields": report["fields"],
+                    }
+                )
+        return {
+            "mode": "metadata_backfill_preview",
+            "backfill_mode": mode,
+            "profile": profile.name,
+            "mutated": False,
+            "limit": limit,
+            "journey": journey,
+            "candidate_count": len(candidates),
+            "candidates": candidates,
+        }
+
     def apply_generated_metadata_lifecycle(
         self,
         conversation_id: str,
         *,
         source: str = "metadata_lifecycle_apply",
+        profile_name: str = "manual_safe",
     ) -> dict:
         """Generate and apply the safe updates currently exposed by the lifecycle report."""
         conversation = self._get_conversation_for_title_operation(conversation_id)
         dry_run = self.dry_run_metadata_lifecycle(conversation.id)
         fields = dry_run["fields"]
+        profile = metadata_execution_profile(profile_name)
+        actions = {
+            field: metadata_profile_action(profile, field, field_report)
+            for field, field_report in fields.items()
+        }
         generated_title: str | None = None
         generated_summary: str | None = None
         generated_tags: list[str] | None = None
 
-        if fields["title"]["decision"] in {"create", "repair"}:
+        if actions["title"] in {"apply", "regenerate"}:
             try:
                 generated_title = self.suggest_title(conversation.id)
             except ValueError:
                 generated_title = None
 
-        if fields["summary"]["decision"] == "create":
+        if actions["summary"] in {"apply", "regenerate"}:
             try:
                 generated_summary = self.suggest_summary(conversation.id)
             except ValueError:
                 generated_summary = None
 
-        if fields["tags"]["decision"] == "create":
+        if actions["tags"] in {"apply", "regenerate"}:
             tag_source_summary = generated_summary
             if tag_source_summary is None and fields["summary"]["decision"] == "refine_candidate":
                 try:
@@ -200,13 +247,16 @@ class ConversationService:
                     tag_source_summary = None
             generated_tags = self._suggest_tags(conversation.id, tag_source_summary)
 
-        return self.apply_metadata_lifecycle(
+        report = self.apply_metadata_lifecycle(
             conversation.id,
             title=generated_title,
             summary=generated_summary,
             tags=generated_tags or None,
             source=source,
         )
+        report["profile"] = profile.name
+        report["actions"] = actions
+        return report
 
     def apply_metadata_lifecycle(
         self,

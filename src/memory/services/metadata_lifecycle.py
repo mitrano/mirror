@@ -9,11 +9,87 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
+from dataclasses import dataclass
 
 from memory.models import Conversation, Message
 
 
 TitleNeedsImprovement = Callable[[Conversation], bool]
+
+
+@dataclass(frozen=True)
+class MetadataExecutionProfile:
+    """Execution posture for applying metadata lifecycle decisions."""
+
+    name: str
+    title_apply_decisions: frozenset[str]
+    summary_apply_decisions: frozenset[str]
+    tags_apply_decisions: frozenset[str]
+    force_regenerate: bool = False
+    preserve_manual: bool = True
+
+
+METADATA_EXECUTION_PROFILES: dict[str, MetadataExecutionProfile] = {
+    "manual_safe": MetadataExecutionProfile(
+        name="manual_safe",
+        title_apply_decisions=frozenset({"create", "repair"}),
+        summary_apply_decisions=frozenset({"create"}),
+        tags_apply_decisions=frozenset({"create"}),
+    ),
+    "backfill_safe": MetadataExecutionProfile(
+        name="backfill_safe",
+        title_apply_decisions=frozenset({"create", "repair"}),
+        summary_apply_decisions=frozenset({"create"}),
+        tags_apply_decisions=frozenset({"create"}),
+    ),
+    "backfill_force": MetadataExecutionProfile(
+        name="backfill_force",
+        title_apply_decisions=frozenset({"create", "repair", "keep", "refine_candidate"}),
+        summary_apply_decisions=frozenset({"create", "keep", "refine_candidate"}),
+        tags_apply_decisions=frozenset({"create", "keep"}),
+        force_regenerate=True,
+    ),
+    "close_time": MetadataExecutionProfile(
+        name="close_time",
+        title_apply_decisions=frozenset({"create", "repair"}),
+        summary_apply_decisions=frozenset({"create"}),
+        tags_apply_decisions=frozenset({"create"}),
+    ),
+    "active_runtime": MetadataExecutionProfile(
+        name="active_runtime",
+        title_apply_decisions=frozenset({"create"}),
+        summary_apply_decisions=frozenset(),
+        tags_apply_decisions=frozenset(),
+    ),
+}
+
+
+def metadata_execution_profile(name: str) -> MetadataExecutionProfile:
+    """Return a named metadata execution profile."""
+    try:
+        return METADATA_EXECUTION_PROFILES[name]
+    except KeyError as exc:
+        raise ValueError(f"Unknown metadata execution profile: {name}") from exc
+
+
+def metadata_profile_action(profile: MetadataExecutionProfile, field: str, report: dict) -> str:
+    """Return the profile action for one field report."""
+    decision = report.get("decision")
+    if field == "title" and report.get("lock_state") == "manual_locked" and profile.preserve_manual:
+        return "preserve_manual"
+    if decision == "defer":
+        return "defer"
+    if decision == "preserve":
+        return "preserve_manual"
+    if field == "title" and decision in profile.title_apply_decisions:
+        return "regenerate" if profile.force_regenerate else "apply"
+    if field == "summary" and decision in profile.summary_apply_decisions:
+        return "regenerate" if profile.force_regenerate else "apply"
+    if field == "tags" and decision in profile.tags_apply_decisions:
+        return "regenerate" if profile.force_regenerate else "apply"
+    if decision == "refine_candidate":
+        return "review"
+    return "skip"
 
 
 def dry_run_metadata_lifecycle(

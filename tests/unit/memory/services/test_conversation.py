@@ -633,6 +633,42 @@ class TestConversationServiceMetadataLifecycleDryRun:
         assert after.metadata == before.metadata
 
 
+class TestConversationServiceMetadataBackfillPreview:
+    def test_previews_safe_backfill_candidates_without_mutation(self, conversation_service, store):
+        conv = conversation_service.start_conversation(interface="cli")
+        conversation_service.set_provisional_title(conv.id, "vamos trabalhar no maestro")
+        conversation_service.add_message(conv.id, "user", "Vamos validar checkpoint visibility")
+        conversation_service.add_message(conv.id, "assistant", "Vamos revisar o handoff")
+        before = store.get_conversation(conv.id)
+
+        report = conversation_service.preview_metadata_backfill(mode="safe", limit=5)
+
+        after = store.get_conversation(conv.id)
+        candidate = next(item for item in report["candidates"] if item["conversation_id"] == conv.id)
+        assert report["mode"] == "metadata_backfill_preview"
+        assert report["mutated"] is False
+        assert report["profile"] == "backfill_safe"
+        assert candidate["actions"]["title"] == "apply"
+        assert after.title == before.title
+        assert after.metadata == before.metadata
+
+    def test_force_backfill_marks_existing_metadata_for_regeneration(
+        self, conversation_service
+    ):
+        conv = conversation_service.start_conversation(
+            interface="cli",
+            title="Existing conversation title",
+        )
+        conversation_service.add_message(conv.id, "user", "Vamos validar metadata")
+        conversation_service.add_message(conv.id, "assistant", "Podemos regenerar tudo")
+
+        report = conversation_service.preview_metadata_backfill(mode="force", limit=5)
+
+        candidate = next(item for item in report["candidates"] if item["conversation_id"] == conv.id)
+        assert report["profile"] == "backfill_force"
+        assert candidate["actions"]["title"] == "regenerate"
+
+
 class TestConversationServiceMetadataLifecycleApply:
     def test_applies_safe_repair_title_and_records_metadata(self, conversation_service, store):
         import json

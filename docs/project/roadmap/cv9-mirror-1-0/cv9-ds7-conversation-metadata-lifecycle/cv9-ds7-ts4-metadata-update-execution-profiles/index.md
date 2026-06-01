@@ -1,7 +1,7 @@
 # CV9.DS7.TS4 — Metadata Update Execution Profiles
 
 **Type:** Technical Story  
-**Status:** Planned  
+**Status:** Done  
 **Parent:** [CV9.DS7 — Conversation Metadata Lifecycle](../index.md)
 
 ## Story

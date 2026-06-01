@@ -1,7 +1,7 @@
 # CV9.DS7.US8 — Historical Metadata Backfill Preview
 
 **Type:** User Story  
-**Status:** Planned  
+**Status:** Done  
 **Parent:** [CV9.DS7 — Conversation Metadata Lifecycle](../index.md)
 
 ## Story

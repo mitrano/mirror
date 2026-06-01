@@ -47,6 +47,17 @@ def main(argv: list[str] | None = None) -> None:
         metavar="MESSAGE_ID",
         help="Debug-preview metadata lifecycle decisions using messages up to one message",
     )
+    parser.add_argument(
+        "--metadata-backfill-preview",
+        action="store_true",
+        help="Preview historical conversation metadata backfill without mutation",
+    )
+    parser.add_argument(
+        "--metadata-backfill-mode",
+        choices=("safe", "force"),
+        default="safe",
+        help="Backfill preview mode",
+    )
     parser.add_argument("--title", help="Explicit title value for metadata lifecycle apply")
     parser.add_argument("--summary", help="Explicit summary value for metadata lifecycle apply")
     parser.add_argument(
@@ -68,6 +79,15 @@ def main(argv: list[str] | None = None) -> None:
     if args.metadata_lifecycle_dry_run:
         report = mem.conversations.dry_run_metadata_lifecycle(
             args.metadata_lifecycle_dry_run
+        )
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return
+
+    if args.metadata_backfill_preview:
+        report = mem.conversations.preview_metadata_backfill(
+            mode=args.metadata_backfill_mode,
+            limit=args.limit,
+            journey=args.journey,
         )
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return
