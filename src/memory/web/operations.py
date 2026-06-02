@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import sys
 import time
 from collections.abc import Callable
@@ -145,6 +146,48 @@ OPERATION_CATALOG: tuple[WebOperation, ...] = (
                 default=50,
                 minimum=1,
                 maximum=500,
+            ),
+        ),
+    ),
+    WebOperation(
+        id="conversation-journey-backfill",
+        title="Conversation journey backfill",
+        description="Preview or apply conservative journey associations for conversations without a journey.",
+        category="conversations",
+        risk_level="writes_database",
+        dry_run="required",
+        execution="runnable",
+        parameters=(
+            OperationParameter(
+                name="dryRun",
+                label="Dry run",
+                kind="boolean",
+                description="Preview journey association candidates without changing conversations.",
+                default=True,
+            ),
+            OperationParameter(
+                name="mode",
+                label="Backfill mode",
+                kind="choice",
+                description="Use explicit activation phrases only, or include unambiguous title aliases.",
+                default="explicit_only",
+                choices=("explicit_only", "title_alias"),
+            ),
+            OperationParameter(
+                name="allConversations",
+                label="All conversations",
+                kind="boolean",
+                description="Ignore the limit and inspect all unassigned conversations.",
+                default=False,
+            ),
+            OperationParameter(
+                name="limit",
+                label="Maximum conversations",
+                kind="integer",
+                description="Maximum unassigned conversations to inspect when All conversations is off.",
+                default=50,
+                minimum=1,
+                maximum=1000,
             ),
         ),
     ),
@@ -374,6 +417,12 @@ def run_operation(
         return _run_conversation_journey_repair(
             mirror_home=mirror_home, parameters=parsed_parameters
         )
+    if operation.id == "conversation-journey-backfill":
+        return _run_conversation_journey_backfill(
+            mirror_home=mirror_home,
+            parameters=parsed_parameters,
+            emit_event=emit_event,
+        )
     if operation.id == "historical-metadata-backfill":
         return _run_historical_metadata_backfill(
             mirror_home=mirror_home,
@@ -573,6 +622,192 @@ def _run_conversation_journey_repair(
         ],
         "result": result,
     }
+
+
+def _run_conversation_journey_backfill(
+    *,
+    mirror_home: Path | None,
+    parameters: dict[str, object],
+    emit_event: Callable[[str, str, dict[str, object] | None], None] | None,
+) -> dict[str, object]:
+    if mirror_home is None:
+        raise ValueError("Mirror home is required for conversation journey backfill")
+
+    dry_run = bool(parameters.get("dryRun", True))
+    mode = str(parameters.get("mode", "explicit_only"))
+    all_conversations = bool(parameters.get("allConversations", False))
+    limit = 100000 if all_conversations else int(parameters.get("limit", 50))
+    db_path = db_path_from_mirror_home(mirror_home)
+
+    with MemoryClient(db_path=db_path) as mem:
+        candidates = _journey_backfill_candidates(mem, mode=mode, limit=limit)
+
+    result: dict[str, object] = {
+        "mode": mode,
+        "candidateCount": len(candidates),
+        "appliedCount": 0,
+        "candidates": candidates,
+        "backupPath": None,
+    }
+    if dry_run or not candidates:
+        return {
+            "operationId": "conversation-journey-backfill",
+            "status": "completed",
+            "outcome": "dry_run" if dry_run else "no_candidates",
+            "summary": [
+                f"Backfill mode: {mode}",
+                f"Journey candidates: {len(candidates)}",
+                "No conversations changed.",
+            ],
+            "result": result,
+        }
+
+    if emit_event is not None:
+        emit_event(
+            "progress",
+            f"Preparing to assign journeys for {len(candidates)} conversation(s).",
+            {"candidateCount": len(candidates), "mode": mode},
+        )
+    backup_path = create_backup(silent=True, mirror_home=mirror_home)
+    if backup_path is None:
+        raise ValueError("Database backup failed; refusing journey backfill")
+    if emit_event is not None:
+        emit_event("progress", f"Backup created: {backup_path}", {"backupPath": str(backup_path)})
+
+    with MemoryClient(db_path=db_path) as mem:
+        for index, candidate in enumerate(candidates, start=1):
+            mem.store.update_conversation(
+                str(candidate["conversationId"]), journey=str(candidate["journey"])
+            )
+            if emit_event is not None:
+                emit_event(
+                    "progress",
+                    f"Assigned {index}/{len(candidates)}: {candidate['conversationId']} → {candidate['journey']}.",
+                    {
+                        "conversationId": candidate["conversationId"],
+                        "journey": candidate["journey"],
+                        "index": index,
+                        "total": len(candidates),
+                    },
+                )
+    result["appliedCount"] = len(candidates)
+    result["backupPath"] = str(backup_path)
+    return {
+        "operationId": "conversation-journey-backfill",
+        "status": "completed",
+        "outcome": "applied",
+        "summary": [
+            f"Backfill mode: {mode}",
+            f"Assigned conversations: {len(candidates)}",
+            f"Backup created: {backup_path}",
+        ],
+        "result": result,
+    }
+
+
+def _journey_backfill_candidates(
+    mem: MemoryClient, *, mode: str, limit: int
+) -> list[dict[str, object]]:
+    rows = mem.store.conn.execute(
+        """
+        SELECT c.id, c.title, c.summary, c.started_at, c.interface, c.persona,
+               COUNT(m.id) AS message_count,
+               GROUP_CONCAT(substr(m.content, 1, 500), '\n') AS transcript_sample
+          FROM conversations c
+          LEFT JOIN messages m ON m.conversation_id = c.id
+         WHERE c.journey IS NULL OR c.journey = ''
+         GROUP BY c.id
+         ORDER BY c.started_at DESC
+         LIMIT ?
+        """,
+        (limit,),
+    ).fetchall()
+    journey_aliases = _journey_aliases(mem)
+    candidates: list[dict[str, object]] = []
+    for row in rows:
+        text = "\n".join(
+            str(value or "") for value in (row["title"], row["summary"], row["transcript_sample"])
+        )
+        suggestion = _explicit_journey_suggestion(text, journey_aliases)
+        if suggestion is None and mode == "title_alias":
+            suggestion = _title_alias_journey_suggestion(str(row["title"] or ""), journey_aliases)
+        if suggestion is None:
+            continue
+        journey, reason, evidence = suggestion
+        candidates.append(
+            {
+                "conversationId": row["id"],
+                "title": row["title"],
+                "journey": journey,
+                "reason": reason,
+                "evidence": evidence,
+                "confidence": "high",
+                "messageCount": row["message_count"],
+                "startedAt": row["started_at"],
+                "interface": row["interface"],
+                "persona": row["persona"],
+            }
+        )
+    return candidates
+
+
+def _journey_aliases(mem: MemoryClient) -> dict[str, set[str]]:
+    aliases: dict[str, set[str]] = {}
+    for journey in mem.journeys.list_active_journeys():
+        journey_id = str(journey["id"])
+        name = str(journey["name"])
+        values = {journey_id.lower(), name.lower(), name.lower().replace(" ", "-")}
+        values.add(journey_id.lower().replace("-", " "))
+        aliases[journey_id] = {value for value in values if value}
+    aliases.setdefault("mirror-mind", set()).update({"mirror mind"})
+    aliases.setdefault("sandbox-pet-store", set()).update({"sandbox pet store"})
+    aliases.setdefault("softwarezen", set()).update({"software zen"})
+    aliases.setdefault("suporte-softwarezen", set()).update({"suporte técnico"})
+    return aliases
+
+
+def _explicit_journey_suggestion(
+    text: str, aliases: dict[str, set[str]]
+) -> tuple[str, str, str] | None:
+    lower = text.lower()
+    patterns = [
+        r"(?:\$mm-build|/mm:build|/mm-build|mm-build)\s+([a-z0-9][a-z0-9_-]+)",
+        r"(?:jornada|journey|travessia)\s+([a-z0-9][a-z0-9_-]+)",
+    ]
+    for pattern in patterns:
+        for match in re.finditer(pattern, lower):
+            value = match.group(1).strip(" .,:;)")
+            journey = _alias_to_journey(value, aliases)
+            if journey is not None:
+                return journey, "explicit_activation", match.group(0)
+    return None
+
+
+def _title_alias_journey_suggestion(
+    title: str, aliases: dict[str, set[str]]
+) -> tuple[str, str, str] | None:
+    lower = title.lower()
+    if not lower:
+        return None
+    matches: list[tuple[str, str]] = []
+    for journey, values in aliases.items():
+        for alias in values:
+            if alias and re.search(rf"(^|\W){re.escape(alias)}($|\W)", lower):
+                matches.append((journey, alias))
+                break
+    unique_journeys = {journey for journey, _ in matches}
+    if len(unique_journeys) != 1:
+        return None
+    journey, alias = matches[0]
+    return journey, "title_alias", alias
+
+
+def _alias_to_journey(value: str, aliases: dict[str, set[str]]) -> str | None:
+    normalized = value.lower().strip()
+    for journey, values in aliases.items():
+        if normalized == journey.lower() or normalized in values:
+            return journey
+    return None
 
 
 def _run_historical_metadata_backfill(

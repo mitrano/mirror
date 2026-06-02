@@ -109,6 +109,7 @@ def test_operations_catalog_api_exposes_read_only_allowlist(tmp_path: Path) -> N
         "runtime-diagnose",
         "database-backup",
         "conversation-journey-repair",
+        "conversation-journey-backfill",
         "run-console-demo",
         "agent-run-prototype",
         "historical-metadata-backfill",
@@ -124,10 +125,13 @@ def test_operations_catalog_api_exposes_read_only_allowlist(tmp_path: Path) -> N
     assert payload[6]["execution"] == "runnable"
     assert payload[7]["execution"] == "runnable"
     assert payload[8]["execution"] == "runnable"
+    assert payload[9]["execution"] == "runnable"
     assert payload[3]["dryRun"] == "required"
     assert payload[3]["parameters"][0]["name"] == "dryRun"
-    assert payload[6]["dryRun"] == "required"
-    assert payload[6]["parameters"][0]["name"] == "dryRun"
+    assert payload[4]["dryRun"] == "required"
+    assert payload[4]["parameters"][0]["name"] == "dryRun"
+    assert payload[7]["dryRun"] == "required"
+    assert payload[7]["parameters"][0]["name"] == "dryRun"
 
 
 def test_operations_run_api_executes_runtime_health_only(tmp_path: Path) -> None:
@@ -282,6 +286,35 @@ def test_operations_run_api_requires_approval_before_metadata_backfill_apply(
                     "allConversations": False,
                     "limit": 10,
                 },
+            },
+        )
+    finally:
+        server.close()
+
+    assert status == 202
+    assert payload["status"] == "approval_required"
+
+
+def test_operations_run_api_requires_approval_before_journey_backfill_apply(
+    tmp_path: Path,
+) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        mem.identity.set_identity("journey", "mirror-mind", "# Mirror Mind\n**Status:** active")
+        conversation = mem.conversations.start_conversation(interface="pi", title="Builder")
+        mem.conversations.add_message(conversation.id, "user", "$mm-build mirror-mind")
+    server = WebTestServer(
+        root=make_docs_root(tmp_path),
+        mirror_home=mirror_home,
+        db_path=mirror_home / "memory.db",
+    )
+    try:
+        status, payload = server.request(
+            "POST",
+            "/api/operations/run",
+            {
+                "operationId": "conversation-journey-backfill",
+                "parameters": {"dryRun": False, "mode": "explicit_only", "limit": 10},
             },
         )
     finally:
@@ -793,6 +826,182 @@ def test_profile_preferences_api_rejects_invalid_payload(tmp_path: Path) -> None
 
     assert status == 400
     assert "displayName" in payload["error"]
+
+
+def test_unassigned_conversations_api_lists_conversations_without_journey(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        unassigned = mem.conversations.start_conversation(interface="pi", title="Unassigned")
+        mem.conversations.add_message(unassigned.id, "user", "No journey yet")
+        assigned = mem.conversations.start_conversation(
+            interface="pi", journey="mirror-mind", title="Assigned"
+        )
+        mem.conversations.add_message(assigned.id, "user", "Has journey")
+    server = WebTestServer(
+        root=make_docs_root(tmp_path),
+        mirror_home=mirror_home,
+        db_path=mirror_home / "memory.db",
+    )
+    try:
+        status, payload = server.request("GET", "/api/conversations/unassigned?limit=20")
+    finally:
+        server.close()
+
+    assert status == 200
+    assert payload["count"] == 1
+    assert payload["cards"][0]["id"] == unassigned.id
+
+
+def test_unassigned_conversations_api_includes_completed_journey_options(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        mem.identity.set_identity(
+            "journey", "completed", "# Completed Journey\n**Status:** completed"
+        )
+    server = WebTestServer(
+        root=make_docs_root(tmp_path),
+        mirror_home=mirror_home,
+        db_path=mirror_home / "memory.db",
+    )
+    try:
+        status, payload = server.request("GET", "/api/conversations/unassigned?limit=20")
+    finally:
+        server.close()
+
+    assert status == 200
+    assert {journey["id"] for journey in payload["journeys"]} == {"completed"}
+    assert payload["journeys"][0]["status"] == "completed"
+
+
+def test_conversation_journey_bulk_api_assigns_selected_conversations(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        mem.identity.set_identity("journey", "mirror-mind", "# Mirror Mind\n**Status:** active")
+        first = mem.conversations.start_conversation(interface="pi", title="First")
+        second = mem.conversations.start_conversation(interface="pi", title="Second")
+        other = mem.conversations.start_conversation(interface="pi", title="Other")
+    server = WebTestServer(
+        root=make_docs_root(tmp_path),
+        mirror_home=mirror_home,
+        db_path=mirror_home / "memory.db",
+    )
+    try:
+        status, payload = server.request(
+            "POST",
+            "/api/conversations/journey-bulk",
+            {"conversationIds": [first.id, second.id], "journey": "mirror-mind"},
+        )
+    finally:
+        server.close()
+
+    assert status == 200
+    assert payload["updatedCount"] == 2
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        assert mem.store.get_conversation(first.id).journey == "mirror-mind"
+        assert mem.store.get_conversation(second.id).journey == "mirror-mind"
+        assert mem.store.get_conversation(other.id).journey is None
+
+
+def test_conversation_journey_bulk_api_rejects_empty_selection(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    server = WebTestServer(
+        root=make_docs_root(tmp_path),
+        mirror_home=mirror_home,
+        db_path=mirror_home / "memory.db",
+    )
+    try:
+        status, payload = server.request(
+            "POST",
+            "/api/conversations/journey-bulk",
+            {"conversationIds": [], "journey": "mirror-mind"},
+        )
+    finally:
+        server.close()
+
+    assert status == 400
+    assert "non-empty list" in payload["error"]
+
+
+def test_conversation_journey_bulk_api_accepts_completed_journey(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        mem.identity.set_identity(
+            "journey", "completed", "# Completed Journey\n**Status:** completed"
+        )
+        conversation = mem.conversations.start_conversation(interface="pi", title="Old work")
+    server = WebTestServer(
+        root=make_docs_root(tmp_path),
+        mirror_home=mirror_home,
+        db_path=mirror_home / "memory.db",
+    )
+    try:
+        status, payload = server.request(
+            "POST",
+            "/api/conversations/journey-bulk",
+            {"conversationIds": [conversation.id], "journey": "completed"},
+        )
+    finally:
+        server.close()
+
+    assert status == 200
+    assert payload["updatedCount"] == 1
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        assert mem.store.get_conversation(conversation.id).journey == "completed"
+
+
+def test_conversation_journey_api_assigns_and_clears_journey(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        mem.identity.set_identity("journey", "mirror-mind", "# Mirror Mind\n**Status:** active")
+        conversation = mem.conversations.start_conversation(interface="pi", title="Needs journey")
+        mem.conversations.add_message(conversation.id, "user", "Please assign")
+    server = WebTestServer(
+        root=make_docs_root(tmp_path),
+        mirror_home=mirror_home,
+        db_path=mirror_home / "memory.db",
+    )
+    try:
+        status, assigned = server.request(
+            "POST",
+            "/api/conversations/journey",
+            {"conversationId": conversation.id, "journey": "mirror-mind"},
+        )
+        clear_status, cleared = server.request(
+            "POST",
+            "/api/conversations/journey",
+            {"conversationId": conversation.id, "journey": ""},
+        )
+    finally:
+        server.close()
+
+    assert status == 200
+    assert assigned["journey"] == "mirror-mind"
+    assert clear_status == 200
+    assert cleared["journey"] is None
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        assert mem.store.get_conversation(conversation.id).journey is None
+
+
+def test_conversation_journey_api_rejects_unknown_journey(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        conversation = mem.conversations.start_conversation(interface="pi", title="Needs journey")
+    server = WebTestServer(
+        root=make_docs_root(tmp_path),
+        mirror_home=mirror_home,
+        db_path=mirror_home / "memory.db",
+    )
+    try:
+        status, payload = server.request(
+            "POST",
+            "/api/conversations/journey",
+            {"conversationId": conversation.id, "journey": "missing"},
+        )
+    finally:
+        server.close()
+
+    assert status == 400
+    assert "not found" in payload["error"]
 
 
 def test_conversation_detail_api_returns_read_only_transcript(tmp_path: Path) -> None:

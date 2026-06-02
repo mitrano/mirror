@@ -1003,12 +1003,14 @@ input {
 .preferences-form,
 .theme-options,
 .conversation-title-form,
+.conversation-journey-form,
 .journey-settings-form {
   display: grid;
   gap: 14px;
 }
 
 .conversation-title-form,
+.conversation-journey-form,
 .journey-settings-form {
   margin-top: 18px;
   border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
@@ -1018,6 +1020,7 @@ input {
 }
 
 .conversation-title-form label,
+.conversation-journey-form label,
 .conversation-summary-form label,
 .conversation-tags-form label,
 .journey-settings-form label {
@@ -1026,6 +1029,7 @@ input {
 }
 
 .conversation-title-form span,
+.conversation-journey-form span,
 .conversation-summary-form span,
 .conversation-tags-form span,
 .journey-settings-form span {
@@ -1038,6 +1042,7 @@ input {
 
 .preferences-form input,
 .conversation-title-form input,
+.conversation-journey-form select,
 .conversation-tags-form input,
 .conversation-summary-form textarea,
 .journey-settings-form input {
@@ -1787,6 +1792,69 @@ input {
 .workspace-tab-panel {
   display: none;
   padding: 22px;
+}
+
+.unassigned-conversation-list {
+  margin-top: 28px;
+}
+
+.bulk-assignment-panel {
+  margin-top: 22px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 16px;
+  background: var(--panel);
+}
+
+.bulk-assignment-panel form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+}
+
+.bulk-assignment-panel label {
+  display: grid;
+  gap: 4px;
+  min-width: min(360px, 100%);
+}
+
+.bulk-assignment-panel label span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.bulk-assignment-panel select {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.bulk-assignment-panel small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+}
+
+.bulk-conversation-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.bulk-conversation-check {
+  margin-top: 18px;
+}
+
+.bulk-conversation-check input {
+  width: 18px;
+  height: 18px;
 }
 
 .workspace-tab-panel.active {
