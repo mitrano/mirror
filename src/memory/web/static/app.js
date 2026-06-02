@@ -325,6 +325,7 @@ function operationIcon(id) {
   if (id === 'run-console-demo') return '◷';
   if (id === 'database-backup') return '◫';
   if (id === 'conversation-journey-repair') return '↔';
+  if (id === 'conversation-journey-backfill') return '↔';
   if (id === 'orphan-conversation-cleanup') return '⌫';
   if (id === 'agent-run-prototype') return '✦';
   if (id === 'conversation-logger-health') return '◌';
@@ -581,10 +582,32 @@ function renderOperationResultCards(result) {
   if (result.operationId === 'runtime-diagnose') return renderCommandResult(data.command || {});
   if (result.operationId === 'database-backup') return renderBackupResult(data);
   if (result.operationId === 'conversation-journey-repair') return renderRepairResult(data);
+  if (result.operationId === 'conversation-journey-backfill') return renderJourneyBackfillResult(data);
   if (result.operationId === 'historical-metadata-backfill') return renderMetadataBackfillResult(data);
   if (result.operationId === 'orphan-conversation-cleanup') return renderOrphanCleanupResult(data);
   if (result.operationId === 'agent-run-prototype') return renderAgentPrototypeResult(data.agent || {});
   return '';
+}
+
+function renderJourneyBackfillResult(data) {
+  const candidates = data.candidates || [];
+  const candidateList = candidates.slice(0, 50).map((item) => `
+    <li><code>${escapeHtml(item.conversationId || '')}</code> → <strong>${escapeHtml(item.journey || '')}</strong> · ${escapeHtml(item.reason || '')}: ${escapeHtml(item.evidence || '')}</li>
+  `).join('');
+  return `
+    <section class="operation-result-card">
+      <p class="eyebrow">Journey backfill</p>
+      <h3>${data.appliedCount ? 'Journeys assigned' : 'Backfill preview'}</h3>
+      <div class="operation-result-grid">
+        ${renderResultFact('Mode', data.mode || 'unknown')}
+        ${renderResultFact('Candidates', String(data.candidateCount || 0))}
+        ${renderResultFact('Applied', String(data.appliedCount || 0))}
+        ${renderResultFact('Backup', data.backupPath ? 'created' : 'not needed')}
+      </div>
+      ${data.backupPath ? `<p>Backup: <code>${escapeHtml(data.backupPath)}</code></p>` : ''}
+      ${candidateList ? `<div class="operation-evidence-list"><strong>Candidate assignments</strong><ul>${candidateList}</ul></div>` : ''}
+    </section>
+  `;
 }
 
 function renderMetadataBackfillResult(data) {
@@ -917,6 +940,10 @@ function renderJourneyMenu(journeys, selectedId) {
   if (!journeys.length) return `<p class="empty-state">No active journeys are available yet.</p>`;
   return `
     <div class="journey-menu">
+      <button type="button" class="journey-menu-item" title="Unassigned conversations" data-unassigned-conversations>
+        <span>?</span>
+        <span class="journey-menu-title">Unassigned</span>
+      </button>
       ${journeys.map((journey) => `
         <button type="button" class="journey-menu-item ${journey.id === selectedId ? 'active' : ''}" title="${escapeHtml(journey.title)}" data-workspace-journey="${escapeHtml(journey.id)}">
           <span>${escapeHtml(journey.metadata?.icon || '⌁')}</span>
@@ -925,6 +952,35 @@ function renderJourneyMenu(journeys, selectedId) {
       `).join('')}
     </div>
   `;
+}
+
+async function loadUnassignedConversations() {
+  activeView = 'workspace';
+  const payload = await fetchJson('/api/conversations/unassigned?limit=200');
+  const cards = (payload.cards || []).map(renderUnassignedConversationCard).join('');
+  content.innerHTML = `
+    <section class="surface-intro surface-line workspace-hero">
+      <button type="button" class="text-link" data-back-view="workspace">← Back to Workspace</button>
+      <p class="eyebrow">Conversation maintenance</p>
+      <h2>${escapeHtml(payload.title || 'Unassigned conversations')}</h2>
+      <p>${escapeHtml(payload.description || '')}</p>
+      <span class="readiness-badge">${escapeHtml(payload.count || 0)} shown</span>
+    </section>
+    <section class="bulk-assignment-panel">
+      <form data-bulk-journey-form>
+        <label>
+          <span>Assign selected to journey</span>
+          <select name="journey">${renderJourneySelectOptions(payload.journeys || [], '')}</select>
+        </label>
+        <button type="submit">Assign selected</button>
+      </form>
+      <small>Select one or more conversations below, choose a journey, then assign.</small>
+    </section>
+    <section class="workspace-tab-panel active unassigned-conversation-list">
+      ${cards ? `<div class="workspace-list">${cards}</div>` : '<p class="empty-state">No unassigned conversations found.</p>'}
+    </section>
+  `;
+  window.scrollTo({ top: 0 });
 }
 
 function renderJourneyProfile(journey, metrics) {
@@ -1124,6 +1180,17 @@ function renderWorkspaceCard(card) {
   `;
 }
 
+function renderUnassignedConversationCard(card) {
+  return `
+    <div class="bulk-conversation-row">
+      <label class="bulk-conversation-check" title="Select conversation">
+        <input type="checkbox" data-bulk-conversation-id="${escapeHtml(card.id)}" />
+      </label>
+      ${renderConversationCard(card)}
+    </div>
+  `;
+}
+
 function renderConversationCard(card) {
   const metadata = card.metadata || {};
   const icon = metadata.persona ? '✣' : '☷';
@@ -1274,6 +1341,7 @@ function renderConversationDetail(detail) {
     detail.endedAt ? `Ended: ${formatDateTime(detail.endedAt)}` : null,
   ].filter(Boolean).map((value) => `<span>${escapeHtml(value)}</span>`).join('');
   const messages = (detail.messages || []).map(renderConversationMessage).join('');
+  const journeyOptions = renderConversationJourneyOptions(detail);
   const count = Number(detail.messageCount || 0);
   const countLabel = count === 1 ? '1 message' : `${count} messages`;
   return `
@@ -1296,6 +1364,18 @@ function renderConversationDetail(detail) {
           </div>
         </section>
       </header>
+      <section class="conversation-title-section">
+        <p class="eyebrow">Journey</p>
+        <form class="conversation-journey-form" data-conversation-journey-form data-conversation-id="${escapeHtml(detail.id)}">
+          <label>
+            <span>Conversation journey</span>
+            <select name="journey">${journeyOptions}</select>
+          </label>
+          <div class="conversation-title-actions">
+            <button type="submit">Save journey</button>
+          </div>
+        </form>
+      </section>
       <section class="conversation-title-section">
         <p class="eyebrow">Title</p>
         <form class="conversation-title-form" data-conversation-title-form data-conversation-id="${escapeHtml(detail.id)}">
@@ -1345,6 +1425,19 @@ function renderConversationDetail(detail) {
       </section>
     </section>
   `;
+}
+
+function renderConversationJourneyOptions(detail) {
+  return `<option value="" ${detail.journey ? '' : 'selected'}>Unassigned</option>${renderJourneySelectOptions(detail.journeys || [], detail.journey || '')}`;
+}
+
+function renderJourneySelectOptions(journeys, selected = '') {
+  return (journeys || []).map((journey) => {
+    const value = journey.id || '';
+    const label = journey.name || value;
+    const status = journey.status && journey.status !== 'active' ? ` · ${journey.status}` : '';
+    return `<option value="${escapeHtml(value)}" ${value === selected ? 'selected' : ''}>${escapeHtml(label)} (${escapeHtml(value)}${escapeHtml(status)})</option>`;
+  }).join('');
 }
 
 function renderConversationMessage(message) {
@@ -1741,9 +1834,16 @@ content.addEventListener('click', async (event) => {
   }
 
   const conversationTarget = event.target.closest('[data-conversation-card-id]');
-  if (conversationTarget) {
+  if (conversationTarget && !event.target.closest('input, select, button, label')) {
     event.preventDefault();
     await loadConversation(conversationTarget.dataset.conversationCardId);
+    return;
+  }
+
+  const unassignedTarget = event.target.closest('[data-unassigned-conversations]');
+  if (unassignedTarget) {
+    event.preventDefault();
+    await loadUnassignedConversations();
     return;
   }
 
@@ -2207,6 +2307,49 @@ content.addEventListener('submit', async (event) => {
     });
     content.innerHTML = renderConversationDetail(detail);
     showWarning('Conversation tags saved.');
+    return;
+  }
+
+  const bulkJourneyForm = event.target.closest('[data-bulk-journey-form]');
+  if (bulkJourneyForm) {
+    event.preventDefault();
+    const data = new FormData(bulkJourneyForm);
+    const conversationIds = Array.from(content.querySelectorAll('[data-bulk-conversation-id]:checked'))
+      .map((input) => input.dataset.bulkConversationId)
+      .filter(Boolean);
+    if (!conversationIds.length) {
+      showWarning('Select at least one conversation.');
+      return;
+    }
+    const journey = String(data.get('journey') || '');
+    if (!journey) {
+      showWarning('Choose a journey.');
+      return;
+    }
+    const result = await fetchJson('/api/conversations/journey-bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationIds, journey }),
+    });
+    showWarning(`Assigned ${result.updatedCount} conversation(s) to ${result.journey}.`);
+    await loadUnassignedConversations();
+    return;
+  }
+
+  const journeyForm = event.target.closest('[data-conversation-journey-form]');
+  if (journeyForm) {
+    event.preventDefault();
+    const data = new FormData(journeyForm);
+    const detail = await fetchJson('/api/conversations/journey', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversationId: journeyForm.dataset.conversationId,
+        journey: String(data.get('journey') || ''),
+      }),
+    });
+    content.innerHTML = renderConversationDetail(detail);
+    showWarning(detail.journey ? `Conversation moved to ${detail.journey}.` : 'Conversation marked unassigned.');
     return;
   }
 

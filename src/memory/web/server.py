@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import mimetypes
+import re
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -79,6 +80,17 @@ class MirrorWebHandler(BaseHTTPRequestHandler):
                 self._send_json({"error": "Conversation not found"}, status=404)
                 return
             self._send_json(detail)
+            return
+
+        if parsed.path == "/api/conversations/unassigned":
+            query = parse_qs(parsed.query)
+            try:
+                limit = int(query.get("limit", ["100"])[0])
+            except ValueError:
+                self._send_json({"error": "limit must be an integer"}, status=400)
+                return
+            with MemoryClient(db_path=self._db_path()) as mem:
+                self._send_json(self._unassigned_conversations_payload(mem, limit=limit))
             return
 
         if parsed.path == "/api/surface/atlas":
@@ -169,6 +181,12 @@ class MirrorWebHandler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/conversations/tags":
             self._write_conversation_tags()
+            return
+        if parsed.path == "/api/conversations/journey":
+            self._write_conversation_journey()
+            return
+        if parsed.path == "/api/conversations/journey-bulk":
+            self._write_conversation_journey_bulk()
             return
         if parsed.path == "/api/conversations/summary-suggestion":
             self._suggest_conversation_summary()
@@ -451,6 +469,69 @@ class MirrorWebHandler(BaseHTTPRequestHandler):
 
         self._send_json(detail)
 
+    def _write_conversation_journey(self) -> None:
+        try:
+            payload = self._read_json_body()
+            conversation_id = payload.get("conversationId")
+            journey = payload.get("journey")
+            if not isinstance(conversation_id, str):
+                raise ValueError("conversationId is required")
+            if journey is not None and not isinstance(journey, str):
+                raise ValueError("journey must be a string or null")
+            normalized_journey = journey.strip() if isinstance(journey, str) else None
+            if normalized_journey == "":
+                normalized_journey = None
+            with MemoryClient(db_path=self._db_path()) as mem:
+                conversation = mem.conversations.find_by_id_prefix(conversation_id)
+                if conversation is None:
+                    raise ValueError(f"Conversation '{conversation_id}' not found")
+                if normalized_journey is not None:
+                    known_journeys = {item["id"] for item in _journey_options(mem)}
+                    if normalized_journey not in known_journeys:
+                        raise ValueError(f"Journey '{normalized_journey}' not found")
+                mem.store.update_conversation(conversation.id, journey=normalized_journey)
+                detail = self._conversation_detail_payload(mem, conversation.id)
+        except (json.JSONDecodeError, ValueError, TypeError) as exc:
+            self._send_json({"error": str(exc)}, status=400)
+            return
+
+        self._send_json(detail)
+
+    def _write_conversation_journey_bulk(self) -> None:
+        try:
+            payload = self._read_json_body()
+            conversation_ids = payload.get("conversationIds")
+            journey = payload.get("journey")
+            if not isinstance(conversation_ids, list) or not conversation_ids:
+                raise ValueError("conversationIds must be a non-empty list")
+            if not all(isinstance(item, str) and item for item in conversation_ids):
+                raise ValueError("conversationIds must contain conversation ids")
+            if not isinstance(journey, str) or not journey.strip():
+                raise ValueError("journey is required")
+            normalized_journey = journey.strip()
+            with MemoryClient(db_path=self._db_path()) as mem:
+                known_journeys = {item["id"] for item in _journey_options(mem)}
+                if normalized_journey not in known_journeys:
+                    raise ValueError(f"Journey '{normalized_journey}' not found")
+                updated: list[str] = []
+                for conversation_id in conversation_ids:
+                    conversation = mem.conversations.find_by_id_prefix(conversation_id)
+                    if conversation is None:
+                        raise ValueError(f"Conversation '{conversation_id}' not found")
+                    mem.store.update_conversation(conversation.id, journey=normalized_journey)
+                    updated.append(conversation.id)
+        except (json.JSONDecodeError, ValueError, TypeError) as exc:
+            self._send_json({"error": str(exc)}, status=400)
+            return
+
+        self._send_json(
+            {
+                "journey": normalized_journey,
+                "updatedCount": len(updated),
+                "conversationIds": updated,
+            }
+        )
+
     def _preview_conversation_metadata_lifecycle(self) -> None:
         try:
             payload = self._read_json_body()
@@ -508,6 +589,7 @@ class MirrorWebHandler(BaseHTTPRequestHandler):
             "summary": conversation.summary,
             "tags": _conversation_tags(conversation.tags),
             "messageCount": len(messages),
+            "journeys": _journey_options(mem),
             "messages": [
                 {
                     "id": message.id,
@@ -517,6 +599,49 @@ class MirrorWebHandler(BaseHTTPRequestHandler):
                     "tokenCount": message.token_count,
                 }
                 for message in messages
+            ],
+        }
+
+    def _unassigned_conversations_payload(
+        self, mem: MemoryClient, *, limit: int = 100
+    ) -> dict[str, object]:
+        bounded_limit = max(1, min(limit, 500))
+        rows = mem.store.conn.execute(
+            """
+            SELECT c.id, c.title, c.summary, c.started_at, c.ended_at,
+                   c.interface, c.persona, c.journey,
+                   COUNT(m.id) AS message_count
+              FROM conversations c
+              LEFT JOIN messages m ON m.conversation_id = c.id
+             WHERE c.journey IS NULL OR c.journey = ''
+             GROUP BY c.id
+             ORDER BY c.started_at DESC
+             LIMIT ?
+            """,
+            (bounded_limit,),
+        ).fetchall()
+        return {
+            "title": "Unassigned conversations",
+            "description": "Conversations without a journey association.",
+            "count": len(rows),
+            "limit": bounded_limit,
+            "journeys": _journey_options(mem),
+            "cards": [
+                {
+                    "id": row["id"],
+                    "kind": "conversation",
+                    "title": row["title"] or row["id"][:8],
+                    "description": row["summary"] or f"{row['message_count']} stored messages",
+                    "status": "ended" if row["ended_at"] else "open",
+                    "metadata": {
+                        "started_at": row["started_at"],
+                        "message_count": row["message_count"],
+                        "interface": row["interface"],
+                        "persona": row["persona"],
+                        "journey": row["journey"],
+                    },
+                }
+                for row in rows
             ],
         }
 
@@ -597,6 +722,18 @@ class MirrorWebHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 
+def _journey_options(mem: MemoryClient) -> list[dict[str, str]]:
+    options: list[dict[str, str]] = []
+    for identity in mem.store.get_identity_by_layer("journey"):
+        content = identity.content or ""
+        first_line = content.split("\n")[0].strip().lstrip("# ").strip()
+        status_match = re.search(r"\*\*Status:\*\*\s*([^\n]+)", content)
+        status = status_match.group(1).strip() if status_match else "unknown"
+        label = first_line or identity.key
+        options.append({"id": identity.key, "name": label, "status": status})
+    return sorted(options, key=lambda item: (item["status"] != "active", item["name"].lower()))
+
+
 def _conversation_tags(raw_tags: str | None) -> list[str]:
     if not raw_tags:
         return []
@@ -611,6 +748,8 @@ def _conversation_tags(raw_tags: str | None) -> list[str]:
 
 def _operation_requires_approval(operation_id: str, parameters: dict[str, object]) -> bool:
     if operation_id == "conversation-journey-repair" and parameters.get("dryRun") is False:
+        return True
+    if operation_id == "conversation-journey-backfill" and parameters.get("dryRun") is False:
         return True
     if operation_id == "historical-metadata-backfill" and parameters.get("dryRun") is False:
         return True

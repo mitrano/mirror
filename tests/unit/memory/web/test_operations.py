@@ -16,6 +16,7 @@ def test_operation_catalog_exposes_stable_allowlisted_operations() -> None:
         "runtime-diagnose",
         "database-backup",
         "conversation-journey-repair",
+        "conversation-journey-backfill",
         "run-console-demo",
         "agent-run-prototype",
         "historical-metadata-backfill",
@@ -27,6 +28,7 @@ def test_operation_catalog_exposes_stable_allowlisted_operations() -> None:
     assert operations["runtime-diagnose"]["execution"] == "runnable"
     assert operations["database-backup"]["execution"] == "runnable"
     assert operations["conversation-journey-repair"]["execution"] == "runnable"
+    assert operations["conversation-journey-backfill"]["execution"] == "runnable"
     assert operations["run-console-demo"]["execution"] == "runnable"
     assert operations["agent-run-prototype"]["execution"] == "runnable"
     assert operations["historical-metadata-backfill"]["execution"] == "runnable"
@@ -41,6 +43,7 @@ def test_operation_catalog_exposes_stable_allowlisted_operations() -> None:
             "runtime-diagnose",
             "database-backup",
             "conversation-journey-repair",
+            "conversation-journey-backfill",
             "run-console-demo",
             "agent-run-prototype",
             "historical-metadata-backfill",
@@ -59,6 +62,8 @@ def test_operation_catalog_declares_risk_and_dry_run_boundaries() -> None:
     assert operations["database-backup"]["riskLevel"] == "writes_backup"
     assert operations["conversation-journey-repair"]["riskLevel"] == "writes_database"
     assert operations["conversation-journey-repair"]["dryRun"] == "required"
+    assert operations["conversation-journey-backfill"]["riskLevel"] == "writes_database"
+    assert operations["conversation-journey-backfill"]["dryRun"] == "required"
     assert operations["historical-metadata-backfill"]["riskLevel"] == "external_llm"
     assert operations["historical-metadata-backfill"]["dryRun"] == "required"
     assert operations["orphan-conversation-cleanup"]["riskLevel"] == "writes_database"
@@ -266,6 +271,56 @@ def test_run_operation_dry_runs_batch_conversation_retitle_without_llm(
     title_mock.assert_not_called()
     with MemoryClient(db_path=mirror_home / "memory.db") as mem:
         assert mem.store.get_conversation(conversation_id).title.endswith("...")
+
+
+def test_run_operation_previews_conversation_journey_backfill_explicit_only(
+    tmp_path: Path,
+) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        mem.identity.set_identity("journey", "mirror-mind", "# Mirror Mind\n**Status:** active")
+        conversation = mem.conversations.start_conversation(interface="pi", title="Builder")
+        mem.conversations.add_message(conversation.id, "user", "$mm-build mirror-mind")
+
+    result = run_operation(
+        "conversation-journey-backfill",
+        mirror_home=mirror_home,
+        parameters={"dryRun": True, "mode": "explicit_only", "limit": 10},
+    )
+
+    assert result["outcome"] == "dry_run"
+    assert result["result"]["candidateCount"] == 1
+    assert result["result"]["candidates"][0]["conversationId"] == conversation.id
+    assert result["result"]["candidates"][0]["journey"] == "mirror-mind"
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        assert mem.store.get_conversation(conversation.id).journey is None
+
+
+def test_run_operation_applies_conversation_journey_backfill_with_backup(
+    tmp_path: Path,
+) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        mem.identity.set_identity("journey", "conjunto", "# Conjunto\n**Status:** active")
+        conversation = mem.conversations.start_conversation(
+            interface="pi", title="Conjunto: design de presença"
+        )
+        mem.conversations.add_message(conversation.id, "user", "Vamos desenhar presença")
+    events: list[tuple[str, str, dict[str, object] | None]] = []
+
+    result = run_operation(
+        "conversation-journey-backfill",
+        mirror_home=mirror_home,
+        parameters={"dryRun": False, "mode": "title_alias", "limit": 10},
+        emit_event=lambda kind, message, details=None: events.append((kind, message, details)),
+    )
+
+    assert result["outcome"] == "applied"
+    assert result["result"]["appliedCount"] == 1
+    assert Path(result["result"]["backupPath"]).exists()
+    assert any("Assigned 1/1" in message for _, message, _ in events)
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        assert mem.store.get_conversation(conversation.id).journey == "conjunto"
 
 
 def test_run_operation_previews_historical_metadata_backfill(tmp_path: Path) -> None:
