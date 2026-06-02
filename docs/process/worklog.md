@@ -12,6 +12,18 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-06-02 — Web console journey creation first slice added
+
+Added the first web-console path for creating journeys without reducing journey identity to a brittle CRUD form. Workspace now has a New journey action that collects natural-language description, generates a reviewable markdown draft, lets the user edit slug, metadata, and identity content, then persists a new active journey. The server exposes bounded draft and create endpoints with slug, duplicate, minimum-content, status, and description-section validation.
+
+Validation: focused web server tests passed, ruff checks passed for touched Python files, `node --check` passed for the web app, and the Mirror web server was restarted.
+
+### 2026-06-02 — Web console conversation deletion controls added
+
+Added explicit conversation deletion from the web console maintenance surfaces. Conversation detail now exposes a confirmed delete action, and the Unassigned conversations batch panel now supports deleting selected conversations alongside Assign selected. The server exposes a bounded `/api/conversations/delete` endpoint that deletes selected conversations, removes dependent messages and conversation embeddings, clears runtime-session and LLM-call references, and preserves extracted memories by detaching their conversation id.
+
+Validation: focused web server and conversation service tests passed, ruff checks passed for touched Python files, and `node --check` passed for the web app.
+
 ### 2026-05-28 — Builder clone-role guard scoped to journey project path
 
 Fixed a Builder Mode guard regression where `memory build load <slug>` inspected the current Mirror runtime checkout and refused to start when that checkout was marked `production`, even if the selected journey pointed at a separate development project. The guard now loads the journey first and applies clone-role inspection only when the journey `project_path` points at a Mirror Mind source checkout; ordinary journey projects without `.mirror-clone-role` are not blocked. When no project path is configured, Builder falls back to the current directory. Documentation now describes the Mirror-specific boundary.

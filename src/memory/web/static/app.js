@@ -925,6 +925,7 @@ function renderWorkspace(surface) {
     <div class="workspace-shell">
       <aside class="journey-sidebar">
         <p class="eyebrow">Journeys (${escapeHtml((surface.journeys || []).length)})</p>
+        <button type="button" class="journey-create-button" data-new-journey>+ New journey</button>
         ${renderJourneyMenu(surface.journeys || [], surface.selected_journey_id)}
       </aside>
       <section class="journey-workspace">
@@ -954,6 +955,76 @@ function renderJourneyMenu(journeys, selectedId) {
   `;
 }
 
+async function loadNewJourneyForm(draft = null) {
+  activeView = 'workspace';
+  const status = draft?.status || 'active';
+  content.innerHTML = `
+    <section class="surface-intro surface-line workspace-hero">
+      <button type="button" class="text-link" data-back-view="workspace">← Back to Workspace</button>
+      <p class="eyebrow">Journey creation</p>
+      <h2>New journey</h2>
+      <p>Describe the field of work in natural language, generate a draft, review the markdown, then create the journey.</p>
+    </section>
+    <section class="journey-create-panel">
+      <form class="journey-create-form" data-journey-draft-form>
+        <label>
+          <span>Name</span>
+          <input name="name" value="${escapeHtml(draft?.name || '')}" placeholder="Customer Discovery" />
+        </label>
+        <label>
+          <span>Description</span>
+          <textarea name="description" rows="5" required placeholder="What is this journey, why does it exist, and what conversations should belong here?">${escapeHtml(draft?.description || '')}</textarea>
+        </label>
+        <label>
+          <span>Current focus</span>
+          <input name="currentFocus" value="${escapeHtml(draft?.currentFocus || '')}" placeholder="What is active now?" />
+        </label>
+        <label>
+          <span>Stage</span>
+          <input name="stage" value="${escapeHtml(draft?.stage || '')}" placeholder="Starting" />
+        </label>
+        <label>
+          <span>Status</span>
+          <select name="status">
+            ${['active', 'planned', 'paused', 'completed'].map((item) => `<option value="${item}" ${item === status ? 'selected' : ''}>${item}</option>`).join('')}
+          </select>
+        </label>
+        <button type="submit">Generate draft</button>
+      </form>
+      ${draft ? renderJourneyCreateReview(draft) : '<p class="empty-state">Generate a draft to review the journey identity before saving.</p>'}
+    </section>
+  `;
+  window.scrollTo({ top: 0 });
+}
+
+function renderJourneyCreateReview(draft) {
+  return `
+    <form class="journey-create-form journey-create-review" data-journey-create-form>
+      <label>
+        <span>Slug</span>
+        <input name="slug" value="${escapeHtml(draft.slug || '')}" required />
+      </label>
+      <label>
+        <span>Project path</span>
+        <input name="projectPath" placeholder="/path/to/project" />
+      </label>
+      <label>
+        <span>Icon</span>
+        <input name="icon" value="${escapeHtml(draft.icon || '')}" maxlength="8" placeholder="⌁" />
+      </label>
+      <label>
+        <span>Color</span>
+        <input name="color" value="${escapeHtml(draft.color || '')}" placeholder="violet" />
+      </label>
+      <label class="journey-content-field">
+        <span>Journey identity markdown</span>
+        <textarea name="content" rows="16" required>${escapeHtml(draft.content || '')}</textarea>
+      </label>
+      <button type="submit">Create journey</button>
+    </form>
+  `;
+}
+
 async function loadUnassignedConversations() {
   activeView = 'workspace';
   const payload = await fetchJson('/api/conversations/unassigned?limit=200');
@@ -973,8 +1044,9 @@ async function loadUnassignedConversations() {
           <select name="journey">${renderJourneySelectOptions(payload.journeys || [], '')}</select>
         </label>
         <button type="submit">Assign selected</button>
+        <button type="button" class="danger-action" data-delete-selected-conversations>Delete selected</button>
       </form>
-      <small>Select one or more conversations below, choose a journey, then assign.</small>
+      <small>Select one or more conversations below, choose a journey, then assign, or delete selected conversations.</small>
     </section>
     <section class="workspace-tab-panel active unassigned-conversation-list">
       ${cards ? `<div class="workspace-list">${cards}</div>` : '<p class="empty-state">No unassigned conversations found.</p>'}
@@ -1352,6 +1424,9 @@ function renderConversationDetail(detail) {
         <h2>${escapeHtml(detail.title || detail.id)}</h2>
         <p>${escapeHtml(detail.description || countLabel)}</p>
         ${chips ? `<div class="workspace-card-detail">${chips}</div>` : ''}
+        <div class="conversation-title-actions conversation-delete-actions">
+          <button type="button" class="danger-action" data-delete-conversation="${escapeHtml(detail.id)}">Delete conversation</button>
+        </div>
         <section class="conversation-maintenance" data-metadata-maintenance data-conversation-id="${escapeHtml(detail.id)}">
           <p class="eyebrow">Metadata maintenance</p>
           <p>Check whether this conversation needs metadata updates before making any changes.</p>
@@ -1425,6 +1500,20 @@ function renderConversationDetail(detail) {
       </section>
     </section>
   `;
+}
+
+function selectedBulkConversationIds() {
+  return Array.from(content.querySelectorAll('[data-bulk-conversation-id]:checked'))
+    .map((input) => input.dataset.bulkConversationId)
+    .filter(Boolean);
+}
+
+async function deleteConversations(conversationIds) {
+  return fetchJson('/api/conversations/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ conversationIds }),
+  });
 }
 
 function renderConversationJourneyOptions(detail) {
@@ -1837,6 +1926,40 @@ content.addEventListener('click', async (event) => {
   if (conversationTarget && !event.target.closest('input, select, button, label')) {
     event.preventDefault();
     await loadConversation(conversationTarget.dataset.conversationCardId);
+    return;
+  }
+
+  const deleteSelectedTarget = event.target.closest('[data-delete-selected-conversations]');
+  if (deleteSelectedTarget) {
+    event.preventDefault();
+    const conversationIds = selectedBulkConversationIds();
+    if (!conversationIds.length) {
+      showWarning('Select at least one conversation.');
+      return;
+    }
+    if (!window.confirm(`Delete ${conversationIds.length} selected conversation(s)? This cannot be undone.`)) return;
+    const result = await deleteConversations(conversationIds);
+    showWarning(`Deleted ${result.deletedCount} conversation(s).`);
+    await loadUnassignedConversations();
+    return;
+  }
+
+  const deleteConversationTarget = event.target.closest('[data-delete-conversation]');
+  if (deleteConversationTarget) {
+    event.preventDefault();
+    const conversationId = deleteConversationTarget.dataset.deleteConversation;
+    if (!conversationId) return;
+    if (!window.confirm('Delete this conversation? This cannot be undone.')) return;
+    await deleteConversations([conversationId]);
+    showWarning('Conversation deleted.');
+    await showView('workspace', { updateHash: true });
+    return;
+  }
+
+  const newJourneyTarget = event.target.closest('[data-new-journey]');
+  if (newJourneyTarget) {
+    event.preventDefault();
+    await loadNewJourneyForm();
     return;
   }
 
@@ -2276,6 +2399,47 @@ async function suggestConversationTitle(form) {
 }
 
 content.addEventListener('submit', async (event) => {
+  const journeyDraftForm = event.target.closest('[data-journey-draft-form]');
+  if (journeyDraftForm) {
+    event.preventDefault();
+    const data = new FormData(journeyDraftForm);
+    const draft = await fetchJson('/api/journeys/draft', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: String(data.get('name') || ''),
+        description: String(data.get('description') || ''),
+        currentFocus: String(data.get('currentFocus') || ''),
+        stage: String(data.get('stage') || ''),
+        status: String(data.get('status') || 'active'),
+      }),
+    });
+    await loadNewJourneyForm(draft);
+    showWarning('Journey draft generated. Review before creating.');
+    return;
+  }
+
+  const journeyCreateForm = event.target.closest('[data-journey-create-form]');
+  if (journeyCreateForm) {
+    event.preventDefault();
+    const data = new FormData(journeyCreateForm);
+    const result = await fetchJson('/api/journeys', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        slug: String(data.get('slug') || ''),
+        content: String(data.get('content') || ''),
+        projectPath: String(data.get('projectPath') || ''),
+        icon: String(data.get('icon') || ''),
+        color: String(data.get('color') || ''),
+      }),
+    });
+    selectedWorkspaceJourney = result.journeyId;
+    showWarning(`Journey created: ${result.journeyId}.`);
+    await showView('workspace', { updateHash: true });
+    return;
+  }
+
   const summaryForm = event.target.closest('[data-conversation-summary-form]');
   if (summaryForm) {
     event.preventDefault();
@@ -2314,9 +2478,7 @@ content.addEventListener('submit', async (event) => {
   if (bulkJourneyForm) {
     event.preventDefault();
     const data = new FormData(bulkJourneyForm);
-    const conversationIds = Array.from(content.querySelectorAll('[data-bulk-conversation-id]:checked'))
-      .map((input) => input.dataset.bulkConversationId)
-      .filter(Boolean);
+    const conversationIds = selectedBulkConversationIds();
     if (!conversationIds.length) {
       showWarning('Select at least one conversation.');
       return;

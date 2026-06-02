@@ -170,6 +170,12 @@ class MirrorWebHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/journeys/metadata":
             self._write_journey_metadata()
             return
+        if parsed.path == "/api/journeys/draft":
+            self._draft_journey()
+            return
+        if parsed.path == "/api/journeys":
+            self._create_journey()
+            return
         if parsed.path == "/api/conversations/title":
             self._write_conversation_title()
             return
@@ -187,6 +193,9 @@ class MirrorWebHandler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/conversations/journey-bulk":
             self._write_conversation_journey_bulk()
+            return
+        if parsed.path == "/api/conversations/delete":
+            self._delete_conversations()
             return
         if parsed.path == "/api/conversations/summary-suggestion":
             self._suggest_conversation_summary()
@@ -387,6 +396,66 @@ class MirrorWebHandler(BaseHTTPRequestHandler):
 
         self._send_json({"journeyId": journey_id, "metadata": metadata})
 
+    def _draft_journey(self) -> None:
+        try:
+            payload = self._read_json_body()
+            description = payload.get("description")
+            name = payload.get("name")
+            slug = payload.get("slug")
+            status = payload.get("status", "active")
+            stage = payload.get("stage")
+            current_focus = payload.get("currentFocus")
+            if not isinstance(description, str):
+                raise ValueError("description is required")
+            for field_name, value in {
+                "name": name,
+                "slug": slug,
+                "status": status,
+                "stage": stage,
+                "currentFocus": current_focus,
+            }.items():
+                if value is not None and not isinstance(value, str):
+                    raise ValueError(f"{field_name} must be a string")
+            with MemoryClient(db_path=self._db_path()) as mem:
+                draft = mem.journeys.draft_journey(
+                    description=description,
+                    name=name,
+                    slug=slug,
+                    status=status,
+                    stage=stage,
+                    current_focus=current_focus,
+                )
+        except (json.JSONDecodeError, ValueError, TypeError) as exc:
+            self._send_json({"error": str(exc)}, status=400)
+            return
+
+        self._send_json(draft)
+
+    def _create_journey(self) -> None:
+        try:
+            payload = self._read_json_body()
+            slug = payload.get("slug")
+            content = payload.get("content")
+            if not isinstance(slug, str):
+                raise ValueError("slug is required")
+            if not isinstance(content, str):
+                raise ValueError("content is required")
+            fields = {
+                "project_path": payload.get("projectPath", ""),
+                "sync_file": payload.get("syncFile", ""),
+                "icon": payload.get("icon", ""),
+                "color": payload.get("color", ""),
+            }
+            if not all(isinstance(value, str) for value in fields.values()):
+                raise ValueError("Journey metadata fields must be strings")
+            with MemoryClient(db_path=self._db_path()) as mem:
+                journey = mem.journeys.create_journey(slug=slug, content=content, **fields)
+        except (json.JSONDecodeError, ValueError, TypeError) as exc:
+            self._send_json({"error": str(exc)}, status=400)
+            return
+
+        self._send_json({"journeyId": journey.key, "content": journey.content})
+
     def _suggest_conversation_title(self) -> None:
         try:
             payload = self._read_json_body()
@@ -531,6 +600,22 @@ class MirrorWebHandler(BaseHTTPRequestHandler):
                 "conversationIds": updated,
             }
         )
+
+    def _delete_conversations(self) -> None:
+        try:
+            payload = self._read_json_body()
+            conversation_ids = payload.get("conversationIds")
+            if not isinstance(conversation_ids, list) or not conversation_ids:
+                raise ValueError("conversationIds must be a non-empty list")
+            if not all(isinstance(item, str) and item for item in conversation_ids):
+                raise ValueError("conversationIds must contain conversation ids")
+            with MemoryClient(db_path=self._db_path()) as mem:
+                deleted = mem.conversations.delete_conversations(conversation_ids)
+        except (json.JSONDecodeError, ValueError, TypeError) as exc:
+            self._send_json({"error": str(exc)}, status=400)
+            return
+
+        self._send_json({"deletedCount": len(deleted), "conversationIds": deleted})
 
     def _preview_conversation_metadata_lifecycle(self) -> None:
         try:

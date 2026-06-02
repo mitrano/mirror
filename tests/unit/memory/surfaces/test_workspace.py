@@ -125,6 +125,37 @@ def test_workspace_home_orders_journeys_by_recent_activity(
     assert home.selected_journey_id == "beta"
 
 
+def test_workspace_home_shows_more_than_eight_conversations_for_selected_journey(
+    identity_service,
+    journey_service,
+    memory_service,
+    conversation_service,
+    task_service,
+) -> None:
+    identity_service.set_identity(
+        "journey",
+        "mirror-mind",
+        "# Mirror Mind\n**Status:** active\n\n## Description\nBuild the mirror.",
+    )
+    for index in range(12):
+        conversation = conversation_service.start_conversation(
+            interface="pi", journey="mirror-mind", title=f"Conversation {index:02d}"
+        )
+        conversation_service.add_message(conversation.id, "user", f"Message {index}")
+    surfaces = SurfaceService(
+        identity=identity_service,
+        journeys=journey_service,
+        memories=memory_service,
+        conversations=conversation_service,
+        tasks=task_service,
+    )
+
+    home = surfaces.workspace_home(journey_id="mirror-mind")
+
+    sections = {section.id: section for section in home.sections}
+    assert len(sections["conversations"].cards) == 12
+
+
 def test_workspace_home_can_select_requested_active_journey(
     identity_service,
     journey_service,

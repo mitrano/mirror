@@ -28,6 +28,20 @@ def _metadata_dict(raw: str | None) -> dict:
     return payload if isinstance(payload, dict) else {}
 
 
+def _slugify(value: str) -> str:
+    normalized = strip_accents(value).lower()
+    normalized = re.sub(r"[^a-z0-9]+", "-", normalized).strip("-")
+    normalized = re.sub(r"-+", "-", normalized)
+    return normalized[:80].strip("-")
+
+
+def _validate_slug(slug: str) -> str:
+    clean = slug.strip().lower()
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{1,78}[a-z0-9]", clean):
+        raise ValueError("slug must be kebab-case, 3-80 chars, using lowercase letters, numbers, and hyphens")
+    return clean
+
+
 class JourneyService:
     def __init__(
         self,
@@ -38,6 +52,78 @@ class JourneyService:
         if identity is None:
             raise TypeError("JourneyService requires identity")
         self.identity: IdentityService = identity
+
+    def draft_journey(
+        self,
+        *,
+        description: str,
+        name: str | None = None,
+        slug: str | None = None,
+        status: str = "active",
+        stage: str | None = None,
+        current_focus: str | None = None,
+    ) -> dict:
+        """Draft a journey identity markdown from user-provided raw material."""
+        if not isinstance(description, str) or len(description.strip()) < 20:
+            raise ValueError("description must be at least 20 characters")
+        clean_name = (name or "").strip() or self._infer_name(description)
+        clean_slug = _validate_slug(slug) if slug else _validate_slug(_slugify(clean_name))
+        clean_status = self._validate_status(status)
+        clean_stage = (stage or "").strip() or "Starting"
+        clean_focus = (current_focus or "").strip() or "Clarify the next concrete movement."
+        clean_description = description.strip()
+        content = self._journey_markdown(
+            name=clean_name,
+            status=clean_status,
+            stage=clean_stage,
+            description=clean_description,
+            current_focus=clean_focus,
+        )
+        return {
+            "name": clean_name,
+            "slug": clean_slug,
+            "status": clean_status,
+            "stage": clean_stage,
+            "description": clean_description,
+            "currentFocus": clean_focus,
+            "content": content,
+        }
+
+    def create_journey(
+        self,
+        *,
+        slug: str,
+        content: str,
+        project_path: str | None = None,
+        sync_file: str | None = None,
+        icon: str | None = None,
+        color: str | None = None,
+    ) -> Identity:
+        """Create a journey identity with optional display/runtime metadata."""
+        clean_slug = _validate_slug(slug)
+        if self._get_journey_identity(clean_slug):
+            raise ValueError(f"Journey '{clean_slug}' already exists")
+        if not isinstance(content, str) or len(content.strip()) < 80:
+            raise ValueError("content must be at least 80 characters")
+        if not content.lstrip().startswith("# "):
+            raise ValueError("content must start with a markdown H1 title")
+        if "**Status:**" not in content:
+            raise ValueError("content must include **Status:**")
+        if "## Description" not in content and "## Descrição" not in content:
+            raise ValueError("content must include a Description section")
+
+        metadata = self._metadata_from_fields(
+            project_path=project_path,
+            sync_file=sync_file,
+            icon=icon,
+            color=color,
+        )
+        return self.identity.set_identity(
+            JOURNEY_LAYER,
+            clean_slug,
+            content.strip(),
+            metadata=json.dumps(metadata, ensure_ascii=False, sort_keys=True) if metadata else None,
+        )
 
     def get_journey_path(self, journey: str) -> str | None:
         """Return a journey path.
@@ -272,6 +358,75 @@ class JourneyService:
                 meta.pop(key, None)
         self.store.update_identity_metadata(ident.layer, journey, json.dumps(meta, sort_keys=True))
         return meta
+
+    def _validate_status(self, status: str) -> str:
+        allowed = {"active", "completed", "paused", "planned"}
+        clean = (status or "active").strip().lower()
+        if clean not in allowed:
+            raise ValueError(f"status must be one of: {', '.join(sorted(allowed))}")
+        return clean
+
+    def _infer_name(self, description: str) -> str:
+        first_line = description.strip().splitlines()[0].strip()
+        first_line = re.sub(r"^(jornada|journey|projeto|project)\s*[:\-]\s*", "", first_line, flags=re.I)
+        words = first_line.split()
+        return " ".join(words[:8]).strip(" .,:;!?()[]{}") or "New Journey"
+
+    def _journey_markdown(
+        self,
+        *,
+        name: str,
+        status: str,
+        stage: str,
+        description: str,
+        current_focus: str,
+    ) -> str:
+        return "\n".join(
+            [
+                f"# {name}",
+                f"**Status:** {status}",
+                f"**Stage:** {stage}",
+                "",
+                "## Description",
+                "",
+                description,
+                "",
+                "## Current focus",
+                "",
+                current_focus,
+                "",
+                "## Scope",
+                "",
+                "Use this journey for conversations, memories, tasks, and decisions that belong to this field of work.",
+                "",
+                "## Done condition",
+                "",
+                "Define this when the journey becomes clear enough to know what completion means.",
+            ]
+        )
+
+    def _metadata_from_fields(
+        self,
+        *,
+        project_path: str | None,
+        sync_file: str | None,
+        icon: str | None,
+        color: str | None,
+    ) -> dict:
+        fields = {
+            "project_path": project_path or "",
+            "sync_file": sync_file or "",
+            "icon": icon or "",
+            "color": color or "",
+        }
+        metadata: dict[str, str] = {}
+        for key, value in fields.items():
+            clean = value.strip() if isinstance(value, str) else ""
+            if len(clean) > 500:
+                raise ValueError(f"{key} must be at most 500 characters")
+            if clean:
+                metadata[key] = clean
+        return metadata
 
     def _get_journey_identities(self) -> list[Identity]:
         return self.store.get_identity_by_layer(JOURNEY_LAYER)

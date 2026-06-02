@@ -463,6 +463,43 @@ class ConversationService:
             "dry_run": dry_run,
         }
 
+    def delete_conversations(self, conversation_ids: list[str]) -> list[str]:
+        """Delete selected conversations while preserving extracted memories."""
+        if not isinstance(conversation_ids, list) or not conversation_ids:
+            raise ValueError("conversation_ids must be a non-empty list")
+        resolved_ids: list[str] = []
+        for conversation_id in conversation_ids:
+            if not isinstance(conversation_id, str) or not conversation_id.strip():
+                raise ValueError("conversation_ids must contain conversation ids")
+            conversation = self.store.get_conversation(conversation_id)
+            if conversation is None:
+                conversation = self.find_by_id_prefix(conversation_id)
+            if conversation is None:
+                raise ValueError(f"Conversation '{conversation_id}' not found")
+            if conversation.id not in resolved_ids:
+                resolved_ids.append(conversation.id)
+
+        for conversation_id in resolved_ids:
+            self.store.conn.execute("DELETE FROM messages WHERE conversation_id = ?", (conversation_id,))
+            self.store.conn.execute(
+                "DELETE FROM conversation_embeddings WHERE conversation_id = ?", (conversation_id,)
+            )
+            self.store.conn.execute(
+                "UPDATE memories SET conversation_id = NULL WHERE conversation_id = ?",
+                (conversation_id,),
+            )
+            self.store.conn.execute(
+                "UPDATE llm_calls SET conversation_id = NULL WHERE conversation_id = ?",
+                (conversation_id,),
+            )
+            self.store.conn.execute(
+                "UPDATE runtime_sessions SET conversation_id = NULL WHERE conversation_id = ?",
+                (conversation_id,),
+            )
+            self.store.conn.execute("DELETE FROM conversations WHERE id = ?", (conversation_id,))
+        self.store.conn.commit()
+        return resolved_ids
+
     def update_title(self, conversation_id: str, title: str) -> Conversation:
         """Update a conversation title through a bounded manual-edit path."""
         if not isinstance(title, str):

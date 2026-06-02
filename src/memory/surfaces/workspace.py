@@ -46,7 +46,7 @@ class WorkspaceSurface:
         selected_journey = _find_journey(active_journeys, selected_journey_id)
 
         journey_conversations = (
-            self.conversations.list_recent(limit=8, journey=selected_journey_id)
+            self.conversations.list_recent(limit=200, journey=selected_journey_id)
             if selected_journey_id
             else []
         )

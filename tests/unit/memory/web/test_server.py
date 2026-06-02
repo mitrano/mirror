@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from memory import MemoryClient
+from memory.models import Memory
 from memory.web.server import create_handler
 
 
@@ -828,6 +829,110 @@ def test_profile_preferences_api_rejects_invalid_payload(tmp_path: Path) -> None
     assert "displayName" in payload["error"]
 
 
+def test_journey_draft_api_generates_reviewable_markdown(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    server = WebTestServer(
+        root=make_docs_root(tmp_path),
+        mirror_home=mirror_home,
+        db_path=mirror_home / "memory.db",
+    )
+    try:
+        status, payload = server.request(
+            "POST",
+            "/api/journeys/draft",
+            {
+                "name": "Customer Discovery",
+                "description": "A journey for validating customer interviews and product positioning.",
+                "currentFocus": "Interview five users and consolidate patterns.",
+            },
+        )
+    finally:
+        server.close()
+
+    assert status == 200
+    assert payload["slug"] == "customer-discovery"
+    assert payload["status"] == "active"
+    assert payload["content"].startswith("# Customer Discovery")
+    assert "## Description" in payload["content"]
+    assert "## Current focus" in payload["content"]
+
+
+def test_journey_create_api_persists_identity_and_metadata(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    content = """# Customer Discovery
+**Status:** active
+**Stage:** Starting
+
+## Description
+
+A journey for validating customer interviews and product positioning.
+
+## Current focus
+
+Interview five users.
+"""
+    server = WebTestServer(
+        root=make_docs_root(tmp_path),
+        mirror_home=mirror_home,
+        db_path=mirror_home / "memory.db",
+    )
+    try:
+        status, payload = server.request(
+            "POST",
+            "/api/journeys",
+            {
+                "slug": "customer-discovery",
+                "content": content,
+                "icon": "◇",
+                "color": "violet",
+                "projectPath": "/tmp/customer-discovery",
+            },
+        )
+    finally:
+        server.close()
+
+    assert status == 200
+    assert payload["journeyId"] == "customer-discovery"
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        ident = mem.store.get_identity("journey", "customer-discovery")
+        assert ident is not None
+        assert ident.content == content.strip()
+        metadata = json.loads(ident.metadata)
+        assert metadata["icon"] == "◇"
+        assert metadata["color"] == "violet"
+        assert metadata["project_path"] == "/tmp/customer-discovery"
+        assert mem.journeys.list_active_journeys()[0]["id"] == "customer-discovery"
+
+
+def test_journey_create_api_rejects_duplicate_slug(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    content = """# Customer Discovery
+**Status:** active
+
+## Description
+
+A journey for validating customer interviews and product positioning.
+"""
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        mem.identity.set_identity("journey", "customer-discovery", content)
+    server = WebTestServer(
+        root=make_docs_root(tmp_path),
+        mirror_home=mirror_home,
+        db_path=mirror_home / "memory.db",
+    )
+    try:
+        status, payload = server.request(
+            "POST",
+            "/api/journeys",
+            {"slug": "customer-discovery", "content": content},
+        )
+    finally:
+        server.close()
+
+    assert status == 400
+    assert "already exists" in payload["error"]
+
+
 def test_unassigned_conversations_api_lists_conversations_without_journey(tmp_path: Path) -> None:
     mirror_home = tmp_path / "mirror-home"
     with MemoryClient(db_path=mirror_home / "memory.db") as mem:
@@ -947,6 +1052,81 @@ def test_conversation_journey_bulk_api_accepts_completed_journey(tmp_path: Path)
     assert payload["updatedCount"] == 1
     with MemoryClient(db_path=mirror_home / "memory.db") as mem:
         assert mem.store.get_conversation(conversation.id).journey == "completed"
+
+
+def test_conversation_delete_api_deletes_selected_conversations_and_dependents(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        first = mem.conversations.start_conversation(interface="pi", title="First")
+        second = mem.conversations.start_conversation(interface="pi", title="Second")
+        kept = mem.conversations.start_conversation(interface="pi", title="Kept")
+        mem.conversations.add_message(first.id, "user", "Delete me")
+        mem.conversations.add_message(second.id, "assistant", "Delete me too")
+        mem.conversations.add_message(kept.id, "user", "Keep me")
+        memory = mem.store.create_memory(
+            Memory(
+                memory_type="insight",
+                title="Extracted memory",
+                content="Memory should survive conversation deletion.",
+                conversation_id=first.id,
+            )
+        )
+        mem.store.conn.execute(
+            "INSERT INTO conversation_embeddings (conversation_id, summary_embedding) VALUES (?, ?)",
+            (first.id, b"embedding"),
+        )
+        mem.store.upsert_runtime_session("session-1", conversation_id=first.id, interface="pi")
+        mem.store.conn.commit()
+    server = WebTestServer(
+        root=make_docs_root(tmp_path),
+        mirror_home=mirror_home,
+        db_path=mirror_home / "memory.db",
+    )
+    try:
+        status, payload = server.request(
+            "POST",
+            "/api/conversations/delete",
+            {"conversationIds": [first.id[:8], second.id]},
+        )
+    finally:
+        server.close()
+
+    assert status == 200
+    assert payload["deletedCount"] == 2
+    assert payload["conversationIds"] == [first.id, second.id]
+    with MemoryClient(db_path=mirror_home / "memory.db") as mem:
+        assert mem.store.get_conversation(first.id) is None
+        assert mem.store.get_conversation(second.id) is None
+        assert mem.store.get_conversation(kept.id) is not None
+        assert mem.store.get_messages(first.id) == []
+        assert mem.store.conn.execute(
+            "SELECT COUNT(*) AS count FROM conversation_embeddings WHERE conversation_id = ?",
+            (first.id,),
+        ).fetchone()["count"] == 0
+        assert mem.store.get_runtime_session("session-1").conversation_id is None
+        assert mem.store.conn.execute(
+            "SELECT conversation_id FROM memories WHERE id = ?", (memory.id,)
+        ).fetchone()["conversation_id"] is None
+
+
+def test_conversation_delete_api_rejects_empty_selection(tmp_path: Path) -> None:
+    mirror_home = tmp_path / "mirror-home"
+    server = WebTestServer(
+        root=make_docs_root(tmp_path),
+        mirror_home=mirror_home,
+        db_path=mirror_home / "memory.db",
+    )
+    try:
+        status, payload = server.request(
+            "POST",
+            "/api/conversations/delete",
+            {"conversationIds": []},
+        )
+    finally:
+        server.close()
+
+    assert status == 400
+    assert "non-empty list" in payload["error"]
 
 
 def test_conversation_journey_api_assigns_and_clears_journey(tmp_path: Path) -> None:

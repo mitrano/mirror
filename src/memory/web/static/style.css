@@ -1064,6 +1064,10 @@ input {
   gap: 10px;
 }
 
+.conversation-delete-actions {
+  margin-top: 14px;
+}
+
 .conversation-summary-form .conversation-title-actions {
   padding-top: 10px;
 }
@@ -1670,6 +1674,18 @@ input {
   padding: 14px;
 }
 
+.journey-create-button {
+  width: 100%;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-radius: 999px;
+  margin: 8px 0 12px;
+  padding: 8px 10px;
+  background: var(--accent-soft);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 750;
+}
+
 .journey-menu {
   display: grid;
   gap: 4px;
@@ -1798,6 +1814,70 @@ input {
   margin-top: 28px;
 }
 
+.journey-create-panel {
+  display: grid;
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.journey-create-form {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 18px;
+  background: var(--panel);
+}
+
+.journey-create-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.journey-create-form label span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.journey-create-form input,
+.journey-create-form select,
+.journey-create-form textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.journey-create-form textarea {
+  resize: vertical;
+}
+
+.journey-create-form button {
+  width: max-content;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: var(--accent-soft);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.journey-create-review {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
+.journey-content-field textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .bulk-assignment-panel {
   margin-top: 22px;
   border: 1px solid var(--border);
@@ -1833,6 +1913,20 @@ input {
   padding: 10px 12px;
   background: var(--bg);
   color: var(--text);
+}
+
+.bulk-assignment-panel button {
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-radius: 999px;
+  padding: 9px 14px;
+  background: var(--accent-soft);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.bulk-assignment-panel button:hover {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
 .bulk-assignment-panel small {
