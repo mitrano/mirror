@@ -208,6 +208,55 @@ def switch_conversation(
     return conv.id
 
 
+def bind_conversation_context(
+    session_id: str | None = None,
+    persona: str | None = None,
+    journey: str | None = None,
+    mirror_home: str | Path | None = None,
+) -> str | None:
+    """Bind persona/journey to the current conversation without splitting it.
+
+    Mirror Mode can be loaded many times during one runtime session as context is
+    refreshed. Loading context should attach the current conversation to the
+    resolved persona/journey, not close the conversation and create a new one.
+    Explicit conversation boundaries remain owned by ``switch_conversation``.
+    """
+    resolved_session_id = _resolve_session_id(session_id, mirror_home)
+    if not resolved_session_id:
+        return None
+
+    mem = _memory_client(mirror_home)
+    runtime_session = mem.store.get_runtime_session(resolved_session_id)
+    interface = (
+        runtime_session.interface
+        if runtime_session and runtime_session.interface
+        else "claude_code"
+    )
+    conv_id = runtime_session.conversation_id if runtime_session else None
+    conversation = mem.store.get_conversation(conv_id) if conv_id else None
+
+    if conversation is not None and conversation.ended_at is None:
+        mem.store.update_conversation(conv_id, persona=persona, journey=journey)
+    else:
+        conversation = mem.start_conversation(
+            interface=interface,
+            persona=persona,
+            journey=journey,
+        )
+        conv_id = conversation.id
+
+    mem.store.upsert_runtime_session(
+        resolved_session_id,
+        conversation_id=conv_id,
+        interface=interface,
+        persona=persona,
+        journey=journey,
+        active=True,
+        closed_at=None,
+    )
+    return conv_id
+
+
 def update_current_conversation(
     session_id: str | None = None,
     mirror_home: str | Path | None = None,

@@ -13,7 +13,7 @@ def test_load_returns_context_and_journey():
     with (
         patch("memory.skills.mirror.MemoryClient", return_value=mock_mem),
         patch("memory.skills.mirror.write_state") as mock_write,
-        patch("memory.skills.mirror.switch_conversation") as mock_switch,
+        patch("memory.skills.mirror.bind_conversation_context") as mock_bind,
     ):
         from memory.skills import mirror
 
@@ -39,7 +39,7 @@ def test_load_returns_context_and_journey():
         journey="mirror-poc",
         session_id="sess-1",
     )
-    mock_switch.assert_called_once_with(session_id="sess-1", persona=None, journey="mirror-poc")
+    mock_bind.assert_called_once_with(session_id="sess-1", persona=None, journey="mirror-poc")
 
 
 def test_load_detects_persona_and_journey_from_query():
@@ -52,7 +52,7 @@ def test_load_detects_persona_and_journey_from_query():
     with (
         patch("memory.skills.mirror.MemoryClient", return_value=mock_mem),
         patch("memory.skills.mirror.write_state"),
-        patch("memory.skills.mirror.switch_conversation"),
+        patch("memory.skills.mirror.bind_conversation_context"),
     ):
         from memory.skills import mirror
 
@@ -67,7 +67,7 @@ def test_load_detects_persona_and_journey_from_query():
     mock_mem.detect_journey.assert_called_once_with("debug the pi runtime adoption")
 
 
-def test_load_skips_switch_when_context_only():
+def test_load_skips_binding_when_context_only():
     mock_mem = MagicMock()
     mock_mem.detect_journey.return_value = []
     mock_mem.load_mirror_context.return_value = "context"
@@ -77,13 +77,13 @@ def test_load_skips_switch_when_context_only():
     with (
         patch("memory.skills.mirror.MemoryClient", return_value=mock_mem),
         patch("memory.skills.mirror.write_state"),
-        patch("memory.skills.mirror.switch_conversation") as mock_switch,
+        patch("memory.skills.mirror.bind_conversation_context") as mock_bind,
     ):
         from memory.skills import mirror
 
         mirror.load(journey="mirror-poc", context_only=True, session_id="sess-1")
 
-    mock_switch.assert_not_called()
+    mock_bind.assert_not_called()
 
 
 def test_load_uses_current_session_sticky_defaults_before_global_or_detection():
@@ -96,7 +96,7 @@ def test_load_uses_current_session_sticky_defaults_before_global_or_detection():
     with (
         patch("memory.skills.mirror.MemoryClient", return_value=mock_mem),
         patch("memory.skills.mirror.write_state") as mock_write,
-        patch("memory.skills.mirror.switch_conversation") as mock_switch,
+        patch("memory.skills.mirror.bind_conversation_context") as mock_bind,
     ):
         from memory.skills import mirror
 
@@ -116,9 +116,7 @@ def test_load_uses_current_session_sticky_defaults_before_global_or_detection():
         journey="deep-work",
         session_id="sess-1",
     )
-    mock_switch.assert_called_once_with(
-        session_id="sess-1", persona="therapist", journey="deep-work"
-    )
+    mock_bind.assert_called_once_with(session_id="sess-1", persona="therapist", journey="deep-work")
 
 
 def test_load_uses_global_sticky_defaults_when_session_has_no_context():
@@ -130,7 +128,7 @@ def test_load_uses_global_sticky_defaults_when_session_has_no_context():
     with (
         patch("memory.skills.mirror.MemoryClient", return_value=mock_mem),
         patch("memory.skills.mirror.write_state") as mock_write,
-        patch("memory.skills.mirror.switch_conversation") as mock_switch,
+        patch("memory.skills.mirror.bind_conversation_context") as mock_bind,
     ):
         from memory.skills import mirror
 
@@ -159,7 +157,7 @@ def test_load_uses_global_sticky_defaults_when_session_has_no_context():
         journey="course-launch",
         session_id="sess-2",
     )
-    mock_switch.assert_called_once_with(
+    mock_bind.assert_called_once_with(
         session_id="sess-2", persona="writer", journey="course-launch"
     )
 
@@ -174,7 +172,7 @@ def test_load_persists_global_sticky_defaults_without_session_id():
     with (
         patch("memory.skills.mirror.MemoryClient", return_value=mock_mem),
         patch("memory.skills.mirror.write_state") as mock_write,
-        patch("memory.skills.mirror.switch_conversation") as mock_switch,
+        patch("memory.skills.mirror.bind_conversation_context") as mock_bind,
     ):
         from memory.skills import mirror
 
@@ -202,7 +200,7 @@ def test_load_persists_global_sticky_defaults_without_session_id():
         journey="mirror-poc",
         session_id=None,
     )
-    mock_switch.assert_called_once_with(session_id=None, persona="engineer", journey="mirror-poc")
+    mock_bind.assert_called_once_with(session_id=None, persona="engineer", journey="mirror-poc")
 
 
 def test_load_prefers_explicit_args_over_sticky_defaults():
@@ -215,7 +213,7 @@ def test_load_prefers_explicit_args_over_sticky_defaults():
     with (
         patch("memory.skills.mirror.MemoryClient", return_value=mock_mem),
         patch("memory.skills.mirror.write_state") as mock_write,
-        patch("memory.skills.mirror.switch_conversation") as mock_switch,
+        patch("memory.skills.mirror.bind_conversation_context") as mock_bind,
     ):
         from memory.skills import mirror
 
@@ -238,9 +236,7 @@ def test_load_prefers_explicit_args_over_sticky_defaults():
         journey="mirror-poc",
         session_id="sess-1",
     )
-    mock_switch.assert_called_once_with(
-        session_id="sess-1", persona="engineer", journey="mirror-poc"
-    )
+    mock_bind.assert_called_once_with(session_id="sess-1", persona="engineer", journey="mirror-poc")
 
 
 def test_deactivate_writes_inactive_state():
@@ -334,7 +330,7 @@ def test_reception_overrides_sticky_persona_when_enabled(mocker):
     with (
         patch("memory.skills.mirror.MemoryClient", return_value=mock_mem),
         patch("memory.skills.mirror.write_state"),
-        patch("memory.skills.mirror.switch_conversation"),
+        patch("memory.skills.mirror.bind_conversation_context"),
     ):
         from memory.skills import mirror
 
@@ -368,7 +364,7 @@ def test_sticky_applies_when_reception_returns_empty(mocker):
     with (
         patch("memory.skills.mirror.MemoryClient", return_value=mock_mem),
         patch("memory.skills.mirror.write_state"),
-        patch("memory.skills.mirror.switch_conversation"),
+        patch("memory.skills.mirror.bind_conversation_context"),
     ):
         from memory.skills import mirror
 
@@ -407,7 +403,7 @@ def test_explicit_arg_not_overridden_by_reception(mocker):
     with (
         patch("memory.skills.mirror.MemoryClient", return_value=mock_mem),
         patch("memory.skills.mirror.write_state"),
-        patch("memory.skills.mirror.switch_conversation"),
+        patch("memory.skills.mirror.bind_conversation_context"),
     ):
         from memory.skills import mirror
 

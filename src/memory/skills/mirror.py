@@ -7,9 +7,9 @@ import sys
 from collections.abc import Callable
 
 from memory.cli.conversation_logger import (
+    bind_conversation_context,
     is_muted,
     log_assistant_to_current,
-    switch_conversation,
     update_current_conversation,
 )
 from memory.client import MemoryClient
@@ -168,7 +168,7 @@ def load(
     """Activate Mirror Mode.
 
     Returns (context_str, resolved_persona, resolved_journey, detected_matches_or_None).
-    Side effects: writes mirror state, switches conversation (unless context_only).
+    Side effects: writes mirror state, binds current conversation context (unless context_only).
     """
     mem = MemoryClient(env=env)
 
@@ -205,7 +205,7 @@ def load(
     )
 
     if not context_only:
-        switch_conversation(
+        bind_conversation_context(
             session_id=session_id,
             persona=resolved_persona,
             journey=resolved_journey,

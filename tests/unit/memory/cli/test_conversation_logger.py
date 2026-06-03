@@ -79,6 +79,68 @@ class TestBackfillAssistantMessages:
         mock_mem.add_message.assert_not_called()
 
 
+class TestBindConversationContext:
+    def test_updates_current_open_conversation_without_switching(self, mocker):
+        mock_mem = MagicMock()
+        runtime_session = MagicMock(
+            conversation_id="conv-1",
+            interface="pi",
+        )
+        conversation = MagicMock(ended_at=None)
+        mock_mem.store.get_runtime_session.return_value = runtime_session
+        mock_mem.store.get_conversation.return_value = conversation
+        mocker.patch("memory.cli.conversation_logger._memory_client", return_value=mock_mem)
+
+        from memory.cli.conversation_logger import bind_conversation_context
+
+        result = bind_conversation_context(
+            "sess-1",
+            persona="tesoureira",
+            journey="vida-economica",
+        )
+
+        assert result == "conv-1"
+        mock_mem.store.update_conversation.assert_called_once_with(
+            "conv-1",
+            persona="tesoureira",
+            journey="vida-economica",
+        )
+        mock_mem.start_conversation.assert_not_called()
+        mock_mem.store.upsert_runtime_session.assert_called_once_with(
+            "sess-1",
+            conversation_id="conv-1",
+            interface="pi",
+            persona="tesoureira",
+            journey="vida-economica",
+            active=True,
+            closed_at=None,
+        )
+
+    def test_starts_conversation_only_when_current_session_has_no_open_conversation(self, mocker):
+        mock_mem = MagicMock()
+        mock_mem.store.get_runtime_session.return_value = MagicMock(
+            conversation_id=None,
+            interface="pi",
+        )
+        mock_mem.start_conversation.return_value = MagicMock(id="conv-new")
+        mocker.patch("memory.cli.conversation_logger._memory_client", return_value=mock_mem)
+
+        from memory.cli.conversation_logger import bind_conversation_context
+
+        result = bind_conversation_context(
+            "sess-1",
+            persona="tesoureira",
+            journey="vida-economica",
+        )
+
+        assert result == "conv-new"
+        mock_mem.start_conversation.assert_called_once_with(
+            interface="pi",
+            persona="tesoureira",
+            journey="vida-economica",
+        )
+
+
 class TestInterfaceForwarding:
     def test_log_user_message_forwards_interface(self, mocker):
         mock_mem = MagicMock()
