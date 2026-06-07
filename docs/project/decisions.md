@@ -11,6 +11,19 @@ resolved.
 
 ## Completed Decisions
 
+### Explorer thickening is for narrative change, not local refinement
+
+**Date:** 2026-06-06
+**Reference:** [CV16 Explorer Mode](roadmap/cv16-explorer-mode/index.md)
+
+Explorer Mode should not treat every adjustment as story thickening. `story thicken` is reserved for substantive changes to the Exploratory Story, such as changed attractor, hypothesis, ritual, voice, scope, product concept, experiment, promotion boundary, central tension, or narrative arc. Local refinements like icons, microcopy, wording polish, labels, formatting, and small naming adjustments should remain conversational unless the user explicitly asks to preserve them.
+
+Consequences:
+
+- The Explorer skill now requires a `narrative/substantive` versus `local/refinement` classification before calling `story thicken`.
+- If the assistant is uncertain whether a change belongs in the Exploratory Story, it should ask the user before updating story state.
+- Explorer preserves discovery; it does not version every editorial polish.
+
 ### Explorer surfaces must render before interpretation
 
 **Date:** 2026-06-06

@@ -22,6 +22,7 @@ Explorer surfaces are product output, not internal evidence.
 
 - Mark required Mirror surfaces in CLI output with an explicit contract marker.
 - Update runtime skill instructions to require verbatim first-block rendering.
+- Preserve the narrative/substantive versus local/refinement boundary before `story thicken` is called.
 - Add tests or smoke validation proving Explorer surfaces are distinguishable from ordinary command output.
 - Investigate whether Pi can enforce or preserve required surface blocks automatically.
 
@@ -42,6 +43,8 @@ Given an Explorer command returns a required surface, the assistant renders that
 Given a required surface is present in CLI output, it is machine-identifiable by a stable marker.
 
 Given external validation runs in Pi, `△ STORY THICKENED` appears immediately after a substantive story change.
+
+Given the user makes a local refinement, such as icon, microcopy, visual label, or wording polish, Explorer does not call `story thicken` unless the user explicitly asks to preserve it in the Exploratory Story.
 
 ---
 

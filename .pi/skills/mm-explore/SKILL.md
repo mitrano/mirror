@@ -86,11 +86,33 @@ While Explorer Mode is active:
 uv run python -m memory explore story open <slug> --story "..." --summary "..." --last-card "..."
 ```
 
-- When material changes the accumulated story, thicken it with:
+- Before calling `story thicken`, classify the change as either `narrative/substantive` or `local/refinement`.
+
+- When material substantively changes the accumulated Exploratory Story, thicken it with:
 
 ```bash
 uv run python -m memory explore story thicken <slug> --story "..." --summary "..." --last-card "..." --changed "..."
 ```
+
+Use `story thicken` for:
+
+- new or changed attractor;
+- new or changed exploratory hypothesis;
+- new or changed ritual, voice, scope, or product concept;
+- changed experiment or promotion boundary;
+- meaningful correction to the narrative arc.
+
+Do not use `story thicken` for local refinements:
+
+- icon choice;
+- microcopy;
+- wording polish;
+- visual label changes;
+- surface formatting;
+- small naming adjustments that do not change the story;
+- conversational elaboration of an already captured idea.
+
+For local refinements, continue the conversation without updating the story. If uncertain, ask the user whether to preserve the change in the Exploratory Story.
 
 - When the user asks for the attractor, or when a strong directional pull should be proposed visibly, render attractors with:
 
