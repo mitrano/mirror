@@ -11,6 +11,12 @@ import argparse
 import sys
 
 from memory.client import MemoryClient
+from memory.services.explorer_story import (
+    clear_explorer_story,
+    get_explorer_story,
+    render_explorer_story_context,
+    update_explorer_story,
+)
 from memory.services.operating_mode import activate_mode, deactivate_mode
 from memory.skills.mirror import _persist_global_sticky_defaults
 from memory.surfaces.mode_transition import render_explorer_mode_transition
@@ -21,8 +27,9 @@ Explorer Mode is experimental. The full Explorer experience is being built and w
 Explorer preserves uncertainty. Builder executes commitment.
 
 While Explorer Mode is active:
-- Treat new substantive material as part of the exploratory field unless the user asks for a clear operational action.
-- Preserve signals, tensions, hypotheses, corrections, and emerging story shape.
+- Treat new substantive material as part of the current Exploratory Story unless the user asks for a clear operational action.
+- Preserve tensions, hypotheses, corrections, and emerging story shape.
+- Update the in-session story when new material changes the accumulated story.
 - Render Story Thickened when new material changes the accumulated story.
 - Do not promote to Builder or Delivery without explicit user confirmation.
 """
@@ -56,6 +63,9 @@ def cmd_load(slug: str) -> None:
     print(f"\033[38;5;183m△ Explorer Mode active — journey: {slug}\033[0m", file=sys.stderr)
     print(render_explorer_mode_transition(journey=slug))
     print(mem.load_mirror_context(journey=slug))
+    story = get_explorer_story(mem.store, slug)
+    if story:
+        print("\n" + render_explorer_story_context(story))
     print("\n" + EXPLORER_GUIDANCE)
 
 
@@ -63,6 +73,39 @@ def cmd_deactivate() -> None:
     mem = MemoryClient()
     deactivate_mode(mem.store)
     print(EXPLORER_DEACTIVATED_SURFACE)
+
+
+def cmd_story_show(slug: str) -> None:
+    mem = MemoryClient()
+    story = get_explorer_story(mem.store, slug)
+    if not story:
+        print(f"No Exploratory Story for journey: {slug}")
+        return
+    print(render_explorer_story_context(story))
+
+
+def cmd_story_update(
+    slug: str,
+    *,
+    story: str | None,
+    summary: str | None,
+    last_card: str | None,
+) -> None:
+    mem = MemoryClient()
+    updated = update_explorer_story(
+        mem.store,
+        slug,
+        current_exploratory_story=story,
+        narrative_field_summary=summary,
+        last_story_card=last_card,
+    )
+    print(render_explorer_story_context(updated))
+
+
+def cmd_story_clear(slug: str) -> None:
+    mem = MemoryClient()
+    clear_explorer_story(mem.store, slug)
+    print(f"Exploratory Story cleared for journey: {slug}")
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -74,11 +117,38 @@ def main(argv: list[str] | None = None) -> None:
 
     sub.add_parser("deactivate", help="Deactivate Explorer Mode and return to Mirror Mode")
 
+    p_story = sub.add_parser("story", help="Manage the current Exploratory Story")
+    story_sub = p_story.add_subparsers(dest="story_command", required=True)
+
+    p_story_show = story_sub.add_parser("show", help="Show the current Exploratory Story")
+    p_story_show.add_argument("slug", help="Journey ID")
+
+    p_story_update = story_sub.add_parser("update", help="Create or update the Exploratory Story")
+    p_story_update.add_argument("slug", help="Journey ID")
+    p_story_update.add_argument("--story", default=None, help="Current exploratory story")
+    p_story_update.add_argument("--summary", default=None, help="Narrative field summary")
+    p_story_update.add_argument("--last-card", default=None, help="Last story card context")
+
+    p_story_clear = story_sub.add_parser("clear", help="Clear the current Exploratory Story")
+    p_story_clear.add_argument("slug", help="Journey ID")
+
     args = parser.parse_args(argv)
     if args.command == "load":
         cmd_load(args.slug)
     elif args.command == "deactivate":
         cmd_deactivate()
+    elif args.command == "story":
+        if args.story_command == "show":
+            cmd_story_show(args.slug)
+        elif args.story_command == "update":
+            cmd_story_update(
+                args.slug,
+                story=args.story,
+                summary=args.summary,
+                last_card=args.last_card,
+            )
+        elif args.story_command == "clear":
+            cmd_story_clear(args.slug)
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@
 from memory import MemoryClient
 from memory.cli import explore
 from memory.config import default_db_path_for_home
+from memory.services.explorer_story import get_explorer_story, update_explorer_story
 from memory.services.operating_mode import activate_mode, get_active_mode
 
 JOURNEY_CONTENT = """# Explorer Mode
@@ -61,3 +62,77 @@ def test_explore_deactivate_clears_mode_but_preserves_sticky_journey(
     out = capsys.readouterr().out
     assert "EXPLORER MODE DEACTIVATED" in out
     assert "◌ Mirror Mode" in out
+
+
+def test_story_update_command_stores_exploratory_story(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "alisson-vale"
+    mem = MemoryClient(db_path=default_db_path_for_home(mirror_home))
+    mocker.patch("memory.cli.explore.MemoryClient", return_value=mem)
+
+    explore.cmd_story_update(
+        "explorer-mode",
+        story="Explorer is becoming observable.",
+        summary="Runtime story state before persistence.",
+        last_card="Story opened.",
+    )
+
+    stored = get_explorer_story(mem.store, "explorer-mode")
+    assert stored is not None
+    assert stored.current_exploratory_story == "Explorer is becoming observable."
+    assert stored.narrative_field_summary == "Runtime story state before persistence."
+    assert stored.last_story_card == "Story opened."
+    out = capsys.readouterr().out
+    assert "=== △ Exploratory Story ===" in out
+    assert "Explorer is becoming observable." in out
+
+
+def test_story_show_command_renders_stored_story(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "alisson-vale"
+    mem = MemoryClient(db_path=default_db_path_for_home(mirror_home))
+    update_explorer_story(
+        mem.store,
+        "explorer-mode",
+        current_exploratory_story="Explorer is becoming observable.",
+    )
+    mocker.patch("memory.cli.explore.MemoryClient", return_value=mem)
+
+    explore.cmd_story_show("explorer-mode")
+
+    out = capsys.readouterr().out
+    assert "=== △ Exploratory Story ===" in out
+    assert "Explorer is becoming observable." in out
+
+
+def test_story_clear_command_removes_stored_story(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "alisson-vale"
+    mem = MemoryClient(db_path=default_db_path_for_home(mirror_home))
+    update_explorer_story(
+        mem.store,
+        "explorer-mode",
+        current_exploratory_story="Explorer is becoming observable.",
+    )
+    mocker.patch("memory.cli.explore.MemoryClient", return_value=mem)
+
+    explore.cmd_story_clear("explorer-mode")
+
+    assert get_explorer_story(mem.store, "explorer-mode") is None
+    assert "Exploratory Story cleared" in capsys.readouterr().out
+
+
+def test_explore_load_includes_existing_exploratory_story(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "alisson-vale"
+    mem = MemoryClient(db_path=default_db_path_for_home(mirror_home))
+    mem.set_identity("journey", "explorer-mode", JOURNEY_CONTENT)
+    update_explorer_story(
+        mem.store,
+        "explorer-mode",
+        current_exploratory_story="Explorer is becoming observable.",
+    )
+    mocker.patch("memory.cli.explore.MemoryClient", return_value=mem)
+    mocker.patch.object(mem, "load_mirror_context", return_value="context")
+
+    explore.cmd_load("explorer-mode")
+
+    out = capsys.readouterr().out
+    assert "=== △ Exploratory Story ===" in out
+    assert "Explorer is becoming observable." in out

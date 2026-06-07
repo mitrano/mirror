@@ -11,6 +11,20 @@ resolved.
 
 ## Completed Decisions
 
+### Explorer Mode starts from Exploratory Story, not signal/radar modeling
+
+**Date:** 2026-06-06
+**Reference:** [CV16.DS4 In-Session Exploratory Story](roadmap/cv16-explorer-mode/cv16-ds4-in-session-exploratory-story/index.md), [ES-003 Explorer Mode](exploration/es-003-explorer-mode.md)
+
+The first observable Explorer Mode behavior should preserve one accumulated Exploratory Story per journey rather than model signals and radar upfront. Signal vocabulary remains useful as method language, but the practical product value is the story that is becoming clearer across turns.
+
+Consequences:
+
+- DS4 stores `current_exploratory_story`, `narrative_field_summary`, and `last_story_card` only.
+- Signal/radar behavior is deferred until practice proves it adds value.
+- DS5 should render story-opening, story-thickening, narrative snapshot, and promotion surfaces before reintroducing a broader signal model.
+- Explorer remains a cognitive lens for uncertainty before commitment, not a taxonomy of every exploratory fragment.
+
 ### Historical conversation journey repair is explicit and backup-gated
 
 **Date:** 2026-05-25

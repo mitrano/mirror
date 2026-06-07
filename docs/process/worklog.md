@@ -12,6 +12,12 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-06-06 — In-session Exploratory Story state added
+
+Added the first observable Explorer behavior after activation. `python -m memory explore story update|show|clear <journey>` now manages one current in-session Exploratory Story per journey using runtime state, and `explore load <journey>` includes that story context when present. DS4 deliberately avoids signal/radar modeling for now because the practical value is in the accumulated Exploratory Story itself.
+
+Validation: Explorer Story service tests and Explorer CLI tests passed; ruff checks passed for touched Explorer Story files.
+
 ### 2026-06-06 — Explorer activation contract completed
 
 Added the explicit Explorer Mode entry and exit contract. `python -m memory explore load <slug>` remains the contained activation operation and now has regression coverage for sticky journey context and non-conversation behavior. `python -m memory explore deactivate` provides the semantic exit path, clears only the explicit Explorer lens, and renders a visible return-to-Mirror confirmation while preserving sticky journey context. The Pi skill now documents natural-language entry, exit, and the no-silent-promotion boundary.

@@ -227,3 +227,4 @@ The first delivery story should avoid full persistence, web UI, or autonomous de
 - Promotion to Builder must require explicit Navigator confirmation.
 - Ariad's Exploration method should inform language and boundaries, but Mirror should own the runtime mode.
 - The first public explanation should avoid presenting Explorer Mode as a project management feature. It is a cognitive lens for uncertainty before commitment.
+- DS4 revised the first behavior slice away from signal/radar modeling. Signals remain possible method vocabulary, but the product behavior now starts from the accumulated Exploratory Story because that is the observable value in practice.

@@ -69,10 +69,21 @@ Explorer preserves uncertainty. Builder executes commitment.
 
 While Explorer Mode is active:
 
-- Treat new substantive material as part of the exploratory field unless the user asks for a clear operational action.
-- Preserve signals, tensions, hypotheses, corrections, and emerging story shape.
+- Treat new substantive material as part of the current Exploratory Story unless the user asks for a clear operational action.
+- Preserve tensions, hypotheses, corrections, and emerging story shape.
+- When material changes the accumulated story, update the in-session story with:
+
+```bash
+uv run python -m memory explore story update <slug> --story "..." --summary "..." --last-card "..."
+```
+
+- When the user asks what is currently being explored, inspect the story with:
+
+```bash
+uv run python -m memory explore story show <slug>
+```
+
 - Render `Story Thickened` when new material changes the accumulated story.
-- Keep nearby signals in radar when the user asks to preserve them without opening construction.
 - Do not promote to Builder or Delivery without explicit user confirmation.
 
 ## 3. Deactivation
