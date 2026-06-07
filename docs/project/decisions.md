@@ -11,6 +11,19 @@ resolved.
 
 ## Completed Decisions
 
+### Explorer Mode must route operational mutations through Builder boundary
+
+**Date:** 2026-06-07
+**Reference:** [CV16.DS9 Required Surface Rendering and Operational Boundary Contract](roadmap/cv16-explorer-mode/cv16-ds9-required-surface-rendering-contract/index.md)
+
+Explorer Mode preserves uncertainty and thickens Exploratory Stories. It should not directly absorb clear operational requests such as editing files, applying procedures to documents, creating code, or mutating project state. When such a request appears while Explorer Mode is active, Mirror should name the boundary and ask to switch to Builder Mode before executing, unless a future explicit operational override is defined.
+
+Consequences:
+
+- Requests like “apply privacy rules to this generated document” are Builder work, even if the user is currently in Explorer Mode.
+- Explorer should not call `story thicken` for operational mutations unless the result also changes the Exploratory Story and the user asks to preserve that change.
+- DS9 will harden both required surface rendering and the Explorer-to-Builder operational boundary before the first Explorer release.
+
 ### Explorer thickening is for narrative change, not local refinement
 
 **Date:** 2026-06-06
