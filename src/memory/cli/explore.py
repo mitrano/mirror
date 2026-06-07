@@ -19,6 +19,12 @@ from memory.services.explorer_story import (
 )
 from memory.services.operating_mode import activate_mode, deactivate_mode
 from memory.skills.mirror import _persist_global_sticky_defaults
+from memory.surfaces.explorer_story import (
+    render_exploratory_story_opened,
+    render_missing_exploratory_story,
+    render_narrative_field_snapshot,
+    render_story_thickened,
+)
 from memory.surfaces.mode_transition import render_explorer_mode_transition
 
 EXPLORER_GUIDANCE = """=== Explorer Mode guidance ===
@@ -108,6 +114,52 @@ def cmd_story_clear(slug: str) -> None:
     print(f"Exploratory Story cleared for journey: {slug}")
 
 
+def cmd_story_open(
+    slug: str,
+    *,
+    story: str | None,
+    summary: str | None,
+    last_card: str | None,
+) -> None:
+    mem = MemoryClient()
+    updated = update_explorer_story(
+        mem.store,
+        slug,
+        current_exploratory_story=story,
+        narrative_field_summary=summary,
+        last_story_card=last_card,
+    )
+    print(render_exploratory_story_opened(updated))
+
+
+def cmd_story_thicken(
+    slug: str,
+    *,
+    story: str | None,
+    summary: str | None,
+    last_card: str | None,
+    changed: str | None,
+) -> None:
+    mem = MemoryClient()
+    updated = update_explorer_story(
+        mem.store,
+        slug,
+        current_exploratory_story=story,
+        narrative_field_summary=summary,
+        last_story_card=last_card,
+    )
+    print(render_story_thickened(updated, changed=changed))
+
+
+def cmd_story_snapshot(slug: str) -> None:
+    mem = MemoryClient()
+    story = get_explorer_story(mem.store, slug)
+    if not story:
+        print(render_missing_exploratory_story(journey=slug))
+        return
+    print(render_narrative_field_snapshot(story))
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Explorer Mode context loader")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -132,6 +184,22 @@ def main(argv: list[str] | None = None) -> None:
     p_story_clear = story_sub.add_parser("clear", help="Clear the current Exploratory Story")
     p_story_clear.add_argument("slug", help="Journey ID")
 
+    p_story_open = story_sub.add_parser("open", help="Open an Exploratory Story")
+    p_story_open.add_argument("slug", help="Journey ID")
+    p_story_open.add_argument("--story", default=None, help="Current exploratory story")
+    p_story_open.add_argument("--summary", default=None, help="Narrative field summary")
+    p_story_open.add_argument("--last-card", default=None, help="Last story card context")
+
+    p_story_thicken = story_sub.add_parser("thicken", help="Thicken an Exploratory Story")
+    p_story_thicken.add_argument("slug", help="Journey ID")
+    p_story_thicken.add_argument("--story", default=None, help="Current exploratory story")
+    p_story_thicken.add_argument("--summary", default=None, help="Narrative field summary")
+    p_story_thicken.add_argument("--last-card", default=None, help="Last story card context")
+    p_story_thicken.add_argument("--changed", default=None, help="What changed in the story")
+
+    p_story_snapshot = story_sub.add_parser("snapshot", help="Render a Narrative Field Snapshot")
+    p_story_snapshot.add_argument("slug", help="Journey ID")
+
     args = parser.parse_args(argv)
     if args.command == "load":
         cmd_load(args.slug)
@@ -149,6 +217,23 @@ def main(argv: list[str] | None = None) -> None:
             )
         elif args.story_command == "clear":
             cmd_story_clear(args.slug)
+        elif args.story_command == "open":
+            cmd_story_open(
+                args.slug,
+                story=args.story,
+                summary=args.summary,
+                last_card=args.last_card,
+            )
+        elif args.story_command == "thicken":
+            cmd_story_thicken(
+                args.slug,
+                story=args.story,
+                summary=args.summary,
+                last_card=args.last_card,
+                changed=args.changed,
+            )
+        elif args.story_command == "snapshot":
+            cmd_story_snapshot(args.slug)
 
 
 if __name__ == "__main__":

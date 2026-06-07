@@ -136,3 +136,79 @@ def test_explore_load_includes_existing_exploratory_story(mocker, tmp_path, caps
     out = capsys.readouterr().out
     assert "=== △ Exploratory Story ===" in out
     assert "Explorer is becoming observable." in out
+
+
+def test_story_open_command_stores_story_and_renders_surface(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "alisson-vale"
+    mem = MemoryClient(db_path=default_db_path_for_home(mirror_home))
+    mocker.patch("memory.cli.explore.MemoryClient", return_value=mem)
+
+    explore.cmd_story_open(
+        "explorer-mode",
+        story="Explorer opens a visible story.",
+        summary="Visible state, not only storage.",
+        last_card="Opened.",
+    )
+
+    stored = get_explorer_story(mem.store, "explorer-mode")
+    assert stored is not None
+    assert stored.current_exploratory_story == "Explorer opens a visible story."
+    out = capsys.readouterr().out
+    assert "△  EXPLORATORY STORY OPENED" in out
+    assert "Explorer opens a visible story." in out
+
+
+def test_story_thicken_command_updates_story_and_renders_surface(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "alisson-vale"
+    mem = MemoryClient(db_path=default_db_path_for_home(mirror_home))
+    update_explorer_story(
+        mem.store,
+        "explorer-mode",
+        current_exploratory_story="Initial story.",
+    )
+    mocker.patch("memory.cli.explore.MemoryClient", return_value=mem)
+
+    explore.cmd_story_thicken(
+        "explorer-mode",
+        story="Thickened story.",
+        summary="A correction changed the shape.",
+        last_card="Thickened.",
+        changed="External behavior became required.",
+    )
+
+    stored = get_explorer_story(mem.store, "explorer-mode")
+    assert stored is not None
+    assert stored.current_exploratory_story == "Thickened story."
+    out = capsys.readouterr().out
+    assert "△  STORY THICKENED" in out
+    assert "External behavior became required." in out
+    assert "Thickened story." in out
+
+
+def test_story_snapshot_command_renders_stored_story(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "alisson-vale"
+    mem = MemoryClient(db_path=default_db_path_for_home(mirror_home))
+    update_explorer_story(
+        mem.store,
+        "explorer-mode",
+        current_exploratory_story="Current story.",
+    )
+    mocker.patch("memory.cli.explore.MemoryClient", return_value=mem)
+
+    explore.cmd_story_snapshot("explorer-mode")
+
+    out = capsys.readouterr().out
+    assert "△  NARRATIVE FIELD SNAPSHOT" in out
+    assert "Current story." in out
+
+
+def test_story_snapshot_command_handles_missing_story(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "alisson-vale"
+    mem = MemoryClient(db_path=default_db_path_for_home(mirror_home))
+    mocker.patch("memory.cli.explore.MemoryClient", return_value=mem)
+
+    explore.cmd_story_snapshot("explorer-mode")
+
+    out = capsys.readouterr().out
+    assert "△  NO EXPLORATORY STORY" in out
+    assert "No current Exploratory Story" in out

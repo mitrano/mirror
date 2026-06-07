@@ -18,7 +18,7 @@ Codex uses the `$mm-` prefix. All runtimes call the same Python core.
 |---------|-------|-------------|---------|----------------|
 | `/mm-mirror` | `$mm-mirror` | `/mm:mirror` | Loads identity, persona, journey, and attachments for Mirror Mode | `load [--persona P] [--journey J] [--query Q] [--org]`, `log "summary"`, `journeys` |
 | `/mm-build` | `$mm-build` | `/mm:build` | Builder Mode for a journey — loads context and project docs | `<slug>` |
-| `/mm-explore` | `$mm-explore` | `/mm:explore` | Explorer Mode for a journey, with explicit deactivation and in-session story state — preserves uncertainty before construction | `<slug>`, `deactivate`, `story show|update|clear` |
+| `/mm-explore` | `$mm-explore` | `/mm:explore` | Explorer Mode for a journey, with explicit deactivation and in-session story surfaces — preserves uncertainty before construction | `<slug>`, `deactivate`, `story show|update|clear|open|thicken|snapshot` |
 | `python -m memory mode` | — | — | Internal explicit Mirror operating mode lifecycle used by runtime skills and status bars | `activate <mode> [--journey J]`, `deactivate`, `status` |
 | `/mm-identity` | `$mm-identity` | `/mm:identity` | Read and update identity directly in the database | `list [--layer L]`, `get <layer> <key>`, `set <layer> <key>`, `edit <layer> <key>` |
 | `/mm-consult` | `$mm-consult` | `/mm:consult` | Asks other LLMs through OpenRouter with Mirror context | `<family> [tier] "prompt"`, `credits` |
@@ -70,10 +70,11 @@ activates `■ Builder Mode` for the selected journey. `memory explore load <slu
 activates `△ Explorer Mode` for the selected journey. `memory explore story
 show|update|clear <slug>` manages the current in-session Exploratory Story for a
 journey without introducing durable Explorer archive persistence. `memory explore
-deactivate` is the Explorer-specific exit operation and returns the runtime to
-Mirror Mode semantics while preserving sticky journey context. Deactivation
-clears only the explicit active mode state; it does not erase sticky
-persona/journey defaults or rewrite conversation history.
+story open|thicken|snapshot <slug>` renders the first visible Explorer story
+surfaces. `memory explore deactivate` is the Explorer-specific exit operation and
+returns the runtime to Mirror Mode semantics while preserving sticky journey
+context. Deactivation clears only the explicit active mode state; it does not
+erase sticky persona/journey defaults or rewrite conversation history.
 
 `memory welcome --status-line` includes active mode context when present:
 

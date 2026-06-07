@@ -12,6 +12,12 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-06-06 — Story thickening surfaces added
+
+Added the first visible Explorer Story surfaces. `python -m memory explore story open|thicken|snapshot <journey>` now renders `△ EXPLORATORY STORY OPENED`, `△ STORY THICKENED`, and `△ NARRATIVE FIELD SNAPSHOT` while updating or reading the in-session Exploratory Story. CV16 was split so attractors and experiment proposals move to DS6, Builder handoff to DS7, and persistence/visibility to DS8.
+
+Validation: Explorer Story surface, service, and CLI tests passed; ruff checks passed for touched Explorer files; manual smoke confirmed open, thicken, snapshot, and cleanup behavior.
+
 ### 2026-06-06 — In-session Exploratory Story state added
 
 Added the first observable Explorer behavior after activation. `python -m memory explore story update|show|clear <journey>` now manages one current in-session Exploratory Story per journey using runtime state, and `explore load <journey>` includes that story context when present. DS4 deliberately avoids signal/radar modeling for now because the practical value is in the accumulated Exploratory Story itself.

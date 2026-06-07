@@ -71,19 +71,25 @@ While Explorer Mode is active:
 
 - Treat new substantive material as part of the current Exploratory Story unless the user asks for a clear operational action.
 - Preserve tensions, hypotheses, corrections, and emerging story shape.
-- When material changes the accumulated story, update the in-session story with:
+- When an Exploratory Story begins, open it with:
 
 ```bash
-uv run python -m memory explore story update <slug> --story "..." --summary "..." --last-card "..."
+uv run python -m memory explore story open <slug> --story "..." --summary "..." --last-card "..."
 ```
 
-- When the user asks what is currently being explored, inspect the story with:
+- When material changes the accumulated story, thicken it with:
 
 ```bash
-uv run python -m memory explore story show <slug>
+uv run python -m memory explore story thicken <slug> --story "..." --summary "..." --last-card "..." --changed "..."
 ```
 
-- Render `Story Thickened` when new material changes the accumulated story.
+- When the user asks what is currently being explored, render a snapshot with:
+
+```bash
+uv run python -m memory explore story snapshot <slug>
+```
+
+- Render the story surface returned by those commands visibly to the user.
 - Do not promote to Builder or Delivery without explicit user confirmation.
 
 ## 3. Deactivation
