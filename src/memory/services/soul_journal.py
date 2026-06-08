@@ -76,7 +76,9 @@ def _markdown_content(
     ]
 
     if conversation_id:
-        sections.append(f"## Origem\n\n[Conversa originária](mirror://conversation/{conversation_id})")
+        sections.append(
+            f"## Origem\n\n[Conversa originária](mirror://conversation/{conversation_id})"
+        )
 
     transcript = _format_transcript(messages)
     if transcript:
@@ -91,7 +93,13 @@ def _format_transcript(messages: list[Message], *, limit: int = 16) -> str:
     selected = messages[:limit]
     lines: list[str] = []
     for message in selected:
-        role = "User" if message.role == "user" else "Mirror" if message.role == "assistant" else message.role.title()
+        role = (
+            "User"
+            if message.role == "user"
+            else "Mirror"
+            if message.role == "assistant"
+            else message.role.title()
+        )
         content = message.content.strip()
         if not content:
             continue

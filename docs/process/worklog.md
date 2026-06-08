@@ -12,6 +12,12 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-06-08 — v0.24.0 Soul Mode First Ritual prepared
+
+Completed CV17 Soul Mode first ritual and prepared `v0.24.0`. The release adds explicit Soul Mode activation, living-field Possible Listenings, Self and Shadow listening lenses, Fruit In Maturation, Harvested Fruit with confirmation-only journal save, dynamic Self Voice prompt composition from `self/soul`, Soul-to-Builder operational boundary, and pre-release web refinements for Journal memories, formatted journal detail, conversation turn deletion, and top-level Conversations/Journeys navigation. Marked CV17.DS6 done and added release notes.
+
+Validation: `uv run pytest tests/unit/ -q`, `uv run pytest tests/integration/ -q`, `uv run ruff check src tests`, `uv run ruff format --check src tests`, `uv run python -m memory runtime release-notes latest`, `uv run python -m memory runtime release-notes v0.24.0`, and `git diff --check` passed before release promotion.
+
 ### 2026-06-08 — Journal memories open as formatted web detail
 
 Updated the web memory surface so Journal appears as its own pinned memory category, journal memory cards open object detail pages, and Markdown journal content renders with headings, blockquotes, lists, code blocks, and safe internal links instead of plain escaped text. This makes Soul Mode harvested-fruit journal records readable in the web app.

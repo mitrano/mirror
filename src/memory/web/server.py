@@ -751,7 +751,9 @@ class MirrorWebHandler(BaseHTTPRequestHandler):
             self._send_json({"error": str(exc)}, status=400)
             return
 
-        self._send_json({"deletedCount": len(deleted), "messageIds": deleted, "conversation": detail})
+        self._send_json(
+            {"deletedCount": len(deleted), "messageIds": deleted, "conversation": detail}
+        )
 
     def _preview_conversation_metadata_lifecycle(self) -> None:
         try:
@@ -820,7 +822,8 @@ class MirrorWebHandler(BaseHTTPRequestHandler):
                     "createdAt": message.created_at,
                     "tokenCount": message.token_count,
                     "turnId": turn_ids.get(message.id),
-                    "turnDeletable": message.role == "user" and turn_ids.get(message.id) is not None,
+                    "turnDeletable": message.role == "user"
+                    and turn_ids.get(message.id) is not None,
                 }
                 for message in messages
             ],

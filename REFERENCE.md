@@ -72,7 +72,12 @@ preserving journey context when one remains active.
 `memory mirror load` activates `◌ Mirror Mode`. `memory build load <slug>`
 activates `■ Builder Mode` for the selected journey. `memory soul load [slug]`
 activates `☾ Soul Mode` and renders the ritual entry surface without opening a
-rite or writing to the journal. `memory explore load <slug>` activates `△ Explorer Mode` for the selected journey and resumes the active
+rite or writing to the journal. `memory soul listen` renders situated Possible
+Listenings; `memory soul rite self|shadow` renders listening-lens surfaces;
+`memory soul fruit set|show|clear` manages one Fruit In Maturation; `memory soul
+harvest set|show|save|decline` closes and optionally saves one harvested fruit;
+and `memory soul prompt self` composes Self Voice with the user's `self/soul`
+identity layer. `memory explore load <slug>` activates `△ Explorer Mode` for the selected journey and resumes the active
 durable Exploratory Story when one exists. `memory explore story show|update|clear
 <slug>` manages the current Exploratory Story; `clear` archives the active story
 so it is no longer current but remains historical evidence. `memory explore story

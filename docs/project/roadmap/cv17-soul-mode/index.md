@@ -51,10 +51,10 @@ The promise is not that Mirror gives better advice. The promise is that Mirror c
 |------|----------------|---------|--------|
 | [CV17.DS1](cv17-ds1-soul-mode-activation-entry/index.md) | Soul Mode activation and entry surface | A user can explicitly enter Soul Mode for a journey or session and see the ritual entry surface | ✅ Done |
 | [CV17.DS2](cv17-ds2-living-field-possible-listenings/index.md) | Living field and possible listenings | Mirror can conduct the opening conversation, recognize enough living matter, and render situated Possible Listenings | ✅ Done |
-| [CV17.DS3](cv17-ds3-active-rite-minimal-voices/index.md) | Active rite and minimal voices | Choosing Self Voice or Shadow Voice immediately opens an active rite with a visible surface and guided conversational behavior | ✅ Done |
+| [CV17.DS3](cv17-ds3-active-rite-minimal-voices/index.md) | Active listening lenses and minimal voices | Choosing Self Voice or Shadow Voice renders a listening surface with what the voice says and a Mirror bridge back to the conversation | ✅ Done |
 | [CV17.DS4](cv17-ds4-fruit-in-maturation/index.md) | Fruit in maturation | Soul Mode maintains one fruit in session state and can thicken it across user turns without writing to the journal | ✅ Done |
 | [CV17.DS5](cv17-ds5-harvest-journal-record/index.md) | Harvest and journal record | The user can harvest the matured fruit and optionally save exactly one journal entry | ✅ Done |
-| [CV17.DS6](cv17-ds6-release-feedback-runway/index.md) | Pre-release usage adjustments, packaging, and feedback runway | The first Soul Mode release is tuned from real Pi usage, documented, validated, and leaves Wisdom, Beauty, Passagem, and richer curation for feedback-driven expansion | 🟢 In Progress |
+| [CV17.DS6](cv17-ds6-release-feedback-runway/index.md) | Pre-release usage adjustments, packaging, and feedback runway | The first Soul Mode release is tuned from real Pi usage, documented, validated, and leaves Wisdom, Beauty, Passagem, and richer curation for feedback-driven expansion | ✅ Done |
 
 The sequencing follows the product grammar discovered in exploration. Entry comes before detection. Possible Listenings come before active rites. Active rites come before fruit state. Fruit state comes before journal persistence. Release packaging closes the first usable slice without pretending to complete the full Soul Mode ecosystem.
 

@@ -121,7 +121,9 @@ def test_atlas_home_pins_journal_memory_category_when_not_top_ranked(
         tasks=task_service,
     )
 
-    memories_region = next(region for region in surfaces.atlas_home().regions if region.id == "memories")
+    memories_region = next(
+        region for region in surfaces.atlas_home().regions if region.id == "memories"
+    )
     cards = {card.title: card for card in memories_region.cards}
 
     assert "Journal" in cards

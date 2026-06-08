@@ -12,6 +12,7 @@ Future release notes should use the structure defined in [Release Notes](../proc
 
 ## Releases
 
+- [v0.24.0 — Soul Mode First Ritual](v0.24.0.md) — minor release that adds the first complete Soul Mode ritual: entry, Possible Listenings, Self and Shadow listening lenses, Fruit In Maturation, Harvested Fruit, journal persistence, and pre-release web/journal refinements.
 - [v0.23.0 — Durable Explorer Mode](v0.23.0.md) — minor release that completes the first Explorer Mode release with durable stories, source-evidence handoff artifacts, required surface rendering, Builder boundary routing, and session-scoped Pi mode status.
 - [v0.22.1 — Mode Orientation CI Formatting](v0.22.1.md) — validation patch that preserves v0.22.0 behavior and restores green CI formatting.
 - [v0.22.0 — Mode Orientation and Test Hygiene](v0.22.0.md) — minor release that adds explicit mode lifecycle, status-line orientation, transition surfaces, experimental Explorer activation, and `/mm-discard` for test-session cleanup.

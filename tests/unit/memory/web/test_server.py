@@ -1207,9 +1207,13 @@ def test_conversation_delete_turn_api_deletes_user_and_following_assistant(tmp_p
     with MemoryClient(db_path=db_path) as mem:
         conversation = mem.conversations.start_conversation(interface="pi", title="Turn pruning")
         first_user = mem.conversations.add_message(conversation.id, "user", "Remove this question")
-        first_assistant = mem.conversations.add_message(conversation.id, "assistant", "Remove this answer")
+        first_assistant = mem.conversations.add_message(
+            conversation.id, "assistant", "Remove this answer"
+        )
         kept_user = mem.conversations.add_message(conversation.id, "user", "Keep this question")
-        kept_assistant = mem.conversations.add_message(conversation.id, "assistant", "Keep this answer")
+        kept_assistant = mem.conversations.add_message(
+            conversation.id, "assistant", "Keep this answer"
+        )
 
     server = WebTestServer(root=make_docs_root(tmp_path), mirror_home=mirror_home, db_path=db_path)
     try:

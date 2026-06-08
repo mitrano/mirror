@@ -7,7 +7,6 @@ import sys
 
 from memory.client import MemoryClient
 from memory.services.operating_mode import activate_mode, resolve_operating_session_id
-from memory.services.soul_journal import compose_soul_harvest_journal
 from memory.services.soul import (
     clear_fruit_in_maturation,
     clear_harvested_fruit,
@@ -17,6 +16,7 @@ from memory.services.soul import (
     resolve_soul_session_id,
     set_fruit_in_maturation,
 )
+from memory.services.soul_journal import compose_soul_harvest_journal
 from memory.services.soul_prompt import compose_soul_self_voice_prompt
 from memory.skills.mirror import _persist_global_sticky_defaults
 from memory.surfaces.mode_transition import render_soul_mode_transition
@@ -179,7 +179,9 @@ def cmd_prompt(voice: str) -> None:
 
 
 def _resolve_cli_soul_session_id(mem: MemoryClient, session_id: str | None) -> str:
-    return resolve_operating_session_id(mem.store, session_id) or resolve_soul_session_id(session_id)
+    return resolve_operating_session_id(mem.store, session_id) or resolve_soul_session_id(
+        session_id
+    )
 
 
 def _conversation_id_for_session(mem: MemoryClient, session_id: str) -> str | None:

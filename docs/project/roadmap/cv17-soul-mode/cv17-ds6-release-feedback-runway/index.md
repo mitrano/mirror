@@ -2,7 +2,7 @@
 
 # CV17.DS6 — Pre-release Usage Adjustments, Packaging, And Feedback Runway
 
-**Status:** 🟢 In Progress
+**Status:** ✅ Done
 
 **Placement:** CV17 first-release closeout story
 
