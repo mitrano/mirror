@@ -2,6 +2,8 @@
 
 import json
 
+import numpy as np
+
 from memory import MemoryClient
 from memory.cli import soul
 from memory.config import default_db_path_for_home
@@ -233,6 +235,9 @@ def test_soul_harvest_save_creates_one_journal_entry(mocker, tmp_path, capsys):
     mirror_home = tmp_path / ".mirror" / "alisson-vale"
     mem = MemoryClient(db_path=default_db_path_for_home(mirror_home))
     mocker.patch("memory.cli.soul.MemoryClient", return_value=mem)
+    mocker.patch(
+        "memory.services.memory.generate_embedding", return_value=np.array([0.0, 0.1, 0.2])
+    )
 
     soul.cmd_harvest("set", "A final fruit.")
     capsys.readouterr()
@@ -272,6 +277,9 @@ def test_soul_harvest_save_links_active_runtime_conversation(mocker, tmp_path, c
     mirror_home = tmp_path / ".mirror" / "alisson-vale"
     mem = MemoryClient(db_path=default_db_path_for_home(mirror_home))
     mocker.patch("memory.cli.soul.MemoryClient", return_value=mem)
+    mocker.patch(
+        "memory.services.memory.generate_embedding", return_value=np.array([0.0, 0.1, 0.2])
+    )
     conv = mem.store.create_conversation(
         Conversation(id="conv-1", interface="pi", title="Soul conversation")
     )
