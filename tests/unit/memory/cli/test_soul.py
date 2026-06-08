@@ -242,7 +242,8 @@ def test_soul_harvest_save_creates_one_journal_entry(mocker, tmp_path, capsys):
     assert "Harvest saved to journal." in out
     entries = mem.get_by_type("journal")
     assert len(entries) == 1
-    assert entries[0].content.startswith("# A final fruit\n")
+    assert not entries[0].content.startswith("# A final fruit\n")
+    assert entries[0].content.startswith("Esta entrada nasceu de uma colheita")
     assert "## Fruto" in entries[0].content
     assert "> A final fruit." in entries[0].content
     assert entries[0].title == "A final fruit"

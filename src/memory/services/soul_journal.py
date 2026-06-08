@@ -34,7 +34,6 @@ def compose_soul_harvest_journal(
 
     title = _title_from_fruit(normalized_fruit)
     content = _markdown_content(
-        title=title,
         fruit=normalized_fruit,
         conversation_id=conversation_id,
         messages=messages or [],
@@ -67,13 +66,11 @@ def _title_from_fruit(fruit: str) -> str:
 
 def _markdown_content(
     *,
-    title: str,
     fruit: str,
     conversation_id: str | None,
     messages: list[Message],
 ) -> str:
     sections = [
-        f"# {title}",
         "Esta entrada nasceu de uma colheita em Soul Mode.",
         "## Fruto\n\n" + _blockquote(fruit),
     ]
