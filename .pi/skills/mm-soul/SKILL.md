@@ -126,15 +126,17 @@ Local refinements to the ritual experience, such as discussing microcopy,
 thresholds, voice behavior, icons, or flow, remain conversational unless the user
 explicitly asks to preserve or implement them in the codebase.
 
-## 4. Active Rite: Self Voice And Shadow Voice
+## 4. Active Rite: Soul Mode Voices
 
-When Possible Listenings are visible and the user chooses Self Voice or Shadow
-Voice in natural language, render the listening surface before the interpretive
-bridge:
+When Possible Listenings are visible and the user chooses Self Voice, Shadow
+Voice, Wisdom Voice, or Beauty Voice in natural language, render the listening
+surface before the interpretive bridge:
 
 ```bash
 uv run python -m memory soul rite self
 uv run python -m memory soul rite shadow
+uv run python -m memory soul rite wisdom
+uv run python -m memory soul rite beauty
 ```
 
 You may pass situated listening copy when it improves continuity:
@@ -169,10 +171,29 @@ governance. The Shadow response inside the card should reveal the protection or 
 inside the rejected part, not justify it. After the card, Mirror bridges the
 voice response back to the conversation.
 
-Wisdom Voice and Beauty Voice may appear as Possible Listenings, but they do not
-open active rites in this first release slice. If the user chooses one of them,
-acknowledge the boundary and invite Self Voice, Shadow Voice, or continued
-conversation.
+For Wisdom Voice, use the canonical prompt as the voice contract:
+
+```bash
+uv run python -m memory soul prompt wisdom
+```
+
+The prompt is grammar, not text to quote. Wisdom Voice listens for the
+discernment already present in the user's material: the pattern, lesson, old
+repetition, mature distinction, simple truth, or clarity trying to emerge. It
+must not become generic advice, prescribe next steps, or tell the user what to
+do.
+
+For Beauty Voice, use the canonical prompt as the voice contract:
+
+```bash
+uv run python -m memory soul prompt beauty
+```
+
+The prompt is grammar, not text to quote. Beauty Voice listens for the form of
+aliveness still present in the user's material: texture, delicacy, care, meaning,
+body, image, rhythm, or the place where life still breathes. It must not force
+positivity, minimize pain, decorate the user's material, or tell the user what to
+do.
 
 ## 5. Fruit In Maturation
 

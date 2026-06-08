@@ -2,7 +2,7 @@
 
 # CV18 — Soul Mode More Voices
 
-**Status:** 🟡 Planned
+**Status:** 🟢 In Progress
 
 **Previous release:** [CV17 — Soul Mode](../cv17-soul-mode/index.md)
 
@@ -40,8 +40,8 @@ The promise is not that Mirror gives better advice. The promise is that Mirror c
 
 | Code | Delivery Story | Outcome | Status |
 |------|----------------|---------|--------|
-| [CV18.DS1](cv18-ds1-wisdom-voice/index.md) | Wisdom Voice | A user can hear Wisdom Voice inside Soul Mode as a real listening lens | 🟡 Planned |
-| [CV18.DS2](cv18-ds2-beauty-voice/index.md) | Beauty Voice | A user can hear Beauty Voice inside Soul Mode as a real listening lens | 🟡 Planned |
+| [CV18.DS1](cv18-ds1-wisdom-voice/index.md) | Wisdom Voice | A user can hear Wisdom Voice inside Soul Mode as a real listening lens | 🟢 Implemented · awaiting Pi validation |
+| [CV18.DS2](cv18-ds2-beauty-voice/index.md) | Beauty Voice | A user can hear Beauty Voice inside Soul Mode as a real listening lens | 🟢 Implemented · awaiting Pi validation |
 | [CV18.DS3](cv18-ds3-refinements-pre-release/index.md) | Refinements Pre-Release | Real use of the expanded voice constellation is tuned before publication | 🟡 Planned |
 | [CV18.DS4](cv18-ds4-release-packaging/index.md) | Release Packaging | v0.25.0 is documented, validated, tagged, and published | 🟡 Planned |
 

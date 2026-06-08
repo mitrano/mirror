@@ -2,7 +2,11 @@
 
 from memory import MemoryClient
 from memory.config import default_db_path_for_home
-from memory.services.soul_prompt import compose_soul_self_voice_prompt
+from memory.services.soul_prompt import (
+    compose_soul_beauty_voice_prompt,
+    compose_soul_self_voice_prompt,
+    compose_soul_wisdom_voice_prompt,
+)
 
 
 def _mem(tmp_path):
@@ -33,3 +37,21 @@ def test_self_voice_prompt_uses_fallback_when_identity_is_missing(tmp_path):
 
     assert "No user Self identity layer is available yet" in prompt
     assert "{user_self_identity}" not in prompt
+
+
+def test_wisdom_voice_prompt_is_canonical():
+    prompt = compose_soul_wisdom_voice_prompt()
+
+    assert "# Soul Mode — Wisdom Voice Prompt" in prompt
+    assert "discernment already present" in prompt
+    assert "must not" in prompt
+    assert "recommend a next step" in prompt
+
+
+def test_beauty_voice_prompt_is_canonical():
+    prompt = compose_soul_beauty_voice_prompt()
+
+    assert "# Soul Mode — Beauty Voice Prompt" in prompt
+    assert "form of aliveness" in prompt
+    assert "must not" in prompt
+    assert "force positivity" in prompt

@@ -91,7 +91,7 @@ def test_soul_listen_renders_possible_listenings(capsys):
     assert "recognize the principle" in out
     assert "◐ Shadow Voice" in out
     assert "listen to the part" in out
-    assert "☉ Wisdom Voice" in out
+    assert "♢ Wisdom Voice" in out
     assert "be crossed by an idea" in out
     assert "Say if you want to hear one of" in out
     assert "or just continue the" in out
@@ -132,9 +132,27 @@ def test_soul_rite_renders_shadow_voice(capsys):
     assert "the protection inside control" in out
 
 
+def test_soul_rite_renders_wisdom_voice(capsys):
+    soul.cmd_rite("wisdom")
+
+    out = capsys.readouterr().out
+    assert "♢  WISDOM VOICE LISTENING" in out
+    assert "this already knows the difference" in out
+    assert "the lesson already present" in out
+
+
+def test_soul_rite_renders_beauty_voice(capsys):
+    soul.cmd_rite("beauty")
+
+    out = capsys.readouterr().out
+    assert "✺  BEAUTY VOICE LISTENING" in out
+    assert "there is still care in the way" in out
+    assert "the form of aliveness" in out
+
+
 def test_soul_rite_rejects_unsupported_voice(capsys):
     try:
-        soul.cmd_rite("wisdom")
+        soul.cmd_rite("unknown")
     except SystemExit as exc:
         assert exc.code == 1
     else:  # pragma: no cover
@@ -353,3 +371,23 @@ def test_soul_prompt_self_renders_composed_prompt(mocker, tmp_path, capsys):
     assert "# Soul Mode — Self Voice Prompt" in out
     assert "Diante da urgência, não acelero" in out
     assert "{user_self_identity}" not in out
+
+
+def test_soul_prompt_wisdom_renders_canonical_prompt(capsys):
+    soul.cmd_prompt("wisdom")
+
+    out = capsys.readouterr().out
+    assert "# Soul Mode — Wisdom Voice Prompt" in out
+    assert "discernment already present" in out
+    assert "must not" in out
+    assert "recommend a next step" in out
+
+
+def test_soul_prompt_beauty_renders_canonical_prompt(capsys):
+    soul.cmd_prompt("beauty")
+
+    out = capsys.readouterr().out
+    assert "# Soul Mode — Beauty Voice Prompt" in out
+    assert "form of aliveness" in out
+    assert "must not" in out
+    assert "force positivity" in out

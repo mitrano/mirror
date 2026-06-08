@@ -14,7 +14,17 @@ SELF_IDENTITY_UNAVAILABLE = (
 
 def load_soul_self_voice_template() -> str:
     """Load the packaged Self Voice prompt template."""
-    return files("memory.prompts").joinpath("soul_self_voice.md").read_text(encoding="utf-8")
+    return _load_prompt("soul_self_voice.md")
+
+
+def load_soul_wisdom_voice_template() -> str:
+    """Load the packaged Wisdom Voice prompt template."""
+    return _load_prompt("soul_wisdom_voice.md")
+
+
+def load_soul_beauty_voice_template() -> str:
+    """Load the packaged Beauty Voice prompt template."""
+    return _load_prompt("soul_beauty_voice.md")
 
 
 def compose_soul_self_voice_prompt(mem: MemoryClient) -> str:
@@ -27,3 +37,17 @@ def compose_soul_self_voice_prompt(mem: MemoryClient) -> str:
         else SELF_IDENTITY_UNAVAILABLE
     )
     return template.replace(SELF_IDENTITY_PLACEHOLDER, injected_identity)
+
+
+def compose_soul_wisdom_voice_prompt() -> str:
+    """Compose Wisdom Voice prompt."""
+    return load_soul_wisdom_voice_template()
+
+
+def compose_soul_beauty_voice_prompt() -> str:
+    """Compose Beauty Voice prompt."""
+    return load_soul_beauty_voice_template()
+
+
+def _load_prompt(filename: str) -> str:
+    return files("memory.prompts").joinpath(filename).read_text(encoding="utf-8")

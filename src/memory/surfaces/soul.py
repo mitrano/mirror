@@ -9,8 +9,8 @@ WIDTH = 40
 VOICE_ICONS = {
     "self": "✦",
     "shadow": "◐",
-    "wisdom": "☉",
-    "beauty": "❀",
+    "wisdom": "♢",
+    "beauty": "✺",
 }
 
 VOICE_LABELS = {
@@ -30,6 +30,16 @@ ACTIVE_RITE_DEFAULTS = {
         "title": "SHADOW VOICE LISTENING",
         "utterance": "if they depend on me, they cannot forget me",
         "listening_for": "the protection inside control",
+    },
+    "wisdom": {
+        "title": "WISDOM VOICE LISTENING",
+        "utterance": "this already knows the difference between urgency and truth",
+        "listening_for": "the lesson already present",
+    },
+    "beauty": {
+        "title": "BEAUTY VOICE LISTENING",
+        "utterance": "there is still care in the way this hurts",
+        "listening_for": "the form of aliveness",
     },
 }
 

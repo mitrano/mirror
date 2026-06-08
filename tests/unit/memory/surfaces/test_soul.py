@@ -39,9 +39,9 @@ def test_possible_listenings_renders_situated_voice_options():
     assert "recognize the principle" in rendered
     assert "◐ Shadow Voice" in rendered
     assert "listen to the part" in rendered
-    assert "☉ Wisdom Voice" in rendered
+    assert "♢ Wisdom Voice" in rendered
     assert "be crossed by an idea" in rendered
-    assert "❀ Beauty Voice" in rendered
+    assert "✺ Beauty Voice" in rendered
     assert "let beauty open presence" in rendered
     assert "Say if you want to hear one of" in rendered
     assert "or just continue the" in rendered
@@ -114,9 +114,27 @@ def test_active_rite_preserves_paragraph_breaks_in_voice_response():
     assert "│                                        │" in rendered
 
 
+def test_active_rite_renders_wisdom_voice_defaults():
+    rendered = render_active_rite("wisdom")
+
+    assert "♢  WISDOM VOICE LISTENING" in rendered
+    assert "this already knows the difference" in rendered
+    assert "between urgency and truth" in rendered
+    assert "the lesson already present" in rendered
+
+
+def test_active_rite_renders_beauty_voice_defaults():
+    rendered = render_active_rite("beauty")
+
+    assert "✺  BEAUTY VOICE LISTENING" in rendered
+    assert "there is still care in the way this" in rendered
+    assert "hurts" in rendered
+    assert "the form of aliveness" in rendered
+
+
 def test_active_rite_rejects_unsupported_voice():
     with pytest.raises(ValueError, match="unsupported active rite voice"):
-        render_active_rite("wisdom")
+        render_active_rite("unknown")
 
 
 def test_fruit_in_maturation_renders_provisional_fruit():

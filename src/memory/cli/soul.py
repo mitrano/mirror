@@ -17,7 +17,11 @@ from memory.services.soul import (
     set_fruit_in_maturation,
 )
 from memory.services.soul_journal import compose_soul_harvest_journal
-from memory.services.soul_prompt import compose_soul_self_voice_prompt
+from memory.services.soul_prompt import (
+    compose_soul_beauty_voice_prompt,
+    compose_soul_self_voice_prompt,
+    compose_soul_wisdom_voice_prompt,
+)
 from memory.skills.mirror import _persist_global_sticky_defaults
 from memory.surfaces.mode_transition import render_soul_mode_transition
 from memory.surfaces.soul import (
@@ -171,11 +175,16 @@ def cmd_harvest(
 
 
 def cmd_prompt(voice: str) -> None:
-    if voice != "self":
+    if voice == "self":
+        mem = MemoryClient()
+        print(compose_soul_self_voice_prompt(mem))
+    elif voice == "wisdom":
+        print(compose_soul_wisdom_voice_prompt())
+    elif voice == "beauty":
+        print(compose_soul_beauty_voice_prompt())
+    else:
         print(f"Error: unsupported Soul Mode prompt voice: {voice}", file=sys.stderr)
         sys.exit(1)
-    mem = MemoryClient()
-    print(compose_soul_self_voice_prompt(mem))
 
 
 def _resolve_cli_soul_session_id(mem: MemoryClient, session_id: str | None) -> str:
@@ -229,7 +238,11 @@ def main(argv: list[str] | None = None) -> None:
     p_listen.add_argument("--beauty", dest="beauty_description", default=None)
 
     p_rite = sub.add_parser("rite", help="Render an active Soul Mode rite")
-    p_rite.add_argument("voice", choices=["self", "shadow"], help="Rite voice to activate")
+    p_rite.add_argument(
+        "voice",
+        choices=["self", "shadow", "wisdom", "beauty"],
+        help="Rite voice to activate",
+    )
     p_rite.add_argument("--says", dest="utterance", default=None, help="What the voice says")
     p_rite.add_argument("--listening-for", default=None, help="Situated listening focus")
     p_rite.add_argument("--question", default=None, help="Legacy alias for --says")
@@ -260,6 +273,8 @@ def main(argv: list[str] | None = None) -> None:
     p_prompt = sub.add_parser("prompt", help="Render composed Soul Mode voice prompts")
     prompt_sub = p_prompt.add_subparsers(dest="prompt_voice", required=True)
     prompt_sub.add_parser("self", help="Render Self Voice prompt with user Self identity")
+    prompt_sub.add_parser("wisdom", help="Render Wisdom Voice prompt")
+    prompt_sub.add_parser("beauty", help="Render Beauty Voice prompt")
 
     args = parser.parse_args(argv)
 
