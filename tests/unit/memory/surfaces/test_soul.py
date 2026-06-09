@@ -72,8 +72,8 @@ def test_active_rite_renders_self_voice_defaults():
     assert "the voice says" in rendered
     assert "usefulness can remain a gift" in rendered
     assert "when it stops being payment for" in rendered
-    assert "listening for" in rendered
-    assert "what remains true without proof" in rendered
+    assert "listening for" not in rendered
+    assert "what remains true without proof" not in rendered
     assert "FRUIT IN MATURATION" not in rendered
 
 
@@ -83,7 +83,7 @@ def test_active_rite_renders_shadow_voice_defaults():
     assert "◐  SHADOW VOICE LISTENING" in rendered
     assert "if they depend on me, they cannot" in rendered
     assert "forget me" in rendered
-    assert "the protection inside control" in rendered
+    assert "the protection inside control" not in rendered
     assert "HARVESTED FRUIT" not in rendered
 
 
@@ -95,7 +95,7 @@ def test_active_rite_renders_custom_utterance_and_focus():
     )
 
     assert "silence is not exile" in rendered
-    assert "the fact before the fear" in rendered
+    assert "the fact before the fear" not in rendered
 
 
 def test_active_rite_preserves_paragraph_breaks_in_voice_response():

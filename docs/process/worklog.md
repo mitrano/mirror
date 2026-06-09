@@ -14,9 +14,9 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ### 2026-06-08 — CV19.DS1 Closing Rite implemented
 
-Implemented the Soul Mode Closing Rite. `memory soul close` now renders a `☾ CLOSING RITE` card with optional sections for what was harvested, what still echoes, what remains open, and what may want integration. The renderer rejects empty closing cards, preserves paragraph breaks, normalizes escaped newlines, and does not save journal entries or mutate identity. The Pi Soul Mode skill now routes natural closing requests to the contained renderer and preserves the boundary that closing is not integration.
+Implemented the Soul Mode Closing Rite. `memory soul close` now renders a `☾ CLOSING RITE` card with optional sections for what was harvested, what still echoes, what remains open, and what may want integration. The renderer rejects empty closing cards, preserves paragraph breaks, normalizes escaped newlines, and does not save journal entries or mutate identity. The Pi Soul Mode skill now routes natural closing requests to the contained renderer and preserves the boundary that closing is not integration. During validation, the Self Voice contract was tightened to reject one-line aphorisms, and `listening for` was removed from all active voice cards so every voice lives under `the voice says`.
 
-Validation: `uv run pytest tests/unit/memory/cli/test_soul.py tests/unit/memory/surfaces/test_soul.py -q`, `uv run ruff check src tests`, `uv run ruff format --check src tests`, `git diff --check`, and CLI smoke for `memory soul close` passed.
+Validation: `uv run pytest tests/unit/memory/cli/test_soul.py tests/unit/memory/services/test_soul_prompt.py tests/unit/memory/surfaces/test_soul.py -q`, `uv run ruff check src tests`, `uv run ruff format --check src tests`, `git diff --check`, CLI smoke for `memory soul close`, and CLI smoke for Self/Shadow cards without `listening for` passed.
 
 ### 2026-06-08 — CV19 Soul Mode Integration opened
 

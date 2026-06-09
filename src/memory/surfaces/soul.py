@@ -166,11 +166,8 @@ def render_active_rite(
     if voice in {"wisdom", "beauty"} and not utterance:
         raise ValueError(f"{VOICE_LABELS[voice]} requires a situated --says response")
     voice_says = _normalize_voice_text(utterance or defaults["utterance"])
-    focus = (listening_for or defaults["listening_for"]).strip()
     if not voice_says:
         raise ValueError("active rite voice utterance must not be empty")
-    if not focus:
-        raise ValueError("active rite listening focus must not be empty")
 
     icon = VOICE_ICONS[voice]
     lines = [
@@ -183,10 +180,6 @@ def render_active_rite(
     ]
     for wrapped in _wrap_blocks(voice_says, indent="   "):
         lines.append(_line(wrapped))
-    if voice not in {"wisdom", "beauty"}:
-        lines.extend([_line(""), _line("   listening for")])
-        for wrapped in _wrap(focus, indent="   "):
-            lines.append(_line(wrapped))
     lines.append("╰" + "─" * WIDTH + "╯")
     return "\n".join(lines)
 

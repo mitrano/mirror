@@ -118,7 +118,7 @@ def test_soul_rite_renders_self_voice(capsys):
     assert "✦  SELF VOICE LISTENING" in out
     assert "the voice says" in out
     assert "usefulness can remain a gift" in out
-    assert "what remains true without proof" in out
+    assert "what remains true without proof" not in out
     assert "FRUIT IN MATURATION" not in out
     assert "HARVESTED FRUIT" not in out
 
@@ -129,7 +129,7 @@ def test_soul_rite_renders_shadow_voice(capsys):
     out = capsys.readouterr().out
     assert "◐  SHADOW VOICE LISTENING" in out
     assert "if they depend on me" in out
-    assert "the protection inside control" in out
+    assert "the protection inside control" not in out
 
 
 def test_soul_rite_renders_wisdom_voice_without_listening_for(capsys):
@@ -442,6 +442,7 @@ def test_soul_prompt_self_renders_composed_prompt(mocker, tmp_path, capsys):
     out = capsys.readouterr().out
     assert "# Soul Mode — Self Voice Prompt" in out
     assert "Diante da urgência, não acelero" in out
+    assert "A one-line aphorism is too thin" in out
     assert "{user_self_identity}" not in out
 
 
