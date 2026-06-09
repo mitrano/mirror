@@ -35,6 +35,7 @@ folder and index. Stories that are non-trivial have a `plan.md` and a
 | [CV16](cv16-explorer-mode/index.md) | Explorer Mode | ✅ Done |
 | [CV17](cv17-soul-mode/index.md) | Soul Mode | ✅ First Ritual Done |
 | [CV18](cv18-soul-mode-more-voices/index.md) | Soul Mode More Voices | ✅ Done |
+| [CV19](cv19-soul-mode-integration/index.md) | Soul Mode Integration | 🟡 Planned |
 
 ---
 
@@ -81,6 +82,10 @@ First ritual done. CV17 turns the Soul Mode exploration into the first usable ri
 ## CV18 — Soul Mode More Voices
 
 Done. CV18 expands Soul Mode from the first ritual into a fuller listening constellation by making Wisdom Voice and Beauty Voice hearable inside the ritual flow. DS3 refinements were cancelled because the required tuning happened inside DS1/DS2 validation, and DS4 packaged `v0.25.0 — Soul Mode More Voices`. See the [CV18 index](cv18-soul-mode-more-voices/index.md).
+
+## CV19 — Soul Mode Integration
+
+Planned. CV19 turns Soul Mode from a ritual that can produce insight into a ritual that can close cleanly and ask what deserves to remain. It starts with Closing Rite, then moves through integration review, psyche enrichment proposals, confirmed mutation, and release packaging for `v0.26.0 — Soul Mode Integration`. See the [CV19 index](cv19-soul-mode-integration/index.md).
 
 ## CV11 — Localization
 
