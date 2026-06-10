@@ -24,6 +24,12 @@ Reworked confirmed Soul identity apply so integration no longer overwrites promp
 
 Validation: `uv run pytest tests/unit/memory/cli/test_soul.py tests/unit/memory/services/test_soul.py -q`, focused `uv run ruff check`, focused `uv run ruff format --check`, and targeted `git diff --check` passed.
 
+### 2026-06-08 — CV20 Builder method definition model added
+
+Opened CV20 Builder Mode Evolution from the Ariad Builder DSL handoff and implemented CV20.DS1.TS1 Method Definition Model. Builder now has internal typed method-definition structures for method metadata, resolution layers, taxonomy, lifecycle events, checkpoints, policies, surfaces, and open questions, plus structural validation for duplicate ids and invalid references. This is model-only substrate: no Ariad fixture, parser, adoption command, runtime persistence, CLI inspection, or Builder load behavior changed.
+
+Validation: `uv run pytest tests/unit/memory/builder/test_method_definition.py`, focused `uv run ruff check`, focused `uv run ruff format --check`, and `uv run mypy src/memory/builder` passed. Full-project `uv run mypy src/memory` was attempted and failed on pre-existing unrelated errors outside the Builder package.
+
 ### 2026-06-08 — Soul Self integration language made affirmative
 
 Tightened Soul integration proposal guidance for Self material. Self proposals must be affirmative first-person principles adopted as practice, not possibility language. The contract now explicitly avoids `posso`, `pode`, `talvez`, or `precisa` as the center of the Self statement, preferring language such as `Cuido de vínculos sem transformar disponibilidade imediata em prova moral de amor; minha medida interna também pertence ao cuidado.`

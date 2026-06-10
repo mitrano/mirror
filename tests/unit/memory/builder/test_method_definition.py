@@ -1,0 +1,181 @@
+import pytest
+
+from memory.builder.method_definition import (
+    CheckpointDefinition,
+    DslResolution,
+    LifecycleEvent,
+    MethodDefinition,
+    MethodDefinitionError,
+    SurfaceDefinition,
+    Taxonomy,
+    TaxonomyLevel,
+    validate_method_definition,
+)
+
+
+def _valid_definition() -> MethodDefinition:
+    return MethodDefinition(
+        id="ariad",
+        label="Ariad",
+        resolution=DslResolution(
+            layers=("method_default", "project_config", "journey_config"),
+            conflict_policy="explicit_override",
+            audit=True,
+        ),
+        taxonomy=Taxonomy(
+            state_vocabulary=("Planned", "Active", "Done"),
+            levels=(
+                TaxonomyLevel(
+                    id="delivery_story",
+                    label="Delivery Story",
+                    contains=("user_story",),
+                    allowed_states=("Planned", "Active", "Done"),
+                    state_semantics={"Done": "delivery arc closed"},
+                ),
+                TaxonomyLevel(
+                    id="user_story",
+                    label="User Story",
+                    contains=(),
+                    allowed_states=("Planned", "Active", "Done"),
+                    state_semantics={"Done": "observable behavior closed"},
+                ),
+            ),
+        ),
+        lifecycle=(
+            LifecycleEvent(id="pull", meaning="escolhe o foco"),
+            LifecycleEvent(id="plan", meaning="firma o contrato"),
+            LifecycleEvent(id="implement", meaning="muda o sistema"),
+        ),
+        checkpoints=(
+            CheckpointDefinition(
+                id="after_plan",
+                occurs_after="plan",
+                blocks=("implement",),
+                required_artifacts=("plan",),
+                required_confirmations=("navigator_approval",),
+            ),
+        ),
+        policies={"history": {"commit": {"mode": "propose_and_wait"}}},
+        surfaces=(
+            SurfaceDefinition(id="plan_checkpoint", event="plan", stops_for="navigator_approval"),
+        ),
+        open_questions={"maintenance": "model later"},
+    )
+
+
+def test_accepts_minimal_valid_method_definition() -> None:
+    definition = _valid_definition()
+
+    validate_method_definition(definition)
+
+    assert definition.id == "ariad"
+    assert definition.lifecycle_ids == {"pull", "plan", "implement"}
+    assert definition.taxonomy.level_ids == {"delivery_story", "user_story"}
+
+
+def test_rejects_empty_method_id() -> None:
+    definition = _valid_definition().replace(id=" ")
+
+    with pytest.raises(MethodDefinitionError, match="method id"):
+        validate_method_definition(definition)
+
+
+def test_rejects_duplicate_taxonomy_level_ids() -> None:
+    definition = _valid_definition().replace(
+        taxonomy=Taxonomy(
+            state_vocabulary=("Planned", "Active", "Done"),
+            levels=(
+                TaxonomyLevel(id="user_story", label="User Story"),
+                TaxonomyLevel(id="user_story", label="Duplicate User Story"),
+            ),
+        )
+    )
+
+    with pytest.raises(MethodDefinitionError, match="duplicate taxonomy level"):
+        validate_method_definition(definition)
+
+
+def test_rejects_duplicate_lifecycle_event_ids() -> None:
+    definition = _valid_definition().replace(
+        lifecycle=(
+            LifecycleEvent(id="pull", meaning="escolhe o foco"),
+            LifecycleEvent(id="pull", meaning="duplicate"),
+        )
+    )
+
+    with pytest.raises(MethodDefinitionError, match="duplicate lifecycle event"):
+        validate_method_definition(definition)
+
+
+def test_rejects_lifecycle_event_without_meaning() -> None:
+    definition = _valid_definition().replace(lifecycle=(LifecycleEvent(id="pull", meaning=" "),))
+
+    with pytest.raises(MethodDefinitionError, match="meaning"):
+        validate_method_definition(definition)
+
+
+def test_rejects_checkpoint_references_to_unknown_events() -> None:
+    definition = _valid_definition().replace(
+        checkpoints=(
+            CheckpointDefinition(id="after_plan", occurs_after="plan", blocks=("deploy",)),
+        )
+    )
+
+    with pytest.raises(MethodDefinitionError, match="unknown lifecycle event"):
+        validate_method_definition(definition)
+
+
+def test_rejects_taxonomy_child_references_to_unknown_levels() -> None:
+    definition = _valid_definition().replace(
+        taxonomy=Taxonomy(
+            state_vocabulary=("Planned", "Done"),
+            levels=(
+                TaxonomyLevel(
+                    id="delivery_story",
+                    label="Delivery Story",
+                    contains=("unknown_story",),
+                    allowed_states=("Planned", "Done"),
+                ),
+            ),
+        )
+    )
+
+    with pytest.raises(MethodDefinitionError, match="unknown taxonomy level"):
+        validate_method_definition(definition)
+
+
+def test_rejects_state_semantics_for_disallowed_states() -> None:
+    definition = _valid_definition().replace(
+        taxonomy=Taxonomy(
+            state_vocabulary=("Planned", "Done"),
+            levels=(
+                TaxonomyLevel(
+                    id="user_story",
+                    label="User Story",
+                    allowed_states=("Planned",),
+                    state_semantics={"Done": "closed"},
+                ),
+            ),
+        )
+    )
+
+    with pytest.raises(MethodDefinitionError, match="state semantics"):
+        validate_method_definition(definition)
+
+
+def test_preserves_generic_policy_payloads_without_ariad_specific_code() -> None:
+    definition = _valid_definition().replace(
+        policies={
+            "custom_method_policy": {
+                "nested": {"values": ["kept", "as", "data"]},
+            }
+        }
+    )
+
+    validate_method_definition(definition)
+
+    assert definition.policies["custom_method_policy"]["nested"]["values"] == [
+        "kept",
+        "as",
+        "data",
+    ]

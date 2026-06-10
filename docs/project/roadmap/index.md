@@ -36,6 +36,7 @@ folder and index. Stories that are non-trivial have a `plan.md` and a
 | [CV17](cv17-soul-mode/index.md) | Soul Mode | ✅ First Ritual Done |
 | [CV18](cv18-soul-mode-more-voices/index.md) | Soul Mode More Voices | ✅ Done |
 | [CV19](cv19-soul-mode-integration/index.md) | Soul Mode Integration | ✅ Done |
+| [CV20](cv20-builder-mode-evolution/index.md) | Builder Mode Evolution | 🟢 In Progress |
 
 ---
 
@@ -86,6 +87,10 @@ Done. CV18 expands Soul Mode from the first ritual into a fuller listening const
 ## CV19 — Soul Mode Integration
 
 Done. CV19 turns Soul Mode from a ritual that can produce insight into a ritual that can close cleanly, ask what deserves to remain, render a multi-layer Integration Proposal, and apply confirmed identity integrations additively with individual records. The release packaged `v0.26.0 — Soul Mode Integration`. See the [CV19 index](cv19-soul-mode-integration/index.md).
+
+## CV20 — Builder Mode Evolution
+
+In progress. CV20 evolves Builder Mode from a context-loading skill into a disciplined delivery environment governed by a declarative method DSL. Ariad is the inaugural method, with adoption, resume, story lifecycle, debt review, coherence, history, release, and push policies represented as method data rather than hard-coded agent habit. Method DSL Foundation has started with the internal method-definition model. See the [CV20 index](cv20-builder-mode-evolution/index.md).
 
 ## CV11 — Localization
 
