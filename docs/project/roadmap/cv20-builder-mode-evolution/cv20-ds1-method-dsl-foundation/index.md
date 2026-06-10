@@ -29,7 +29,7 @@ The method definition represents taxonomy, state semantics, lifecycle events, ch
 | Code | Story | Type | Outcome | Status |
 |------|-------|------|---------|--------|
 | [CV20.DS1.TS1](cv20-ds1-ts1-method-definition-model/index.md) | Method definition model | Technical Story | Runtime has typed structures for method DSL concepts | ✅ Done |
-| CV20.DS1.TS2 | Ariad method fixture | Technical Story | Ariad lifecycle, taxonomy, checkpoints, and policies are represented as data | 🟡 Planned |
+| [CV20.DS1.TS2](cv20-ds1-ts2-ariad-method-fixture/index.md) | Ariad method fixture | Technical Story | Ariad lifecycle, taxonomy, checkpoints, and policies are represented as data | ✅ Done |
 | CV20.DS1.US1 | Inspect effective method | User Story | Navigator can inspect the effective Ariad method configuration and active overrides | 🟡 Planned |
 
 ---
