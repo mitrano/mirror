@@ -30,7 +30,7 @@ Expected:
 After Integration Review, ask:
 
 ```text
-como isso ficaria no self?
+how would this remain in Self?
 ```
 
-Expected: proposal only, no mutation. For Self, the proposed wording should be an adopted principle, not possibility language. Prefer `Cuido de vínculos sem transformar disponibilidade imediata em prova moral de amor; minha medida interna também pertence ao cuidado.` over `Posso cuidar...`.
+Expected: proposal only, no mutation. For Self, the proposed wording should be an adopted principle, not possibility language. Prefer `I care for bonds without turning immediate availability into moral proof of love; my inner measure also belongs to care.` over `I can care...`.

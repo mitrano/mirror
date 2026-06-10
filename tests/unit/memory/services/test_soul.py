@@ -105,14 +105,14 @@ def test_apply_identity_integration_preserves_existing_content(tmp_path):
         mem.store,
         layer="shadow",
         key="profile",
-        content="Uma parte minha busca segurança por disponibilidade excessiva.",
+        content="A part of me seeks safety through excessive availability.",
         origin="Soul harvest",
     )
 
     assert integration.origin == "Soul harvest"
     assert updated.startswith("Existing shadow profile.")
-    assert "## Novas Necessidades Ocultas Reconhecidas" in updated
-    assert "Uma parte minha busca segurança" in updated
+    assert "## New Hidden Needs Recognized" in updated
+    assert "A part of me seeks safety" in updated
     assert mem.get_identity("shadow", "profile") == updated
     records = mem.store.list_identity_integrations(layer="shadow", key="profile")
     assert [record.id for record in records] == [integration.id]
@@ -124,7 +124,7 @@ def test_apply_identity_integration_appends_under_existing_section(tmp_path):
         "ego",
         "behavior",
         "Existing ego.\n\n"
-        "## Novos Padrões Operacionais Identificados\n\n"
+        "## New Operational Patterns Identified\n\n"
         "- [2026-06-01] First pattern.\n\n"
         "## Other Section\n\n"
         "Keep me after the integration section.",
@@ -134,10 +134,10 @@ def test_apply_identity_integration_appends_under_existing_section(tmp_path):
         mem.store,
         layer="ego",
         key="behavior",
-        content="Quando temo julgamento, posso compensar com disponibilidade excessiva.",
+        content="When I fear judgment, I can compensate with excessive availability.",
     )
 
-    assert updated.count("## Novos Padrões Operacionais Identificados") == 1
+    assert updated.count("## New Operational Patterns Identified") == 1
     assert "First pattern.\n- [" in updated
-    assert "disponibilidade excessiva" in updated
+    assert "excessive availability" in updated
     assert "## Other Section" in updated

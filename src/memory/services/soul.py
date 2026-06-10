@@ -16,10 +16,10 @@ FRUIT_METADATA_KEY = "fruit_in_maturation"
 HARVEST_METADATA_KEY = "harvested_fruit"
 
 IDENTITY_INTEGRATION_SECTION_TITLES = {
-    "self": "Novos Princípios Incorporados",
-    "shadow": "Novas Necessidades Ocultas Reconhecidas",
-    "ego": "Novos Padrões Operacionais Identificados",
-    "persona": "Novos Padrões de Participação Revelados",
+    "self": "New Incorporated Principles",
+    "shadow": "New Hidden Needs Recognized",
+    "ego": "New Operational Patterns Identified",
+    "persona": "New Participation Patterns Revealed",
 }
 
 

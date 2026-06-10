@@ -323,7 +323,7 @@ Paste the Closing Rite surface visibly before commentary.
 After the Closing Rite, ask exactly:
 
 ```text
-Há material vivo que pode querer permanecer como parte da sua identidade no Mirror. Quer integrar isso agora?
+There is living material that may want to remain as part of your Mirror identity. Do you want to integrate it now?
 ```
 
 If the user says yes, render Integration Proposal. If the user declines and inclines
@@ -366,7 +366,7 @@ identity or journey pattern; that category is not mature enough for this release
 After Integration Proposal, ask exactly:
 
 ```text
-Quer registrar assim na sua identidade? Ou também podemos ajustar o que quiser.
+Do you want to record it this way in your identity? Or we can adjust anything you want.
 ```
 
 If the user asks to adjust, render an updated Integration Proposal before any
@@ -418,21 +418,21 @@ identity content by default.
 
 Use layer-appropriate language:
 
-- Self: an affirmative first-person principle the user adopts as practice while accepting good and bad days. Do not use possibility language such as `posso`, `pode`, `talvez`, or `precisa` as the center of the Self statement. Prefer direct principle language, e.g. `Cuido de vínculos sem transformar disponibilidade imediata em prova moral de amor; minha medida interna também pertence ao cuidado.` or `Meu compromisso verdadeiro nasce da verdade do trabalho, não da gestão da imagem.`
-- Shadow: a first-person recognition of a protective part without shame or command, e.g. `Uma parte minha tenta comprar segurança oferecendo disponibilidade excessiva quando teme ser julgada como descuidada.`
-- Ego: a behavioral pattern stated operationally, e.g. `Quando temo julgamento, posso compensar permanecendo disponível além da medida real.`
-- Persona: a public-role pattern stated as presentation, not essence, e.g. `Minha persona profissional pode confundir confiabilidade com disponibilidade visível em excesso.`
+- Self: an affirmative first-person principle the user adopts as practice while accepting good and bad days. Do not use possibility language such as `can`, `may`, `maybe`, or `need to` as the center of the Self statement. Prefer direct principle language, e.g. `I care for bonds without turning immediate availability into moral proof of love; my inner measure also belongs to care.` or `My true commitment is born from the truth of the work, not from managing my image.`
+- Shadow: a first-person recognition of a protective part without shame or command, e.g. `A part of me tries to buy safety by offering excessive availability when it fears being judged as careless.`
+- Ego: a behavioral pattern stated operationally, e.g. `When I fear judgment, I can compensate by staying available beyond the real measure.`
+- Persona: a public-role pattern stated as presentation, not essence, e.g. `My professional persona can confuse reliability with excessive visible availability.`
 
 ## 9. Confirmation And Safe Identity Mutation
 
 If the user asks to apply a proposal, first ask for explicit confirmation with the exact target and exact text:
 
 ```text
-Posso aplicar exatamente esta proposta em `self/soul`:
+May I apply exactly this proposal to `self/soul`:
 
 "..."
 
-Confirma aplicar exatamente esse texto?
+Do you confirm applying exactly this text?
 ```
 
 If the user explicitly confirms applying a proposal, call:
@@ -451,15 +451,15 @@ the revised proposal. `soul apply` is additive by default: it preserves existing
 identity content, creates an individual integration record, and appends the
 confirmed text under the target layer's integration section:
 
-- Self: `## Novos Princípios Incorporados`
-- Shadow: `## Novas Necessidades Ocultas Reconhecidas`
-- Ego: `## Novos Padrões Operacionais Identificados`
-- Persona: `## Novos Padrões de Participação Revelados`
+- Self: `## New Incorporated Principles`
+- Shadow: `## New Hidden Needs Recognized`
+- Ego: `## New Operational Patterns Identified`
+- Persona: `## New Participation Patterns Revealed`
 
 After applying, ask:
 
 ```text
-Quer revisar mais alguma integração ou encerramos por aqui?
+Do you want to review another integration, or shall we close here?
 ```
 
 ## 10. Harvested Fruit And Journal Confirmation
@@ -491,8 +491,7 @@ This creates one structured Markdown journal entry and clears the harvested frui
 
 After a successful save, do not stop at "saved to journal". Immediately render
 the Closing Rite with `memory soul close`, using the harvested fruit and any
-remaining echoes/open questions from the conversation. Then ask: `Há material
-vivo que pode querer permanecer. Quer olhar comigo antes de encerrarmos?`
+remaining echoes/open questions from the conversation. Then ask: `There is living material that may want to remain. Do you want to look at it together before we close?`
 
 When the user declines saving, call:
 

@@ -35,10 +35,10 @@ Before rendering a proposal, Mirror should load the current target identity when
 
 Layer language:
 
-- Self: affirmative principle I adopt as practice, phrased in first person without demanding perfection. Avoid possibility language such as `posso`, `pode`, `talvez`, or `precisa` as the center of the Self statement. Example: `Cuido de vínculos sem transformar disponibilidade imediata em prova moral de amor; minha medida interna também pertence ao cuidado.`
-- Shadow: protective part I need to recognize, phrased without shame or command. Example: `Uma parte minha tenta comprar segurança oferecendo disponibilidade excessiva quando teme ser julgada como descuidada.`
-- Ego: operational behavior I tend to execute under tension. Example: `Quando temo julgamento, posso compensar permanecendo disponível além da medida real.`
-- Persona: public presentation pattern or role-mask, not essence. Example: `Minha persona profissional pode confundir confiabilidade com disponibilidade visível em excesso.`
+- Self: affirmative principle I adopt as practice, phrased in first person without demanding perfection. Avoid possibility language such as `can`, `may`, `maybe`, or `need to` as the center of the Self statement. Example: `I care for bonds without turning immediate availability into moral proof of love; my inner measure also belongs to care.`
+- Shadow: protective part I need to recognize, phrased without shame or command. Example: `A part of me tries to buy safety by offering excessive availability when it fears being judged as careless.`
+- Ego: operational behavior I tend to execute under tension. Example: `When I fear judgment, I can compensate by staying available beyond the real measure.`
+- Persona: public presentation pattern or role-mask, not essence. Example: `My professional persona can confuse reliability with excessive visible availability.`
 
 ## Validation
 

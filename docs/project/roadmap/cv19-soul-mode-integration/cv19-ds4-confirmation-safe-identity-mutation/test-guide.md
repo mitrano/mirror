@@ -7,7 +7,7 @@
 Without confirmation:
 
 ```bash
-uv run python -m memory soul apply self --proposed "Cuido de vínculos sem transformar disponibilidade imediata em prova moral de amor."
+uv run python -m memory soul apply self --proposed "I care for bonds without turning immediate availability into moral proof of love."
 ```
 
 Expected: error, no mutation.
@@ -16,12 +16,12 @@ With confirmation:
 
 ```bash
 uv run python -m memory soul apply self \
-  --proposed "Cuido de vínculos sem transformar disponibilidade imediata em prova moral de amor." \
+  --proposed "I care for bonds without turning immediate availability into moral proof of love." \
   --origin "Soul Mode harvest" \
   --confirm APPLY
 ```
 
-Expected: identity update surface renders, an `identity_integrations` record is created, and `self/soul` preserves prior content while appending the exact content under `## Novos Princípios Incorporados`.
+Expected: identity update surface renders, an `identity_integrations` record is created, and `self/soul` preserves prior content while appending the exact content under `## New Incorporated Principles`.
 
 ## Pi Validation
 

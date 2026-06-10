@@ -57,7 +57,7 @@ Expected absence:
 After Closing Rite, say naturally:
 
 ```text
-sim, quero olhar o que pode permanecer
+yes, I want to look at what may remain
 ```
 
 Expected:
@@ -65,6 +65,6 @@ Expected:
 - Mirror renders Integration Proposal.
 - Mirror renders the final multi-layer proposal text.
 - Self wording is affirmative principle language, not possibility language.
-- Mirror asks: `Quer registrar assim na sua identidade? Ou também podemos ajustar o que quiser.`
+- Mirror asks: `Do you want to record it this way in your identity? Or we can adjust anything you want.`
 - Mirror does not mutate identity until the user confirms registration.
 - If the user asks for adjustment, Mirror renders an adjusted Integration Proposal before applying anything.

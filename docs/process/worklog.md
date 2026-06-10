@@ -12,11 +12,11 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
-### 2026-06-10 — Soul Mode hard-coded integration copy normalized to English
+### 2026-06-10 — v0.26.1 Soul Mode English Integration Copy packaged
 
-Replaced Portuguese hard-coded Soul Mode integration prompts with English baseline copy in the Pi skill contract and aligned CV19 documentation. Confirmed identity integration section headings now use English defaults in code and tests: Self `New Incorporated Principles`, Shadow `New Hidden Needs Recognized`, Ego `New Operational Patterns Identified`, and Persona `New Participation Patterns Revealed`. This keeps Soul Mode consistent with Mirror Mind's English internal language until explicit localization exists.
+Packaged `v0.26.1 — Soul Mode English Integration Copy`. Replaced Portuguese hard-coded Soul Mode integration prompts with English baseline copy in the Pi skill contract and aligned CV19 documentation. Confirmed identity integration section headings now use English defaults in code and tests: Self `New Incorporated Principles`, Shadow `New Hidden Needs Recognized`, Ego `New Operational Patterns Identified`, and Persona `New Participation Patterns Revealed`. This keeps Soul Mode consistent with Mirror Mind's English internal language until explicit localization exists.
 
-Validation: `uv run pytest tests/unit/memory/cli/test_soul.py tests/unit/memory/services/test_soul.py -q`, focused `uv run ruff check`, focused `uv run ruff format --check`, and `git diff --check` passed.
+Validation: `uv run pytest tests/unit/ tests/integration/ -m "not live" -q`, `uv run ruff check src tests`, `uv run ruff format --check src tests`, `git diff --check`, `uv run python -m memory runtime release-notes latest`, and `uv run python -m memory runtime release-notes v0.26.1` passed before release-candidate commit.
 
 ### 2026-06-09 — CV20 Ariad method fixture added
 

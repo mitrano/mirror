@@ -28,10 +28,10 @@ The command creates an `identity_integrations` record, preserves the existing id
 
 Layer sections:
 
-- `self` → `## Novos Princípios Incorporados`
-- `shadow` → `## Novas Necessidades Ocultas Reconhecidas`
-- `ego` → `## Novos Padrões Operacionais Identificados`
-- `persona` → `## Novos Padrões de Participação Revelados`
+- `self` → `## New Incorporated Principles`
+- `shadow` → `## New Hidden Needs Recognized`
+- `ego` → `## New Operational Patterns Identified`
+- `persona` → `## New Participation Patterns Revealed`
 
 The prompt-facing `identity.content` remains a synthesized/current document, while `identity_integrations` preserves each atomic confirmed integration for provenance, future web display, and possible re-synthesis. Do not overwrite a longer identity document with a short fragment by default.
 
