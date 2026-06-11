@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from memory import MemoryClient
+from memory.builder.method_adoption import set_adopted_method
 from memory.cli import build
 from memory.cli.runtime import CloneRole
 from memory.config import default_db_path_for_home
@@ -111,6 +112,8 @@ def test_build_inspect_method_renders_ariad_defaults(capsys):
     assert "history.commit" in out
     assert "push" in out
     assert "release" in out
+    assert "templates" in out
+    assert "docs/project/roadmap/templates/plan.md" in out
 
 
 def test_build_inspect_method_reports_no_active_journey_when_no_context(mocker, tmp_path, capsys):
@@ -295,6 +298,125 @@ def test_build_adopt_method_requires_journey_context(mocker, tmp_path, capsys):
     assert exc.value.code == 1
     err = capsys.readouterr().err
     assert "Builder method adoption requires a journey" in err
+
+
+def test_build_prepare_templates_for_explicit_adopted_journey(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    project_path = tmp_path / "project"
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    mem.journeys.set_project_path("sandbox-pet-store", str(project_path))
+    set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    build.cmd_prepare_templates("ariad", journey="sandbox-pet-store")
+
+    out = capsys.readouterr().out
+    assert "Ariad Template Preparation" in out
+    assert "journey\nsandbox-pet-store" in out
+    assert "method\nariad" in out
+    assert "checked" in out
+    assert "created" in out
+    assert "pending" in out
+    assert "No story lifecycle work was executed" in out
+    assert (project_path / "docs/project/roadmap/templates/plan.md").is_file()
+
+
+def test_build_prepare_templates_uses_active_builder_journey(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    project_path = tmp_path / "project"
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    mem.journeys.set_project_path("sandbox-pet-store", str(project_path))
+    set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
+    mem.store.upsert_runtime_session(
+        "session-1",
+        interface="pi",
+        active=True,
+        metadata=(
+            '{"operating_mode": {'
+            '"active_mode": "Builder Mode", '
+            '"active_journey": "sandbox-pet-store"}}'
+        ),
+    )
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    build.cmd_prepare_templates("ariad", session_id="session-1")
+
+    out = capsys.readouterr().out
+    assert "journey\nsandbox-pet-store" in out
+    assert (project_path / "docs/project/roadmap/ariad-adoption.md").is_file()
+
+
+def test_build_prepare_templates_preserves_existing_files(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    project_path = tmp_path / "project"
+    existing = project_path / "docs/project/roadmap/templates/plan.md"
+    existing.parent.mkdir(parents=True)
+    existing.write_text("# Human Plan\n", encoding="utf-8")
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    mem.journeys.set_project_path("sandbox-pet-store", str(project_path))
+    set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    build.cmd_prepare_templates("ariad", journey="sandbox-pet-store")
+
+    out = capsys.readouterr().out
+    assert "preserved" in out
+    assert "docs/project/roadmap/templates/plan.md" in out
+    assert existing.read_text(encoding="utf-8") == "# Human Plan\n"
+
+
+def test_build_prepare_templates_requires_ariad_adoption(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    project_path = tmp_path / "project"
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    mem.journeys.set_project_path("sandbox-pet-store", str(project_path))
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    with pytest.raises(SystemExit) as exc:
+        build.cmd_prepare_templates("ariad", journey="sandbox-pet-store")
+
+    assert exc.value.code == 1
+    err = capsys.readouterr().err
+    assert "has not adopted Ariad yet" in err
+    assert not (project_path / "docs/project/roadmap/templates/plan.md").exists()
+
+
+def test_build_prepare_templates_requires_project_path(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    with pytest.raises(SystemExit) as exc:
+        build.cmd_prepare_templates("ariad", journey="sandbox-pet-store")
+
+    assert exc.value.code == 1
+    err = capsys.readouterr().err
+    assert "has no project_path configured" in err
+
+
+def test_build_prepare_templates_rejects_unknown_method(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    with pytest.raises(SystemExit) as exc:
+        build.cmd_prepare_templates("unknown", journey="sandbox-pet-store")
+
+    assert exc.value.code == 1
+    err = capsys.readouterr().err
+    assert "Builder method 'unknown' not found" in err
 
 
 def test_build_load_allows_production_clone_when_override_passed(mocker, tmp_path, capsys):

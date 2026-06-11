@@ -75,6 +75,17 @@ class SurfaceDefinition:
 
 
 @dataclass(frozen=True)
+class TemplateDefinition:
+    id: str
+    path: str
+    content: str
+    description: str | None = None
+
+    def replace(self, **changes: Any) -> TemplateDefinition:
+        return replace(self, **changes)
+
+
+@dataclass(frozen=True)
 class MethodDefinition:
     id: str
     label: str
@@ -84,6 +95,7 @@ class MethodDefinition:
     checkpoints: tuple[CheckpointDefinition, ...] = ()
     policies: Mapping[str, Any] | None = None
     surfaces: tuple[SurfaceDefinition, ...] = ()
+    templates: tuple[TemplateDefinition, ...] = ()
     open_questions: Mapping[str, Any] | None = None
 
     @property
@@ -103,6 +115,7 @@ def validate_method_definition(definition: MethodDefinition) -> None:
     _validate_lifecycle(definition.lifecycle)
     _validate_checkpoints(definition.checkpoints, lifecycle_ids=definition.lifecycle_ids)
     _validate_surfaces(definition.surfaces, lifecycle_ids=definition.lifecycle_ids)
+    _validate_templates(definition.templates)
 
 
 def _validate_resolution(resolution: DslResolution) -> None:
@@ -192,6 +205,23 @@ def _validate_surfaces(
                 lifecycle_ids=lifecycle_ids,
                 owner=f"surface {surface.id}",
             )
+
+
+def _validate_templates(templates: tuple[TemplateDefinition, ...]) -> None:
+    template_ids = [template.id for template in templates]
+    template_paths = [template.path for template in templates]
+    _require_unique(template_ids, "template")
+    _require_unique(template_paths, "template path")
+    for template in templates:
+        _require_non_empty(template.id, "template id")
+        _require_non_empty(template.path, f"template {template.id} path")
+        _require_non_empty(template.content, f"template {template.id} content")
+        if template.path.startswith("/") or ".." in template.path.split("/"):
+            raise MethodDefinitionError(
+                f"template {template.id} path must be relative and stay inside project root"
+            )
+        if template.description is not None:
+            _require_non_empty(template.description, f"template {template.id} description")
 
 
 def _require_known_event(event_id: str, *, lifecycle_ids: set[str], owner: str) -> None:

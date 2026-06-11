@@ -12,6 +12,12 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-06-10 — CV20 Ariad template preparation added
+
+Implemented CV20.DS2.US2 Adoption Template Generation. Builder method definitions now declare templates through `TemplateDefinition`, Ariad declares its adoption/readiness templates as method data, and `memory build prepare-templates --method ariad` prepares missing files for an adopted journey while preserving existing files. The Pi Builder skill routes natural-language template preparation requests to the contained command.
+
+Validation: `uv run pytest tests/unit/memory/builder/test_template_generation.py tests/unit/memory/cli/test_build.py tests/unit/memory/builder/test_method_adoption.py tests/unit/memory/builder/test_method_definition.py tests/unit/memory/builder/test_ariad_method.py`, focused `uv run ruff check`, focused `uv run ruff format --check`, `uv run mypy src/memory/builder src/memory/cli/build.py`, and Pi/Mirror natural-language validation with `sandbox-pet-store` passed.
+
 ### 2026-06-10 — CV20 Ariad adoption command added
 
 Implemented CV20.DS2.US1 Adopt Ariad For A Journey. Builder can now adopt Ariad for an explicit or active Builder journey through `memory build adopt --method ariad`, persist the adopted method using the runtime method state helper, and report adopted Ariad through method inspection. The Pi Builder skill routes natural-language adoption requests to the contained command. Validation passed in Pi/Mirror using the `sandbox-pet-store` journey: adoption reported Ariad as adopted, follow-up inspection showed `adopted method: ariad`, and no templates, delivery cursor, or story lifecycle were executed.

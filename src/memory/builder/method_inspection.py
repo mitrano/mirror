@@ -35,6 +35,8 @@ def render_available_method(method: MethodDefinition) -> str:
     lines.extend(_render_policies(method.policies or {}))
     lines.extend(["", "surfaces"])
     lines.extend(_render_surfaces(method))
+    lines.extend(["", "templates"])
+    lines.extend(_render_templates(method))
     lines.extend(["", "open questions"])
     lines.extend(_render_open_questions(method.open_questions or {}))
     return "\n".join(lines).rstrip() + "\n"
@@ -224,6 +226,12 @@ def _render_surfaces(method: MethodDefinition) -> list[str]:
         stops_for = f"; stops for: {surface.stops_for}" if surface.stops_for else ""
         lines.append(f"- {surface.id}: {event}{stops_for}")
     return lines
+
+
+def _render_templates(method: MethodDefinition) -> list[str]:
+    if not method.templates:
+        return ["none"]
+    return [f"- {template.id}: {template.path}" for template in method.templates]
 
 
 def _render_open_questions(open_questions: Mapping[str, Any]) -> list[str]:

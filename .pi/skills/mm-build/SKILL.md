@@ -171,7 +171,29 @@ cursor, execute lifecycle work, change story status, commit, push, or release.
 If no Builder journey is active and no journey is named, ask the user to activate
 or name a journey.
 
-## 6. Work In Builder Mode
+## 6. Prepare Ariad Templates
+
+When the user asks in natural language to prepare Ariad templates, generate
+Ariad adoption templates, or make the adopted journey documentation-ready, run:
+
+```bash
+uv run python -m memory build prepare-templates --method ariad
+```
+
+If the user names a specific journey, pass it explicitly:
+
+```bash
+uv run python -m memory build prepare-templates --journey <slug> --method ariad
+```
+
+Render the template preparation report visibly. The operation may create missing
+method-declared template files in the journey project path, but must preserve
+existing files and must not create a delivery cursor, execute lifecycle work,
+change story status, commit, push, or release. If Ariad has not been adopted yet,
+ask the user to adopt Ariad first. If no project path is configured, ask the user
+to configure the journey project path first.
+
+## 7. Work In Builder Mode
 
 Once the user explicitly authorizes work:
 
@@ -179,7 +201,7 @@ Once the user explicitly authorizes work:
 - Keep project docs updated as the code evolves
 - Commit at the end of each session with a descriptive English commit message
 
-## 7. Project Docs Maintenance
+## 8. Project Docs Maintenance
 
 Follow the project's existing documentation structure. Do not create a generic docs scaffold unless the user explicitly asks for one.
 
@@ -193,7 +215,7 @@ Follow the project's existing documentation structure. Do not create a generic d
 - `docs/process/worklog.md`: a meaningful milestone is completed
 - `docs/product/principles.md`: product, code, testing, or process principles change
 
-## 8. Configure `project_path`
+## 9. Configure `project_path`
 
 If the journey does not yet have an associated project:
 
@@ -201,7 +223,7 @@ If the journey does not yet have an associated project:
 uv run python -m memory journey set-path <slug> /path/to/project
 ```
 
-## 9. Finalize Session
+## 10. Finalize Session
 
 When the user says "End the session":
 

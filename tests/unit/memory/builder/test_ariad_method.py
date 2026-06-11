@@ -74,6 +74,29 @@ def test_ariad_policies_capture_history_push_and_release() -> None:
     assert policies["release"]["modes"] == ["planned_release", "emergent_release"]
 
 
+def test_ariad_declares_adoption_templates_as_method_data() -> None:
+    method = get_ariad_method()
+    templates = {template.id: template for template in method.templates}
+
+    assert set(templates) == {
+        "ariad_adoption",
+        "technical_debt_ledger",
+        "delivery_story_index",
+        "user_story_index",
+        "technical_story_index",
+        "plan",
+        "test_guide",
+        "review",
+        "coherence",
+    }
+    assert templates["plan"].path == "docs/project/roadmap/templates/plan.md"
+    assert "Implementation must not start" in templates["plan"].content
+    assert templates["technical_debt_ledger"].path == (
+        "docs/project/roadmap/technical-debt-ledger.md"
+    )
+    assert "Navigator Decision" in templates["technical_debt_ledger"].content
+
+
 def test_ariad_surfaces_bind_to_lifecycle_and_entrypoint_events() -> None:
     method = get_ariad_method()
     surfaces = {surface.id: surface for surface in method.surfaces}

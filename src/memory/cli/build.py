@@ -15,6 +15,10 @@ from memory.builder.method_inspection import (
     render_method_adoption_report,
     render_no_active_journey,
 )
+from memory.builder.template_generation import (
+    prepare_method_templates,
+    render_template_preparation_report,
+)
 from memory.cli.conversation_logger import switch_conversation
 from memory.cli.runtime import inspect_clone_role
 from memory.client import MemoryClient
@@ -205,13 +209,7 @@ def cmd_inspect_method(
     print(render_available_method(get_ariad_method()))
 
 
-def cmd_adopt_method(
-    method: str,
-    *,
-    journey: str | None = None,
-    session_id: str | None = None,
-) -> None:
-    mem = MemoryClient()
+def _reject_unknown_method(method: str) -> None:
     if method != "ariad":
         print(
             f"Error: Builder method '{method}' not found. "
@@ -220,6 +218,14 @@ def cmd_adopt_method(
         )
         sys.exit(1)
 
+
+def _resolve_builder_journey(
+    mem: MemoryClient,
+    *,
+    journey: str | None,
+    session_id: str | None,
+    action: str,
+) -> str:
     resolved_journey = journey
     if not resolved_journey:
         resolved_session_id = resolve_operating_session_id(mem.store, session_id)
@@ -228,11 +234,28 @@ def cmd_adopt_method(
             resolved_journey = active_mode.journey
     if not resolved_journey:
         print(
-            "Error: Builder method adoption requires a journey. "
+            f"Error: Builder method {action} requires a journey. "
             "Activate Builder Mode for a journey or pass --journey.",
             file=sys.stderr,
         )
         sys.exit(1)
+    return resolved_journey
+
+
+def cmd_adopt_method(
+    method: str,
+    *,
+    journey: str | None = None,
+    session_id: str | None = None,
+) -> None:
+    mem = MemoryClient()
+    _reject_unknown_method(method)
+    resolved_journey = _resolve_builder_journey(
+        mem,
+        journey=journey,
+        session_id=session_id,
+        action="adoption",
+    )
 
     journey_content = mem.get_identity("journey", resolved_journey)
     if not journey_content:
@@ -248,6 +271,51 @@ def cmd_adopt_method(
             already_adopted=already_adopted,
         )
     )
+
+
+def cmd_prepare_templates(
+    method: str,
+    *,
+    journey: str | None = None,
+    session_id: str | None = None,
+) -> None:
+    mem = MemoryClient()
+    _reject_unknown_method(method)
+    resolved_journey = _resolve_builder_journey(
+        mem,
+        journey=journey,
+        session_id=session_id,
+        action="template preparation",
+    )
+
+    journey_content = mem.get_identity("journey", resolved_journey)
+    if not journey_content:
+        print(f"Error: journey '{resolved_journey}' not found.", file=sys.stderr)
+        sys.exit(1)
+    if get_adopted_method(mem.store, resolved_journey) != method:
+        print(
+            f"Error: journey '{resolved_journey}' has not adopted Ariad yet. "
+            "Run: uv run python -m memory build adopt --journey "
+            f"{resolved_journey} --method ariad",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    project_path = mem.journeys.get_project_path(resolved_journey)
+    if not project_path:
+        print(
+            f"Error: journey '{resolved_journey}' has no project_path configured. "
+            "Set a project path before preparing Ariad templates.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    report = prepare_method_templates(
+        Path(project_path),
+        journey=resolved_journey,
+        method=get_ariad_method(),
+    )
+    print(render_template_preparation_report(report))
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -308,6 +376,26 @@ def main(argv: list[str] | None = None) -> None:
         help="Runtime session id for resolving the active Builder journey",
     )
 
+    p_templates = sub.add_parser(
+        "prepare-templates",
+        help="Prepare method templates for an adopted Builder journey",
+    )
+    p_templates.add_argument(
+        "--method",
+        required=True,
+        help="Builder method id whose templates should be prepared, such as 'ariad'",
+    )
+    p_templates.add_argument(
+        "--journey",
+        default=None,
+        help="Journey slug whose project should receive method templates",
+    )
+    p_templates.add_argument(
+        "--session-id",
+        default=None,
+        help="Runtime session id for resolving the active Builder journey",
+    )
+
     args = parser.parse_args(argv)
 
     if args.command == "load":
@@ -320,3 +408,5 @@ def main(argv: list[str] | None = None) -> None:
         cmd_inspect_method(args.method, journey=args.journey, session_id=args.session_id)
     elif args.command == "adopt":
         cmd_adopt_method(args.method, journey=args.journey, session_id=args.session_id)
+    elif args.command == "prepare-templates":
+        cmd_prepare_templates(args.method, journey=args.journey, session_id=args.session_id)

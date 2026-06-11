@@ -9,6 +9,7 @@ from memory.builder.method_definition import (
     SurfaceDefinition,
     Taxonomy,
     TaxonomyLevel,
+    TemplateDefinition,
     validate_method_definition,
 )
 
@@ -58,6 +59,14 @@ def _valid_definition() -> MethodDefinition:
         policies={"history": {"commit": {"mode": "propose_and_wait"}}},
         surfaces=(
             SurfaceDefinition(id="plan_checkpoint", event="plan", stops_for="navigator_approval"),
+        ),
+        templates=(
+            TemplateDefinition(
+                id="plan",
+                path="docs/project/roadmap/templates/plan.md",
+                content="# Plan\n",
+                description="Plan template",
+            ),
         ),
         open_questions={"maintenance": "model later"},
     )
@@ -160,6 +169,36 @@ def test_rejects_state_semantics_for_disallowed_states() -> None:
     )
 
     with pytest.raises(MethodDefinitionError, match="state semantics"):
+        validate_method_definition(definition)
+
+
+def test_rejects_duplicate_template_paths() -> None:
+    definition = _valid_definition().replace(
+        templates=(
+            TemplateDefinition(id="plan", path="docs/templates/plan.md", content="# Plan\n"),
+            TemplateDefinition(id="plan-copy", path="docs/templates/plan.md", content="# Plan\n"),
+        )
+    )
+
+    with pytest.raises(MethodDefinitionError, match="duplicate template path"):
+        validate_method_definition(definition)
+
+
+def test_rejects_template_path_that_escapes_project_root() -> None:
+    definition = _valid_definition().replace(
+        templates=(TemplateDefinition(id="plan", path="../plan.md", content="# Plan\n"),)
+    )
+
+    with pytest.raises(MethodDefinitionError, match="inside project root"):
+        validate_method_definition(definition)
+
+
+def test_rejects_template_without_content() -> None:
+    definition = _valid_definition().replace(
+        templates=(TemplateDefinition(id="plan", path="docs/templates/plan.md", content=" "),)
+    )
+
+    with pytest.raises(MethodDefinitionError, match="content"):
         validate_method_definition(definition)
 
 
