@@ -445,11 +445,13 @@ def validate_lifecycle_item(
         raise ValueError("delivery cursor is required before validation")
     if not existing.active_item:
         raise ValueError("active item is required before validation")
-    if existing.pending_confirmation:
+    if existing.pending_confirmation and existing.pending_confirmation != "navigator_validation":
         raise ValueError(
             f"Validation is blocked: pending confirmation {existing.pending_confirmation}."
         )
-    if existing.last_delivery_event not in {"plan_approved", "implementation_complete"}:
+    if existing.pending_confirmation == "navigator_validation" and not navigator_accepted:
+        raise ValueError("Validation is blocked: pending Navigator validation acceptance.")
+    if existing.last_delivery_event not in {"plan_approved", "implementation_complete", "validate"}:
         raise ValueError("Validation requires an approved Plan and completed implementation")
     if existing.last_delivery_event == "plan_approved" and not implementation_complete:
         raise ValueError("Validation requires implementation completion evidence")

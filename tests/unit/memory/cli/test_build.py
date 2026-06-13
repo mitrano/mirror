@@ -427,6 +427,46 @@ def test_build_validate_item_passes_when_all_evidence_is_present(mocker, tmp_pat
     assert "✓ none" in out
 
 
+def test_build_validate_item_accepts_pending_navigator_validation(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
+    set_delivery_cursor(
+        mem.store,
+        journey="sandbox-pet-store",
+        method="ariad",
+        active_item="CV2.DS1.US1",
+        active_item_level="user_story",
+        active_checkpoint="after_validation",
+        pending_confirmation="navigator_validation",
+        last_delivery_event="validate",
+    )
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    build.cmd_validate_item(
+        "ariad",
+        journey="sandbox-pet-store",
+        checks=("npm test && npm run build",),
+        checks_status="passed",
+        e2e_decision="required",
+        e2e_evidence="Navigator manually validated the checkout flow.",
+        navigator_route="Validate checkout in the browser.",
+        navigator_accepted=True,
+    )
+
+    out = capsys.readouterr().out
+    cursor = get_delivery_cursor(mem.store, "sandbox-pet-store")
+    assert cursor is not None
+    assert cursor.active_checkpoint is None
+    assert cursor.pending_confirmation is None
+    assert cursor.last_delivery_event == "validation_passed"
+    assert "<<<ARIAD:VALIDATION_CHECKPOINT>>>" in out
+    assert "passed" in out
+    assert "navigator accepted" in out
+
+
 def test_build_validate_item_blocks_without_implementation_completion(mocker, tmp_path, capsys):
     mirror_home = tmp_path / ".mirror" / "pati"
     db_path = default_db_path_for_home(mirror_home)
