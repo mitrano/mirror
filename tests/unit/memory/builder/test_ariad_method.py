@@ -136,6 +136,8 @@ def test_ariad_surfaces_bind_to_lifecycle_and_entrypoint_events() -> None:
     assert surfaces["plan_checkpoint"].stops_for == "navigator_approval"
     assert surfaces["validation_checkpoint"].event == "validation"
     assert surfaces["debt_review_checkpoint"].event == "review"
+    assert surfaces["coherence_checkpoint"].event == "coherence"
+    assert surfaces["done_checkpoint"].event == "done"
     assert all(surface.transport == "verbatim" for surface in method.surfaces)
     assert all(surface.marker_protocol == "ariad_compact" for surface in method.surfaces)
     assert all(surface.interpretation_policy == "after_block_only" for surface in method.surfaces)

@@ -490,3 +490,35 @@ deterministic `DEBT_REVIEW_CHECKPOINT` surface. If the decision is `pending`,
 checkpoint. `pay_now` must route through a future Refactor loop before Coherence.
 Do not advance to Coherence, Done, commit, push, or release while the debt
 decision is unresolved.
+
+## Check Ariad Coherence
+
+After Debt Review is complete and before Done, render the Coherence checkpoint:
+
+```bash
+uv run python -m memory build coherence-item --method ariad \
+  --process "<process alignment evidence>" \
+  --project "<project/docs/artifacts alignment evidence>" \
+  --product "<product behavior alignment evidence>" \
+  --local-difference "<optional Ariad vs local guide difference>"
+```
+
+If the user names a specific journey, pass `--journey <slug>`. Render the
+deterministic `COHERENCE_CHECKPOINT` surface. If coherence is blocked, return the
+surface and stop; do not advance to Done, commit, push, or release.
+
+## Close Ariad Done
+
+After Coherence is complete, render the Done checkpoint:
+
+```bash
+uv run python -m memory build done-item --method ariad \
+  --history-action "<commit/history action taken or proposed>" \
+  --roadmap-update "<roadmap/story package update>" \
+  --next-recommendation "<next Pull, parent collapse, or release boundary>"
+```
+
+If the user names a specific journey, pass `--journey <slug>`. Render the
+deterministic `DONE_CHECKPOINT` surface. Done must name the history action,
+roadmap/story package update, and next Ariad movement. Do not push or release
+unless the effective policy explicitly allows it.

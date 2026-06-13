@@ -344,6 +344,96 @@ def test_build_check_implementation_refuses_pending_approval(mocker, tmp_path, c
     assert "blocked" in out
 
 
+def test_build_coherence_item_completes_after_debt_review(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
+    set_delivery_cursor(
+        mem.store,
+        journey="sandbox-pet-store",
+        method="ariad",
+        active_item="CV2.DS1.US1",
+        active_item_level="user_story",
+        last_delivery_event="review_complete",
+    )
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    build.cmd_coherence_item(
+        "ariad",
+        journey="sandbox-pet-store",
+        process_alignment="Lifecycle artifacts are complete.",
+        project_alignment="Story package reflects the change.",
+        product_alignment="Navigator accepted behavior.",
+    )
+
+    out = capsys.readouterr().out
+    cursor = get_delivery_cursor(mem.store, "sandbox-pet-store")
+    assert cursor is not None
+    assert cursor.pending_confirmation is None
+    assert cursor.last_delivery_event == "coherence_complete"
+    assert "<<<ARIAD:COHERENCE_CHECKPOINT>>>" in out
+    assert "coherent" in out
+    assert "Coherence is complete" in out
+
+
+def test_build_done_item_completes_after_coherence(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
+    set_delivery_cursor(
+        mem.store,
+        journey="sandbox-pet-store",
+        method="ariad",
+        active_item="CV2.DS1.US1",
+        active_item_level="user_story",
+        last_delivery_event="coherence_complete",
+    )
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    build.cmd_done_item(
+        "ariad",
+        journey="sandbox-pet-store",
+        history_action="Committed validated story changes.",
+        roadmap_update="Marked story Done.",
+        next_recommendation="Inspect pull candidates.",
+    )
+
+    out = capsys.readouterr().out
+    cursor = get_delivery_cursor(mem.store, "sandbox-pet-store")
+    assert cursor is not None
+    assert cursor.pending_confirmation is None
+    assert cursor.last_delivery_event == "done_complete"
+    assert "<<<ARIAD:DONE_CHECKPOINT>>>" in out
+    assert "Story closure is complete" in out
+
+
+def test_build_coherence_item_requires_review_complete(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
+    set_delivery_cursor(
+        mem.store,
+        journey="sandbox-pet-store",
+        method="ariad",
+        active_item="CV2.DS1.US1",
+        active_item_level="user_story",
+        last_delivery_event="validation_passed",
+    )
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    with pytest.raises(SystemExit) as exc:
+        build.cmd_coherence_item("ariad", journey="sandbox-pet-store")
+
+    assert exc.value.code == 1
+    assert "Coherence requires completed Debt Review" in capsys.readouterr().out
+
+
 def test_build_review_item_renders_pending_debt_decision(mocker, tmp_path, capsys):
     mirror_home = tmp_path / ".mirror" / "pati"
     db_path = default_db_path_for_home(mirror_home)

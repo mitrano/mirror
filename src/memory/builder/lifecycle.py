@@ -127,6 +127,38 @@ class BuilderReviewReport:
     next_event: str = "coherence"
 
 
+@dataclass(frozen=True)
+class BuilderCoherenceReport:
+    journey: str
+    method: str
+    active_item: str
+    active_item_title: str | None
+    process_alignment: str
+    project_alignment: str
+    product_alignment: str
+    local_differences: tuple[str, ...]
+    missing_coherence: tuple[str, ...]
+    coherence_contract: ContractDefinition
+    cursor: BuilderDeliveryCursor
+    coherence_artifact_path: Path | None = None
+    next_event: str = "done"
+
+
+@dataclass(frozen=True)
+class BuilderDoneReport:
+    journey: str
+    method: str
+    active_item: str
+    active_item_title: str | None
+    history_action: str
+    roadmap_update: str
+    next_recommendation: str
+    missing_done: tuple[str, ...]
+    done_contract: ContractDefinition
+    cursor: BuilderDeliveryCursor
+    done_artifact_path: Path | None = None
+
+
 def pull_lifecycle_item(
     store: Store,
     *,
@@ -436,6 +468,236 @@ def render_expand_report(report: BuilderExpandReport) -> str:
         ]
     )
     return wrap_ariad_surface("expand_decision", body + "\n")
+
+
+def coherence_lifecycle_item(
+    store: Store,
+    *,
+    journey: str,
+    method: MethodDefinition,
+    process_alignment: str | None = None,
+    project_alignment: str | None = None,
+    product_alignment: str | None = None,
+    local_differences: tuple[str, ...] = (),
+    coherence_artifact_path: Path | None = None,
+) -> BuilderCoherenceReport:
+    """Render and persist the Ariad Coherence checkpoint after Debt Review."""
+    normalized_journey = _normalize_required(journey, "journey")
+    existing = get_delivery_cursor(store, normalized_journey)
+    if existing is None:
+        raise ValueError("delivery cursor is required before coherence")
+    if not existing.active_item:
+        raise ValueError("active item is required before coherence")
+    if existing.pending_confirmation:
+        raise ValueError(
+            f"Coherence is blocked: pending confirmation {existing.pending_confirmation}."
+        )
+    if existing.last_delivery_event != "review_complete":
+        raise ValueError("Coherence requires completed Debt Review")
+    process = (process_alignment or "Process evidence is aligned with the Ariad lifecycle.").strip()
+    project = (
+        project_alignment or "Project docs and artifacts reflect the validated change."
+    ).strip()
+    product = (
+        product_alignment or "Product behavior matches the accepted validation evidence."
+    ).strip()
+    differences = tuple(diff.strip() for diff in local_differences if diff.strip())
+    missing = _coherence_missing(process, project, product)
+    cursor = set_delivery_cursor(
+        store,
+        journey=normalized_journey,
+        method=method.id,
+        active_item=existing.active_item,
+        active_item_title=existing.active_item_title,
+        active_item_level=existing.active_item_level,
+        active_checkpoint="coherence" if missing else None,
+        pending_confirmation="navigator_coherence" if missing else None,
+        last_delivery_event="coherence" if missing else "coherence_complete",
+        cadence_profile=existing.cadence_profile,
+        granularity_decision=existing.granularity_decision,
+    )
+    report = BuilderCoherenceReport(
+        journey=normalized_journey,
+        method=method.id,
+        active_item=existing.active_item,
+        active_item_title=existing.active_item_title,
+        process_alignment=process,
+        project_alignment=project,
+        product_alignment=product,
+        local_differences=differences,
+        missing_coherence=missing,
+        coherence_contract=_contract_for(method, "coherence_contract"),
+        cursor=cursor,
+        coherence_artifact_path=coherence_artifact_path,
+    )
+    if coherence_artifact_path is not None:
+        coherence_artifact_path.parent.mkdir(parents=True, exist_ok=True)
+        coherence_artifact_path.write_text(_render_coherence_artifact(report), encoding="utf-8")
+    return report
+
+
+def render_coherence_checkpoint(report: BuilderCoherenceReport) -> str:
+    status = "pending_coherence" if report.missing_coherence else "coherent"
+    missing_prefix = "✕" if report.missing_coherence else "✓"
+    boundary = (
+        "Do not move to Done until coherence gaps are resolved."
+        if report.missing_coherence
+        else "Coherence is complete; Builder may proceed to Done."
+    )
+    body = "\n".join(
+        [
+            "Delivery",
+            render_lifecycle_ribbon("coherence"),
+            "",
+            "╭────────────────────────────────────────────────────────╮",
+            "│        ◉■  COHERENCE CHECKPOINT                        │",
+            "│                                                        │",
+            _card_text("active item"),
+            _card_text(report.active_item),
+            "│                                                        │",
+            _card_text("status"),
+            _card_text(status),
+            "│                                                        │",
+            _card_text("process alignment"),
+            *_card_wrapped(report.process_alignment),
+            "│                                                        │",
+            _card_text("project alignment"),
+            *_card_wrapped(report.project_alignment),
+            "│                                                        │",
+            _card_text("product alignment"),
+            *_card_wrapped(report.product_alignment),
+            "│                                                        │",
+            _card_text("local guide differences"),
+            *_card_prefixed(report.local_differences or ("none",), "△"),
+            "│                                                        │",
+            _card_text("missing coherence"),
+            *_card_prefixed(report.missing_coherence or ("none",), missing_prefix),
+            "│                                                        │",
+            _card_text("coherence contract"),
+            *_card_prefixed(report.coherence_contract.rules, "✓"),
+            "│                                                        │",
+            _card_text("coherence artifact"),
+            *_card_wrapped(
+                str(report.coherence_artifact_path)
+                if report.coherence_artifact_path
+                else "not materialized"
+            ),
+            "│                                                        │",
+            _card_text("boundary"),
+            *_card_wrapped(boundary),
+            "╰────────────────────────────────────────────────────────╯",
+        ]
+    )
+    return wrap_ariad_surface("coherence_checkpoint", body + "\n")
+
+
+def done_lifecycle_item(
+    store: Store,
+    *,
+    journey: str,
+    method: MethodDefinition,
+    history_action: str | None = None,
+    roadmap_update: str | None = None,
+    next_recommendation: str | None = None,
+    done_artifact_path: Path | None = None,
+) -> BuilderDoneReport:
+    """Render and persist the Ariad Done checkpoint after Coherence."""
+    normalized_journey = _normalize_required(journey, "journey")
+    existing = get_delivery_cursor(store, normalized_journey)
+    if existing is None:
+        raise ValueError("delivery cursor is required before done")
+    if not existing.active_item:
+        raise ValueError("active item is required before done")
+    if existing.pending_confirmation:
+        raise ValueError(f"Done is blocked: pending confirmation {existing.pending_confirmation}.")
+    if existing.last_delivery_event != "coherence_complete":
+        raise ValueError("Done requires completed Coherence")
+    history = (history_action or "History action recorded according to project policy.").strip()
+    roadmap = (roadmap_update or "Roadmap/story package reflects the closed story.").strip()
+    next_step = (
+        next_recommendation or "Inspect pull candidates for the next Ariad movement."
+    ).strip()
+    missing = _done_missing(history, roadmap, next_step)
+    cursor = set_delivery_cursor(
+        store,
+        journey=normalized_journey,
+        method=method.id,
+        active_item=existing.active_item,
+        active_item_title=existing.active_item_title,
+        active_item_level=existing.active_item_level,
+        active_checkpoint="done" if missing else None,
+        pending_confirmation="navigator_done" if missing else None,
+        last_delivery_event="done" if missing else "done_complete",
+        cadence_profile=existing.cadence_profile,
+        granularity_decision=existing.granularity_decision,
+    )
+    report = BuilderDoneReport(
+        journey=normalized_journey,
+        method=method.id,
+        active_item=existing.active_item,
+        active_item_title=existing.active_item_title,
+        history_action=history,
+        roadmap_update=roadmap,
+        next_recommendation=next_step,
+        missing_done=missing,
+        done_contract=_contract_for(method, "done_contract"),
+        cursor=cursor,
+        done_artifact_path=done_artifact_path,
+    )
+    if done_artifact_path is not None:
+        done_artifact_path.parent.mkdir(parents=True, exist_ok=True)
+        done_artifact_path.write_text(_render_done_artifact(report), encoding="utf-8")
+    return report
+
+
+def render_done_checkpoint(report: BuilderDoneReport) -> str:
+    status = "pending_done" if report.missing_done else "done"
+    missing_prefix = "✕" if report.missing_done else "✓"
+    boundary = (
+        "Do not close the story until Done gaps are resolved."
+        if report.missing_done
+        else "Story closure is complete; Builder may recommend the next Pull."
+    )
+    body = "\n".join(
+        [
+            "Delivery",
+            render_lifecycle_ribbon("done"),
+            "",
+            "╭────────────────────────────────────────────────────────╮",
+            "│        🟩■  DONE CHECKPOINT                             │",
+            "│                                                        │",
+            _card_text("active item"),
+            _card_text(report.active_item),
+            "│                                                        │",
+            _card_text("status"),
+            _card_text(status),
+            "│                                                        │",
+            _card_text("history action"),
+            *_card_wrapped(report.history_action),
+            "│                                                        │",
+            _card_text("roadmap update"),
+            *_card_wrapped(report.roadmap_update),
+            "│                                                        │",
+            _card_text("next recommendation"),
+            *_card_wrapped(report.next_recommendation),
+            "│                                                        │",
+            _card_text("missing done"),
+            *_card_prefixed(report.missing_done or ("none",), missing_prefix),
+            "│                                                        │",
+            _card_text("done contract"),
+            *_card_prefixed(report.done_contract.rules, "✓"),
+            "│                                                        │",
+            _card_text("done artifact"),
+            *_card_wrapped(
+                str(report.done_artifact_path) if report.done_artifact_path else "not materialized"
+            ),
+            "│                                                        │",
+            _card_text("boundary"),
+            *_card_wrapped(boundary),
+            "╰────────────────────────────────────────────────────────╯",
+        ]
+    )
+    return wrap_ariad_surface("done_checkpoint", body + "\n")
 
 
 def review_lifecycle_item(
@@ -1247,6 +1509,60 @@ def _user_story_outcome(title: str) -> str:
     return f"Navigator can validate {title} as an observable behavior."
 
 
+def _render_coherence_artifact(report: BuilderCoherenceReport) -> str:
+    return f"""# Coherence — {report.active_item}
+
+## Status
+
+{"Pending coherence" if report.missing_coherence else "Coherent"}
+
+## Process Alignment
+
+{report.process_alignment}
+
+## Project Alignment
+
+{report.project_alignment}
+
+## Product Alignment
+
+{report.product_alignment}
+
+## Local Guide Differences
+
+{_markdown_list(report.local_differences or ("none",))}
+
+## Missing Coherence
+
+{_markdown_list(report.missing_coherence or ("none",))}
+"""
+
+
+def _render_done_artifact(report: BuilderDoneReport) -> str:
+    return f"""# Done — {report.active_item}
+
+## Status
+
+{"Pending Done" if report.missing_done else "Done"}
+
+## History Action
+
+{report.history_action}
+
+## Roadmap Update
+
+{report.roadmap_update}
+
+## Next Recommendation
+
+{report.next_recommendation}
+
+## Missing Done
+
+{_markdown_list(report.missing_done or ("none",))}
+"""
+
+
 def _render_review_artifact(report: BuilderReviewReport) -> str:
     return f"""# Review — {report.active_item}
 
@@ -1319,6 +1635,28 @@ def _normalize_validation_choice(value: str, field: str, allowed: set[str]) -> s
         allowed_values = ", ".join(sorted(allowed))
         raise ValueError(f"{field} must be one of {allowed_values}")
     return normalized
+
+
+def _coherence_missing(process: str, project: str, product: str) -> tuple[str, ...]:
+    missing: list[str] = []
+    if not process.strip():
+        missing.append("process alignment is missing")
+    if not project.strip():
+        missing.append("project alignment is missing")
+    if not product.strip():
+        missing.append("product alignment is missing")
+    return tuple(missing)
+
+
+def _done_missing(history: str, roadmap: str, next_step: str) -> tuple[str, ...]:
+    missing: list[str] = []
+    if not history.strip():
+        missing.append("history action is missing")
+    if not roadmap.strip():
+        missing.append("roadmap update is missing")
+    if not next_step.strip():
+        missing.append("next recommendation is missing")
+    return tuple(missing)
 
 
 def _review_missing_decision(

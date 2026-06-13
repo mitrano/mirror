@@ -2,7 +2,7 @@
 
 # CV20.DS4.US6 — Coherence And Done Gate
 
-**Status:** 🟡 Planned
+**Status:** 🟢 Active
 **Type:** User Story
 
 ---
@@ -36,7 +36,7 @@ And recommends next Pull, parent collapse, or release boundary
 
 ## Scope
 
-- Add Debt Review surface/operation.
+- Add Debt Review surface/operation. ✅ Covered by CV20.DS5.US1.
 - Add Coherence surface/operation.
 - Add Done surface/operation.
 - Enforce required trace/doc/history policy before closure.

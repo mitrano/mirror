@@ -17,10 +17,14 @@ from memory.builder.lifecycle import (
     BuilderLifecycleItem,
     approve_plan_checkpoint,
     assert_implementation_allowed,
+    coherence_lifecycle_item,
+    done_lifecycle_item,
     expand_delivery_story,
     plan_lifecycle_item,
     prepare_lifecycle_item,
     pull_lifecycle_item,
+    render_coherence_checkpoint,
+    render_done_checkpoint,
     render_expand_report,
     render_implementation_guard_allowed,
     render_implementation_guard_blocked,
@@ -779,6 +783,92 @@ def cmd_check_implementation(
     print(render_implementation_guard_allowed(cursor))
 
 
+def cmd_coherence_item(
+    method: str,
+    *,
+    journey: str | None = None,
+    session_id: str | None = None,
+    process_alignment: str | None = None,
+    project_alignment: str | None = None,
+    product_alignment: str | None = None,
+    local_differences: tuple[str, ...] = (),
+) -> None:
+    mem = MemoryClient()
+    _reject_unknown_method(method)
+    resolved_journey = _resolve_builder_journey(
+        mem,
+        journey=journey,
+        session_id=session_id,
+        action="coherence",
+    )
+    journey_content = mem.get_identity("journey", resolved_journey)
+    if not journey_content:
+        print(f"Error: journey '{resolved_journey}' not found.", file=sys.stderr)
+        sys.exit(1)
+    _require_adopted_method(mem, resolved_journey, method)
+    _require_delivery_cursor(mem, resolved_journey)
+    cursor = get_delivery_cursor(mem.store, resolved_journey)
+    project_path = mem.journeys.get_project_path(resolved_journey)
+    plan_path = _plan_artifact_path(project_path, cursor)
+    try:
+        report = coherence_lifecycle_item(
+            mem.store,
+            journey=resolved_journey,
+            method=get_ariad_method(),
+            process_alignment=process_alignment,
+            project_alignment=project_alignment,
+            product_alignment=product_alignment,
+            local_differences=local_differences,
+            coherence_artifact_path=(plan_path.parent / "coherence.md") if plan_path else None,
+        )
+    except ValueError as exc:
+        print(render_implementation_guard_blocked(str(exc)))
+        sys.exit(1)
+    print(render_coherence_checkpoint(report))
+
+
+def cmd_done_item(
+    method: str,
+    *,
+    journey: str | None = None,
+    session_id: str | None = None,
+    history_action: str | None = None,
+    roadmap_update: str | None = None,
+    next_recommendation: str | None = None,
+) -> None:
+    mem = MemoryClient()
+    _reject_unknown_method(method)
+    resolved_journey = _resolve_builder_journey(
+        mem,
+        journey=journey,
+        session_id=session_id,
+        action="done",
+    )
+    journey_content = mem.get_identity("journey", resolved_journey)
+    if not journey_content:
+        print(f"Error: journey '{resolved_journey}' not found.", file=sys.stderr)
+        sys.exit(1)
+    _require_adopted_method(mem, resolved_journey, method)
+    _require_delivery_cursor(mem, resolved_journey)
+    cursor = get_delivery_cursor(mem.store, resolved_journey)
+    project_path = mem.journeys.get_project_path(resolved_journey)
+    plan_path = _plan_artifact_path(project_path, cursor)
+    try:
+        report = done_lifecycle_item(
+            mem.store,
+            journey=resolved_journey,
+            method=get_ariad_method(),
+            history_action=history_action,
+            roadmap_update=roadmap_update,
+            next_recommendation=next_recommendation,
+            done_artifact_path=(plan_path.parent / "done.md") if plan_path else None,
+        )
+    except ValueError as exc:
+        print(render_implementation_guard_blocked(str(exc)))
+        sys.exit(1)
+    print(render_done_checkpoint(report))
+
+
 def cmd_review_item(
     method: str,
     *,
@@ -1098,6 +1188,43 @@ def main(argv: list[str] | None = None) -> None:
         help="Runtime session id for resolving the active Builder journey",
     )
 
+    p_coherence = sub.add_parser(
+        "coherence-item",
+        help="Render the Ariad Coherence checkpoint for the active item",
+    )
+    p_coherence.add_argument("--method", required=True, help="Builder method id, such as 'ariad'")
+    p_coherence.add_argument("--journey", default=None, help="Journey slug for Coherence")
+    p_coherence.add_argument(
+        "--session-id",
+        default=None,
+        help="Runtime session id for resolving the active Builder journey",
+    )
+    p_coherence.add_argument("--process", default=None, help="Process alignment evidence")
+    p_coherence.add_argument("--project", default=None, help="Project alignment evidence")
+    p_coherence.add_argument("--product", default=None, help="Product alignment evidence")
+    p_coherence.add_argument(
+        "--local-difference",
+        dest="local_differences",
+        action="append",
+        default=[],
+        help="Local guide vs Ariad difference; may be repeated",
+    )
+
+    p_done = sub.add_parser(
+        "done-item",
+        help="Render the Ariad Done checkpoint for the active item",
+    )
+    p_done.add_argument("--method", required=True, help="Builder method id, such as 'ariad'")
+    p_done.add_argument("--journey", default=None, help="Journey slug for Done")
+    p_done.add_argument(
+        "--session-id",
+        default=None,
+        help="Runtime session id for resolving the active Builder journey",
+    )
+    p_done.add_argument("--history-action", default=None, help="History action taken or proposed")
+    p_done.add_argument("--roadmap-update", default=None, help="Roadmap/story package update")
+    p_done.add_argument("--next-recommendation", default=None, help="Next Ariad movement")
+
     p_review = sub.add_parser(
         "review-item",
         help="Render the Ariad Debt Review checkpoint for the active item",
@@ -1232,6 +1359,25 @@ def main(argv: list[str] | None = None) -> None:
             item_title=args.item_title,
             item_level=args.item_level,
             why_now=args.why_now,
+        )
+    elif args.command == "coherence-item":
+        cmd_coherence_item(
+            args.method,
+            journey=args.journey,
+            session_id=args.session_id,
+            process_alignment=args.process,
+            project_alignment=args.project,
+            product_alignment=args.product,
+            local_differences=tuple(args.local_differences),
+        )
+    elif args.command == "done-item":
+        cmd_done_item(
+            args.method,
+            journey=args.journey,
+            session_id=args.session_id,
+            history_action=args.history_action,
+            roadmap_update=args.roadmap_update,
+            next_recommendation=args.next_recommendation,
         )
     elif args.command == "review-item":
         cmd_review_item(

@@ -625,8 +625,8 @@ ARIAD_METHOD = MethodDefinition(
             event="review",
             stops_for="navigator_debt_decision",
         ),
-        SurfaceDefinition(id="coherence_report", event="coherence"),
-        SurfaceDefinition(id="done_report", event="done"),
+        SurfaceDefinition(id="coherence_checkpoint", event="coherence"),
+        SurfaceDefinition(id="done_checkpoint", event="done"),
     ),
     surface_routes=(
         SurfaceRoute(
