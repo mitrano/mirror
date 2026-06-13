@@ -2,7 +2,7 @@
 
 # CV20.DS4.US5 — Accelerated And Autonomous Cadence
 
-**Status:** 🟡 Planned
+**Status:** 🟢 Active
 **Type:** User Story
 
 ---
@@ -17,7 +17,7 @@ Navigator can deliberately switch an Ariad-adopted Builder journey into accelera
 
 Earlier DS4 work introduces deterministic Ariad lifecycle surfaces and the need for cadence profiles. The initial cadence implementation should support `stepwise` and `checkpoint` so testing and normal use are methodologically consistent.
 
-This story is reserved for future higher-autonomy profiles:
+This story activates conservative higher-autonomy profiles:
 
 - `accelerated`: Driver may continue through soft stops until the next hard approval/evidence/closure checkpoint.
 - `autonomous`: Driver may continue through bypassable checkpoints according to explicit policy, stopping only at hard constraints, unsafe operations, or Navigator-defined limits.
@@ -64,6 +64,10 @@ And stops when a hard gate, safety boundary, scope change, failing required chec
 
 ---
 
-## Notes
+## Implementation Notes
 
-This story must not begin until the baseline cadence model exists and hard/soft checkpoint policy is explicit in the DSL.
+The first implementation is intentionally conservative:
+
+- `accelerated` is active and means continue through soft stops only until the next hard gate.
+- `autonomous` is active only with explicit Navigator limits recorded in runtime state.
+- Hard gates remain hard: Plan approval, Navigator validation acceptance, debt decisions, unsafe operations, scope changes, push/release, and Done/history boundaries.

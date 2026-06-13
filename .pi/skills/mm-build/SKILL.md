@@ -365,10 +365,20 @@ execute lifecycle work, change story status, commit, push, or release.
 When the user asks to change testing/runtime cadence, use:
 
 ```bash
-uv run python -m memory build set-cadence --method ariad --profile <stepwise|checkpoint>
+uv run python -m memory build set-cadence --method ariad --profile <stepwise|checkpoint|accelerated|autonomous>
 ```
 
-Use `stepwise` for detailed dogfooding. Use `checkpoint` for normal Ariad cadence. In current Ariad, Pull is the Navigator signal to Prepare; pulling a Delivery Story also expands it into implementable User/Technical Stories and stops for confirmation of the recommended next story.
+Use `stepwise` for detailed dogfooding. Use `checkpoint` for normal Ariad cadence. Use `accelerated` only to continue through soft stops while still stopping at hard gates. Use `autonomous` only with explicit Navigator limits, for example:
+
+```bash
+uv run python -m memory build set-cadence --method ariad \
+  --profile autonomous \
+  --limit "stop before push or release" \
+  --limit "stop on scope change" \
+  --limit "stop on failing checks"
+```
+
+Higher-autonomy cadence never grants permission to cross hard gates: Plan approval, Navigator validation acceptance, debt decisions, unsafe operations, scope changes, push/release, and Done/history boundaries remain explicit stops. In current Ariad, Pull is the Navigator signal to Prepare; pulling a Delivery Story also expands it into implementable User/Technical Stories and stops for confirmation of the recommended next story.
 
 When the user asks to pull a roadmap item into active Ariad work, run the
 contained Pull command with explicit item metadata:

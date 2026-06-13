@@ -37,6 +37,18 @@ def test_ariad_taxonomy_contains_expected_levels_and_state_semantics() -> None:
     assert "internal capability" in levels["technical_story"].state_semantics["Validated"]
 
 
+def test_ariad_cadence_profiles_include_conservative_higher_autonomy() -> None:
+    method = get_ariad_method()
+    profiles = {profile.id: profile for profile in method.cadence_profiles}
+
+    assert profiles["accelerated"].active is True
+    assert profiles["accelerated"].stop_policy == "continue_through_soft_stops_stop_at_hard_gates"
+    assert profiles["autonomous"].active is True
+    assert (
+        profiles["autonomous"].stop_policy == "continue_until_hard_constraint_with_explicit_limits"
+    )
+
+
 def test_ariad_lifecycle_matches_exploration_spine() -> None:
     method = get_ariad_method()
 

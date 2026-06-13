@@ -184,6 +184,7 @@ def pull_lifecycle_item(
         pending_confirmation=None,
         last_delivery_event="pull",
         cadence_profile=existing.cadence_profile,
+        cadence_limits=existing.cadence_limits,
     )
     return BuilderPullReport(
         journey=normalized_journey,
@@ -220,6 +221,7 @@ def prepare_lifecycle_item(
         pending_confirmation=None,
         last_delivery_event="prepare",
         cadence_profile=existing.cadence_profile,
+        cadence_limits=existing.cadence_limits,
     )
     return BuilderPrepareReport(
         journey=normalized_journey,
@@ -287,6 +289,7 @@ def plan_lifecycle_item(
         pending_confirmation=pending_confirmation,
         last_delivery_event="plan",
         cadence_profile=existing.cadence_profile,
+        cadence_limits=existing.cadence_limits,
         granularity_decision=None,
     )
     report = BuilderPlanReport(
@@ -350,6 +353,7 @@ def approve_plan_checkpoint(store: Store, *, journey: str, method: str) -> Build
         pending_confirmation=None,
         last_delivery_event="plan_approved",
         cadence_profile=existing.cadence_profile,
+        cadence_limits=existing.cadence_limits,
         granularity_decision=existing.granularity_decision,
     )
 
@@ -425,6 +429,7 @@ def expand_delivery_story(
         pending_confirmation="navigator_story_confirmation",
         last_delivery_event="expand",
         cadence_profile=existing.cadence_profile,
+        cadence_limits=existing.cadence_limits,
         granularity_decision="expanded_to_implementable_stories",
     )
     return BuilderExpandReport(
@@ -514,6 +519,7 @@ def coherence_lifecycle_item(
         pending_confirmation="navigator_coherence" if missing else None,
         last_delivery_event="coherence" if missing else "coherence_complete",
         cadence_profile=existing.cadence_profile,
+        cadence_limits=existing.cadence_limits,
         granularity_decision=existing.granularity_decision,
     )
     report = BuilderCoherenceReport(
@@ -629,6 +635,7 @@ def done_lifecycle_item(
         pending_confirmation="navigator_done" if missing else None,
         last_delivery_event="done" if missing else "done_complete",
         cadence_profile=existing.cadence_profile,
+        cadence_limits=existing.cadence_limits,
         granularity_decision=existing.granularity_decision,
     )
     report = BuilderDoneReport(
@@ -749,6 +756,7 @@ def review_lifecycle_item(
         pending_confirmation=pending_confirmation,
         last_delivery_event=last_event,
         cadence_profile=existing.cadence_profile,
+        cadence_limits=existing.cadence_limits,
         granularity_decision=existing.granularity_decision,
     )
     report = BuilderReviewReport(
@@ -899,6 +907,7 @@ def validate_lifecycle_item(
         pending_confirmation=pending_confirmation,
         last_delivery_event=last_event,
         cadence_profile=existing.cadence_profile,
+        cadence_limits=existing.cadence_limits,
         granularity_decision=existing.granularity_decision,
     )
     report = BuilderValidationReport(

@@ -424,14 +424,14 @@ ARIAD_METHOD = MethodDefinition(
         CadenceProfileDefinition(
             id="accelerated",
             label="Accelerated",
-            stop_policy="future_continue_through_soft_stops",
-            active=False,
+            stop_policy="continue_through_soft_stops_stop_at_hard_gates",
+            active=True,
         ),
         CadenceProfileDefinition(
             id="autonomous",
             label="Autonomous",
-            stop_policy="future_continue_until_hard_constraint",
-            active=False,
+            stop_policy="continue_until_hard_constraint_with_explicit_limits",
+            active=True,
         ),
     ),
     checkpoints=(

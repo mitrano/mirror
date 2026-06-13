@@ -254,6 +254,64 @@ Candidate Delivery Stories:
     assert "E2E decision: required" in plan_text
 
 
+def test_build_set_cadence_accepts_accelerated(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
+    set_delivery_cursor(mem.store, journey="sandbox-pet-store", method="ariad")
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    build.cmd_set_cadence("ariad", journey="sandbox-pet-store", profile="accelerated")
+
+    cursor = get_delivery_cursor(mem.store, "sandbox-pet-store")
+    assert cursor is not None
+    assert cursor.cadence_profile == "accelerated"
+    assert "cadence profile\naccelerated" in capsys.readouterr().out
+
+
+def test_build_set_cadence_autonomous_requires_limits(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
+    set_delivery_cursor(mem.store, journey="sandbox-pet-store", method="ariad")
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    with pytest.raises(SystemExit) as exc:
+        build.cmd_set_cadence("ariad", journey="sandbox-pet-store", profile="autonomous")
+
+    assert exc.value.code == 1
+    assert "requires at least one --limit" in capsys.readouterr().err
+
+
+def test_build_set_cadence_records_autonomous_limits(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
+    set_delivery_cursor(mem.store, journey="sandbox-pet-store", method="ariad")
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    build.cmd_set_cadence(
+        "ariad",
+        journey="sandbox-pet-store",
+        profile="autonomous",
+        limits=("stop before push", "stop on scope change"),
+    )
+
+    cursor = get_delivery_cursor(mem.store, "sandbox-pet-store")
+    assert cursor is not None
+    assert cursor.cadence_profile == "autonomous"
+    assert cursor.cadence_limits == ("stop before push", "stop on scope change")
+    out = capsys.readouterr().out
+    assert "cadence profile\nautonomous" in out
+    assert "cadence limits\nstop before push, stop on scope change" in out
+
+
 def test_build_plan_item_refuses_delivery_story(mocker, tmp_path, capsys):
     mirror_home = tmp_path / ".mirror" / "pati"
     db_path = default_db_path_for_home(mirror_home)

@@ -566,13 +566,21 @@ def cmd_set_cadence(
     method: str,
     *,
     profile: str,
+    limits: tuple[str, ...] = (),
     journey: str | None = None,
     session_id: str | None = None,
 ) -> None:
     mem = MemoryClient()
     _reject_unknown_method(method)
-    if profile not in {"stepwise", "checkpoint"}:
-        print("Error: cadence profile must be one of stepwise, checkpoint", file=sys.stderr)
+    allowed_profiles = {"stepwise", "checkpoint", "accelerated", "autonomous"}
+    if profile not in allowed_profiles:
+        print(
+            "Error: cadence profile must be one of stepwise, checkpoint, accelerated, autonomous",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    if profile == "autonomous" and not limits:
+        print("Error: autonomous cadence requires at least one --limit", file=sys.stderr)
         sys.exit(1)
     resolved_journey = _resolve_builder_journey(
         mem,
@@ -598,6 +606,7 @@ def cmd_set_cadence(
         pending_confirmation=cursor.pending_confirmation,
         last_delivery_event=cursor.last_delivery_event,
         cadence_profile=profile,
+        cadence_limits=limits,
         granularity_decision=cursor.granularity_decision,
     )
     print(render_delivery_cursor_sync_report(updated))
@@ -1167,7 +1176,16 @@ def main(argv: list[str] | None = None) -> None:
     )
     p_cadence.add_argument("--method", required=True, help="Builder method id, such as 'ariad'")
     p_cadence.add_argument(
-        "--profile", required=True, help="Cadence profile: stepwise or checkpoint"
+        "--profile",
+        required=True,
+        help="Cadence profile: stepwise, checkpoint, accelerated, or autonomous",
+    )
+    p_cadence.add_argument(
+        "--limit",
+        dest="limits",
+        action="append",
+        default=[],
+        help="Autonomous cadence limit; may be repeated",
     )
     p_cadence.add_argument("--journey", default=None, help="Journey slug for cadence update")
     p_cadence.add_argument(
@@ -1345,6 +1363,7 @@ def main(argv: list[str] | None = None) -> None:
         cmd_set_cadence(
             args.method,
             profile=args.profile,
+            limits=tuple(args.limits),
             journey=args.journey,
             session_id=args.session_id,
         )
