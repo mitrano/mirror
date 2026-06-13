@@ -621,7 +621,7 @@ ARIAD_METHOD = MethodDefinition(
             stops_for="navigator_validation",
         ),
         SurfaceDefinition(
-            id="review_checkpoint",
+            id="debt_review_checkpoint",
             event="review",
             stops_for="navigator_debt_decision",
         ),

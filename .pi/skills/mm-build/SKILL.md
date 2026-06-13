@@ -470,3 +470,23 @@ If the user names a specific journey, pass `--journey <slug>`. Render the
 deterministic `VALIDATION_CHECKPOINT` surface. If required evidence is missing or
 Navigator validation has not been accepted, return the surface and stop; do not
 advance to Debt Review, Coherence, Done, commit, push, or release.
+
+## Review Ariad Debt
+
+After Validation has passed and before moving to Coherence or Done, render the
+Debt Review checkpoint:
+
+```bash
+uv run python -m memory build review-item --method ariad \
+  --debt "<debt finding, or No debt found>" \
+  --decision <pending|no_action|defer|pay_now> \
+  --defer-reason "<required when decision=defer>" \
+  --revisit-trigger "<required when decision=defer>"
+```
+
+If the user names a specific journey, pass `--journey <slug>`. Render the
+deterministic `DEBT_REVIEW_CHECKPOINT` surface. If the decision is `pending`,
+`defer` without a reason/trigger, or `pay_now`, stop at the debt decision
+checkpoint. `pay_now` must route through a future Refactor loop before Coherence.
+Do not advance to Coherence, Done, commit, push, or release while the debt
+decision is unresolved.

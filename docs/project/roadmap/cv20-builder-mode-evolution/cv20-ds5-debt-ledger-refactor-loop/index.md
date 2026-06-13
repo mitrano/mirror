@@ -2,7 +2,7 @@
 
 # CV20.DS5 — Debt Ledger And Refactor Loop
 
-**Status:** 🟡 Planned
+**Status:** 🟢 Active
 
 ---
 
@@ -18,7 +18,7 @@ Debt deferred by the Navigator records a reason and revisit trigger. Debt paid n
 
 | Code | Story | Type | Outcome | Status |
 |------|-------|------|---------|--------|
-| CV20.DS5.US1 | Review debt decision surface | User Story | Navigator sees debt findings and confirms pay-now, defer, or no-action decisions | 🟡 Planned |
+| [CV20.DS5.US1](cv20-ds5-us1-review-debt-decision-surface/index.md) | Review debt decision surface | User Story | Navigator sees debt findings and confirms pay-now, defer, or no-action decisions | 🟢 Active |
 | CV20.DS5.TS1 | Versioned debt ledger | Technical Story | Debt items are stored in a versioned ledger and indexed for runtime lookup | 🟡 Planned |
 | CV20.DS5.US2 | Refactor loop | User Story | Pay-now debt routes through Refactor and returns to Validation before closure | 🟡 Planned |
 

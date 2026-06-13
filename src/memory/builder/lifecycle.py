@@ -110,6 +110,23 @@ class BuilderValidationReport:
     next_event: str = "debt_review"
 
 
+@dataclass(frozen=True)
+class BuilderReviewReport:
+    journey: str
+    method: str
+    active_item: str
+    active_item_title: str | None
+    debt_findings: tuple[str, ...]
+    debt_decision: str
+    defer_reason: str | None
+    revisit_trigger: str | None
+    missing_decision: tuple[str, ...]
+    debt_review_contract: ContractDefinition
+    cursor: BuilderDeliveryCursor
+    review_artifact_path: Path | None = None
+    next_event: str = "coherence"
+
+
 def pull_lifecycle_item(
     store: Store,
     *,
@@ -419,6 +436,134 @@ def render_expand_report(report: BuilderExpandReport) -> str:
         ]
     )
     return wrap_ariad_surface("expand_decision", body + "\n")
+
+
+def review_lifecycle_item(
+    store: Store,
+    *,
+    journey: str,
+    method: MethodDefinition,
+    debt_findings: tuple[str, ...] = (),
+    debt_decision: str = "pending",
+    defer_reason: str | None = None,
+    revisit_trigger: str | None = None,
+    review_artifact_path: Path | None = None,
+) -> BuilderReviewReport:
+    """Render and persist the Ariad Debt Review checkpoint after Validation."""
+    normalized_journey = _normalize_required(journey, "journey")
+    existing = get_delivery_cursor(store, normalized_journey)
+    if existing is None:
+        raise ValueError("delivery cursor is required before review")
+    if not existing.active_item:
+        raise ValueError("active item is required before review")
+    if existing.pending_confirmation:
+        raise ValueError(
+            f"Review is blocked: pending confirmation {existing.pending_confirmation}."
+        )
+    if existing.last_delivery_event != "validation_passed":
+        raise ValueError("Debt Review requires passed Validation")
+    normalized_decision = _normalize_validation_choice(
+        debt_decision,
+        "debt_decision",
+        {"pending", "no_action", "defer", "pay_now"},
+    )
+    normalized_findings = tuple(finding.strip() for finding in debt_findings if finding.strip())
+    missing = _review_missing_decision(
+        debt_decision=normalized_decision,
+        defer_reason=defer_reason,
+        revisit_trigger=revisit_trigger,
+    )
+    pending_confirmation = "navigator_debt_decision" if missing else None
+    active_checkpoint = "review_decision" if missing else None
+    last_event = "review" if missing else "review_complete"
+    cursor = set_delivery_cursor(
+        store,
+        journey=normalized_journey,
+        method=method.id,
+        active_item=existing.active_item,
+        active_item_title=existing.active_item_title,
+        active_item_level=existing.active_item_level,
+        active_checkpoint=active_checkpoint,
+        pending_confirmation=pending_confirmation,
+        last_delivery_event=last_event,
+        cadence_profile=existing.cadence_profile,
+        granularity_decision=existing.granularity_decision,
+    )
+    report = BuilderReviewReport(
+        journey=normalized_journey,
+        method=method.id,
+        active_item=existing.active_item,
+        active_item_title=existing.active_item_title,
+        debt_findings=normalized_findings,
+        debt_decision=normalized_decision,
+        defer_reason=(defer_reason.strip() if defer_reason and defer_reason.strip() else None),
+        revisit_trigger=(
+            revisit_trigger.strip() if revisit_trigger and revisit_trigger.strip() else None
+        ),
+        missing_decision=missing,
+        debt_review_contract=_contract_for(method, "debt_review_contract"),
+        cursor=cursor,
+        review_artifact_path=review_artifact_path,
+    )
+    if review_artifact_path is not None:
+        review_artifact_path.parent.mkdir(parents=True, exist_ok=True)
+        review_artifact_path.write_text(_render_review_artifact(report), encoding="utf-8")
+    return report
+
+
+def render_review_checkpoint(report: BuilderReviewReport) -> str:
+    status = "pending_debt_decision" if report.missing_decision else "reviewed"
+    missing_prefix = "✕" if report.missing_decision else "✓"
+    boundary = (
+        "Do not move past Debt Review until the Navigator debt decision is resolved."
+        if report.missing_decision
+        else "Debt Review is complete; Builder may proceed to Coherence."
+    )
+    body = "\n".join(
+        [
+            "Delivery",
+            render_lifecycle_ribbon("debt_review"),
+            "",
+            "╭────────────────────────────────────────────────────────╮",
+            "│        🔎■  DEBT REVIEW CHECKPOINT                     │",
+            "│                                                        │",
+            _card_text("active item"),
+            _card_text(report.active_item),
+            "│                                                        │",
+            _card_text("status"),
+            _card_text(status),
+            "│                                                        │",
+            _card_text("debt findings"),
+            *_card_prefixed(report.debt_findings or ("No debt findings declared.",), "△"),
+            "│                                                        │",
+            _card_text("debt decision"),
+            _card_text(report.debt_decision),
+            "│                                                        │",
+            _card_text("defer reason"),
+            *_card_wrapped(report.defer_reason or "none"),
+            "│                                                        │",
+            _card_text("revisit trigger"),
+            *_card_wrapped(report.revisit_trigger or "none"),
+            "│                                                        │",
+            _card_text("missing decision"),
+            *_card_prefixed(report.missing_decision or ("none",), missing_prefix),
+            "│                                                        │",
+            _card_text("debt review contract"),
+            *_card_prefixed(report.debt_review_contract.rules, "✓"),
+            "│                                                        │",
+            _card_text("review artifact"),
+            *_card_wrapped(
+                str(report.review_artifact_path)
+                if report.review_artifact_path
+                else "not materialized"
+            ),
+            "│                                                        │",
+            _card_text("boundary"),
+            *_card_wrapped(boundary),
+            "╰────────────────────────────────────────────────────────╯",
+        ]
+    )
+    return wrap_ariad_surface("debt_review_checkpoint", body + "\n")
 
 
 def validate_lifecycle_item(
@@ -1102,6 +1247,35 @@ def _user_story_outcome(title: str) -> str:
     return f"Navigator can validate {title} as an observable behavior."
 
 
+def _render_review_artifact(report: BuilderReviewReport) -> str:
+    return f"""# Review — {report.active_item}
+
+## Status
+
+{"Pending debt decision" if report.missing_decision else "Reviewed"}
+
+## Debt Findings
+
+{_markdown_list(report.debt_findings or ("No debt findings declared.",))}
+
+## Debt Decision
+
+{report.debt_decision}
+
+## Defer Reason
+
+{report.defer_reason or "none"}
+
+## Revisit Trigger
+
+{report.revisit_trigger or "none"}
+
+## Missing Decision
+
+{_markdown_list(report.missing_decision or ("none",))}
+"""
+
+
 def _render_validation_artifact(report: BuilderValidationReport) -> str:
     return f"""# Validation — {report.active_item}
 
@@ -1145,6 +1319,25 @@ def _normalize_validation_choice(value: str, field: str, allowed: set[str]) -> s
         allowed_values = ", ".join(sorted(allowed))
         raise ValueError(f"{field} must be one of {allowed_values}")
     return normalized
+
+
+def _review_missing_decision(
+    *,
+    debt_decision: str,
+    defer_reason: str | None,
+    revisit_trigger: str | None,
+) -> tuple[str, ...]:
+    missing: list[str] = []
+    if debt_decision == "pending":
+        missing.append("Navigator debt decision is required")
+    if debt_decision == "defer":
+        if not (defer_reason and defer_reason.strip()):
+            missing.append("deferred debt requires a reason")
+        if not (revisit_trigger and revisit_trigger.strip()):
+            missing.append("deferred debt requires a revisit trigger")
+    if debt_decision == "pay_now":
+        missing.append("pay-now debt must route through Refactor before Coherence")
+    return tuple(missing)
 
 
 def _validation_missing_evidence(

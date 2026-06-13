@@ -344,6 +344,96 @@ def test_build_check_implementation_refuses_pending_approval(mocker, tmp_path, c
     assert "blocked" in out
 
 
+def test_build_review_item_renders_pending_debt_decision(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    project_path = tmp_path / "project"
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    mem.journeys.set_project_path("sandbox-pet-store", str(project_path))
+    set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
+    set_delivery_cursor(
+        mem.store,
+        journey="sandbox-pet-store",
+        method="ariad",
+        active_item="CV2.DS1.US1",
+        active_item_level="user_story",
+        last_delivery_event="validation_passed",
+    )
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    build.cmd_review_item(
+        "ariad",
+        journey="sandbox-pet-store",
+        debt_findings=("Checkout address form duplicates cart rendering state.",),
+    )
+
+    out = capsys.readouterr().out
+    cursor = get_delivery_cursor(mem.store, "sandbox-pet-store")
+    assert cursor is not None
+    assert cursor.active_checkpoint == "review_decision"
+    assert cursor.pending_confirmation == "navigator_debt_decision"
+    assert cursor.last_delivery_event == "review"
+    assert "<<<ARIAD:DEBT_REVIEW_CHECKPOINT>>>" in out
+    assert "pending_debt_decision" in out
+    assert "Navigator debt decision is required" in out
+
+
+def test_build_review_item_completes_no_action_decision(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
+    set_delivery_cursor(
+        mem.store,
+        journey="sandbox-pet-store",
+        method="ariad",
+        active_item="CV2.DS1.US1",
+        active_item_level="user_story",
+        last_delivery_event="validation_passed",
+    )
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    build.cmd_review_item(
+        "ariad",
+        journey="sandbox-pet-store",
+        debt_findings=("No debt found.",),
+        debt_decision="no_action",
+    )
+
+    out = capsys.readouterr().out
+    cursor = get_delivery_cursor(mem.store, "sandbox-pet-store")
+    assert cursor is not None
+    assert cursor.pending_confirmation is None
+    assert cursor.last_delivery_event == "review_complete"
+    assert "reviewed" in out
+    assert "✓ none" in out
+
+
+def test_build_review_item_requires_validation_passed(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
+    set_delivery_cursor(
+        mem.store,
+        journey="sandbox-pet-store",
+        method="ariad",
+        active_item="CV2.DS1.US1",
+        active_item_level="user_story",
+        last_delivery_event="validate",
+    )
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    with pytest.raises(SystemExit) as exc:
+        build.cmd_review_item("ariad", journey="sandbox-pet-store")
+
+    assert exc.value.code == 1
+    assert "Debt Review requires passed Validation" in capsys.readouterr().out
+
+
 def test_build_validate_item_renders_checkpoint_and_records_pending_navigator_validation(
     mocker, tmp_path, capsys
 ):

@@ -28,7 +28,9 @@ from memory.builder.lifecycle import (
     render_plan_checkpoint,
     render_prepare_report,
     render_pull_report,
+    render_review_checkpoint,
     render_validation_checkpoint,
+    review_lifecycle_item,
     validate_lifecycle_item,
 )
 from memory.builder.method_adoption import get_adopted_method, set_adopted_method
@@ -777,6 +779,50 @@ def cmd_check_implementation(
     print(render_implementation_guard_allowed(cursor))
 
 
+def cmd_review_item(
+    method: str,
+    *,
+    journey: str | None = None,
+    session_id: str | None = None,
+    debt_findings: tuple[str, ...] = (),
+    debt_decision: str = "pending",
+    defer_reason: str | None = None,
+    revisit_trigger: str | None = None,
+) -> None:
+    mem = MemoryClient()
+    _reject_unknown_method(method)
+    resolved_journey = _resolve_builder_journey(
+        mem,
+        journey=journey,
+        session_id=session_id,
+        action="debt review",
+    )
+    journey_content = mem.get_identity("journey", resolved_journey)
+    if not journey_content:
+        print(f"Error: journey '{resolved_journey}' not found.", file=sys.stderr)
+        sys.exit(1)
+    _require_adopted_method(mem, resolved_journey, method)
+    _require_delivery_cursor(mem, resolved_journey)
+    cursor = get_delivery_cursor(mem.store, resolved_journey)
+    project_path = mem.journeys.get_project_path(resolved_journey)
+    plan_path = _plan_artifact_path(project_path, cursor)
+    try:
+        report = review_lifecycle_item(
+            mem.store,
+            journey=resolved_journey,
+            method=get_ariad_method(),
+            debt_findings=debt_findings,
+            debt_decision=debt_decision,
+            defer_reason=defer_reason,
+            revisit_trigger=revisit_trigger,
+            review_artifact_path=(plan_path.parent / "review.md") if plan_path else None,
+        )
+    except ValueError as exc:
+        print(render_implementation_guard_blocked(str(exc)))
+        sys.exit(1)
+    print(render_review_checkpoint(report))
+
+
 def cmd_validate_item(
     method: str,
     *,
@@ -1052,6 +1098,33 @@ def main(argv: list[str] | None = None) -> None:
         help="Runtime session id for resolving the active Builder journey",
     )
 
+    p_review = sub.add_parser(
+        "review-item",
+        help="Render the Ariad Debt Review checkpoint for the active item",
+    )
+    p_review.add_argument("--method", required=True, help="Builder method id, such as 'ariad'")
+    p_review.add_argument("--journey", default=None, help="Journey slug for Debt Review")
+    p_review.add_argument(
+        "--session-id",
+        default=None,
+        help="Runtime session id for resolving the active Builder journey",
+    )
+    p_review.add_argument(
+        "--debt",
+        dest="debt_findings",
+        action="append",
+        default=[],
+        help="Debt finding; may be repeated",
+    )
+    p_review.add_argument(
+        "--decision",
+        default="pending",
+        choices=("pending", "no_action", "defer", "pay_now"),
+        help="Navigator debt decision",
+    )
+    p_review.add_argument("--defer-reason", default=None, help="Reason for deferred debt")
+    p_review.add_argument("--revisit-trigger", default=None, help="Trigger for revisiting debt")
+
     p_validate = sub.add_parser(
         "validate-item",
         help="Render the Ariad Validation checkpoint for the active item",
@@ -1159,6 +1232,16 @@ def main(argv: list[str] | None = None) -> None:
             item_title=args.item_title,
             item_level=args.item_level,
             why_now=args.why_now,
+        )
+    elif args.command == "review-item":
+        cmd_review_item(
+            args.method,
+            journey=args.journey,
+            session_id=args.session_id,
+            debt_findings=tuple(args.debt_findings),
+            debt_decision=args.decision,
+            defer_reason=args.defer_reason,
+            revisit_trigger=args.revisit_trigger,
         )
     elif args.command == "validate-item":
         cmd_validate_item(
