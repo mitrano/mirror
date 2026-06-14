@@ -132,8 +132,8 @@ No fake parity: each runtime claims only what it honestly supports.
 
 | Code | Epic | User-visible outcome | Status |
 |------|------|----------------------|--------|
-| [CV21.E1](cv21-e1-unified-plugin-mcp-spike/index.md) | Unified Plugin & MCP Spike | Validate cross-runtime plugin import is real (Claude plugin → `agy plugin import claude`, `grok plugin import`, Codex marketplace) and decide the canonical plugin format + MCP server scope; choose convergence vs thin-adapter fallback | 🟢 Active |
-| CV21.E2 | Mirror Plugin & MCP Foundation (Claude) | Author the canonical Mirror Mind plugin (skills + hooks + MCP) + MCP server; convert Mirror's standalone `.claude/` to the plugin; wire `statusLine`; prove on Claude as the reference runtime; isolated smoke test | 🟡 Planned |
+| [CV21.E1](cv21-e1-unified-plugin-mcp-spike/index.md) | Unified Plugin & MCP Spike | Validated (isolated, no config mutated): a Mirror plugin passes `claude plugin validate` and `agy plugin validate`; formats aligned but bridged by `agy plugin import claude`; MCP carries the command surface but not auto-injection. Decision: converge with thin-adapter fallback | ✅ Done |
+| CV21.E2 | Mirror Plugin & MCP Foundation (Claude) | Author the canonical Mirror Mind plugin (skills + hooks + MCP) + MCP server; convert Mirror's standalone `.claude/` to the plugin; wire `statusLine`; prove on Claude as the reference runtime; isolated smoke test | 🟢 Active |
 | CV21.E3 | Codex Upgrade Spike | Confirm `UserPromptSubmit` injection, the `Stop`/session-end + extraction story, native skill discovery + slash commands, plugin/MCP consumption; honest parity confirmed (hypothesis L4) | 🟡 Planned |
 | CV21.E4 | Codex Hook + Plugin Reimplementation | Hooks replace the CV8 wrapper and consume the shared plugin/MCP: `SessionStart`/`UserPromptSubmit`/`Stop` logging + Mirror Mode injection; target L4; keeps `interface='codex'`; isolated smoke test | 🟡 Planned |
 | CV21.E5 | Codex Native Skill & Extension Surface | `mm-*` skills move to native `.codex/skills/` + slash commands; user-owned extensions discoverable and invocable; smoke test | 🟡 Planned |

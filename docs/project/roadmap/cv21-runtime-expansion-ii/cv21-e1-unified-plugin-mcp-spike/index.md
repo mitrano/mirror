@@ -2,7 +2,7 @@
 
 # CV21.E1 — Unified Plugin & MCP Spike
 
-**Status:** 🟢 Active
+**Status:** ✅ Done
 
 ---
 
@@ -59,10 +59,38 @@ per-runtime implementation.
 
 | Code | Story | Type | Outcome | Status |
 |------|-------|------|---------|--------|
-| CV21.E1.S1 | Canonical plugin authoring probe | Spike | A minimal Mirror plugin validates and load-tests on Claude in an isolated dir | 🟢 Active |
-| CV21.E1.S2 | Cross-runtime import probe | Spike | Empirical result of importing the Mirror plugin into `agy`, `grok`, and Codex; what survives | 🟡 Planned |
-| CV21.E1.S3 | Mirror MCP server feasibility | Spike | Whether MCP can carry the command surface and Mirror Mode context injection, or only tool calls | 🟡 Planned |
-| CV21.E1.S4 | Convergence decision record | Decision | `decisions.md` entry choosing converge vs fallback, fixing canonical format + MCP scope; E2–E11 reconciled | 🟡 Planned |
+| CV21.E1.S1 | Canonical plugin authoring probe | Spike | A minimal Mirror plugin validates on Claude in an isolated dir | ✅ Done |
+| CV21.E1.S2 | Cross-runtime import probe | Spike | Component taxonomy validates on `agy`; format bridge identified; live import deferred to per-runtime epics | ✅ Done |
+| CV21.E1.S3 | Mirror MCP server feasibility | Spike | MCP carries the command surface + on-demand context, not automatic per-turn injection | ✅ Done |
+| CV21.E1.S4 | Convergence decision record | Decision | `decisions.md` entry choosing converge with thin-adapter fallback; canonical format + MCP scope fixed | ✅ Done |
+
+---
+
+## Findings & Decision
+
+Run in an isolated `/tmp` scratch dir; **no production mirror, repo, or runtime
+config was mutated** (verified: Claude installed-plugins and Antigravity
+`mcp_config` unchanged after the spike).
+
+- **Plugin authoring works (S1).** A minimal Mirror plugin (`mm-*` skill +
+  lifecycle hooks) passes `claude plugin validate` once the unsupported `$schema`
+  manifest key is removed (the 2.1.114 validator rejects unknown keys).
+- **Cross-runtime alignment (S2).** `agy plugin validate` recognizes the same
+  component taxonomy (skills/agents/commands/mcpServers/hooks). Formats are
+  aligned but not byte-identical — Claude `.claude-plugin/plugin.json` vs `agy`
+  root `plugin.json`, with hooks/MCP in different locations — so `agy plugin
+  import claude` is the bridge. Claude `@skills-dir` in-place plugins need no
+  marketplace/install; Codex uses local marketplace snapshots + native hooks.
+  Live `import`/`install` execution (config-mutating) is deferred to the
+  per-runtime epics where that mutation is in scope.
+- **MCP (S3).** `mcpServers` is portable across Claude/Antigravity/Codex, but
+  pull-based: it carries the command surface + on-demand context, **not**
+  automatic per-turn injection. Automatic Mirror Mode injection stays in
+  per-runtime hooks; Grok (no per-turn hook) caps at L3.
+- **Decision (S4): converge** on a canonical Claude-format plugin (`mm-*` skills
+  + lifecycle hooks) plus a Mirror MCP server, propagated by import/install, with
+  a thin-adapter + shared-MCP fallback. Recorded in
+  [Decisions](../../../decisions.md#cv21-converges-on-a-canonical-plugin-plus-mcp-server-bridged-by-import).
 
 ---
 
