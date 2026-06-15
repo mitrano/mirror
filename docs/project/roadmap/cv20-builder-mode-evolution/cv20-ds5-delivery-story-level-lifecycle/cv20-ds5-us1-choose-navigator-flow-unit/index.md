@@ -2,7 +2,7 @@
 
 # CV20.DS5.US1 — Choose Navigator Flow Unit
 
-**Status:** 🟡 Planned
+**Status:** ✅ Done
 **Type:** User Story
 
 ---
