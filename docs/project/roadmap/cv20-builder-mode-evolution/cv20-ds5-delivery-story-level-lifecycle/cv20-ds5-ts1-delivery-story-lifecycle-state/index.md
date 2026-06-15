@@ -2,7 +2,7 @@
 
 # CV20.DS5.TS1 — Delivery Story Lifecycle State
 
-**Status:** 🟡 Planned
+**Status:** ✅ Done
 **Type:** Technical Story
 
 ---
