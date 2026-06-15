@@ -542,6 +542,51 @@ Render the deterministic `IMPLEMENTATION_GUARD` surface. If the guard reports
 that Navigator approval is required, return the surface and stop. Do not mutate
 files.
 
+## Delivery Story Validation And Closure
+
+When the active Ariad work is a Delivery Story with
+`navigator_flow_unit=delivery_story` and an approved aggregate DS Plan, route
+natural Navigator requests for aggregate DS closure through the Delivery Story
+runtime commands.
+
+For natural validation requests such as `valide a DS`, `valide a Delivery
+Story`, or `validação da DS aceita`, run:
+
+```bash
+uv run python -m memory build validate-delivery-story --method ariad \
+  --summary "<aggregate DS validation evidence>" \
+  --navigator-accepted
+```
+
+For DS-level debt review requests, run:
+
+```bash
+uv run python -m memory build review-delivery-story --method ariad \
+  --decision <no_action|defer|pay_now> \
+  --summary "<DS-level debt review summary>"
+```
+
+For DS-level coherence requests, run:
+
+```bash
+uv run python -m memory build coherence-delivery-story --method ariad \
+  --summary "<DS-level coherence summary>"
+```
+
+For DS-level Done requests, run:
+
+```bash
+uv run python -m memory build done-delivery-story --method ariad \
+  --summary "<DS-level done/history summary>"
+```
+
+If the user names a specific journey, pass `--journey <slug>`. Return every
+`DELIVERY_STORY_CLOSURE_CHECKPOINT` surface verbatim. Explain after the block
+that child User/Technical Stories remain evidence units and that push/release
+remain separate hard gates. Do not use these DS-level closure commands when the
+effective flow unit is `story_by_story`; preserve existing child-story lifecycle
+behavior in that mode.
+
 ## Validate Ariad Work
 
 After implementation is complete and before moving to Debt Review, Coherence, or

@@ -13,6 +13,13 @@ from memory.builder.delivery_cursor import (
     render_delivery_cursor_sync_report,
     set_delivery_cursor,
 )
+from memory.builder.delivery_story_closure import (
+    coherence_delivery_story,
+    done_delivery_story,
+    render_delivery_story_closure_report,
+    review_delivery_story,
+    validate_delivery_story,
+)
 from memory.builder.delivery_story_plan import (
     approve_delivery_story_plan,
     plan_delivery_story_checkpoint,
@@ -571,6 +578,126 @@ _MIRROR_LOCAL_IMPLEMENTATION_RULES = (
     "Do not use git add .; commit only story-scoped files.",
     "Use descriptive English commit messages explaining why.",
 )
+
+
+def cmd_validate_delivery_story(
+    method: str,
+    *,
+    summary: str,
+    navigator_accepted: bool,
+    journey: str | None = None,
+    session_id: str | None = None,
+) -> None:
+    mem = MemoryClient()
+    _reject_unknown_method(method)
+    resolved_journey = _resolve_builder_journey(
+        mem,
+        journey=journey,
+        session_id=session_id,
+        action="Delivery Story validation",
+    )
+    _require_adopted_method(mem, resolved_journey, method)
+    try:
+        report = validate_delivery_story(
+            mem.store,
+            journey=resolved_journey,
+            method=method,
+            summary=summary,
+            navigator_accepted=navigator_accepted,
+        )
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    print(render_delivery_story_closure_report(report))
+
+
+def cmd_review_delivery_story(
+    method: str,
+    *,
+    decision: str,
+    summary: str,
+    journey: str | None = None,
+    session_id: str | None = None,
+) -> None:
+    mem = MemoryClient()
+    _reject_unknown_method(method)
+    resolved_journey = _resolve_builder_journey(
+        mem,
+        journey=journey,
+        session_id=session_id,
+        action="Delivery Story debt review",
+    )
+    _require_adopted_method(mem, resolved_journey, method)
+    try:
+        report = review_delivery_story(
+            mem.store,
+            journey=resolved_journey,
+            method=method,
+            decision=decision,
+            summary=summary,
+        )
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    print(render_delivery_story_closure_report(report))
+
+
+def cmd_coherence_delivery_story(
+    method: str,
+    *,
+    summary: str,
+    journey: str | None = None,
+    session_id: str | None = None,
+) -> None:
+    mem = MemoryClient()
+    _reject_unknown_method(method)
+    resolved_journey = _resolve_builder_journey(
+        mem,
+        journey=journey,
+        session_id=session_id,
+        action="Delivery Story coherence",
+    )
+    _require_adopted_method(mem, resolved_journey, method)
+    try:
+        report = coherence_delivery_story(
+            mem.store,
+            journey=resolved_journey,
+            method=method,
+            summary=summary,
+        )
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    print(render_delivery_story_closure_report(report))
+
+
+def cmd_done_delivery_story(
+    method: str,
+    *,
+    summary: str,
+    journey: str | None = None,
+    session_id: str | None = None,
+) -> None:
+    mem = MemoryClient()
+    _reject_unknown_method(method)
+    resolved_journey = _resolve_builder_journey(
+        mem,
+        journey=journey,
+        session_id=session_id,
+        action="Delivery Story Done",
+    )
+    _require_adopted_method(mem, resolved_journey, method)
+    try:
+        report = done_delivery_story(
+            mem.store,
+            journey=resolved_journey,
+            method=method,
+            summary=summary,
+        )
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    print(render_delivery_story_closure_report(report))
 
 
 def cmd_plan_delivery_story(
@@ -1335,6 +1462,38 @@ def main(argv: list[str] | None = None) -> None:
     )
     p_pull.add_argument("--why-now", required=True, help="Why this item/level is pulled now")
 
+    p_ds_validate = sub.add_parser(
+        "validate-delivery-story", help="Validate aggregate Delivery Story result"
+    )
+    p_ds_validate.add_argument("--method", required=True)
+    p_ds_validate.add_argument("--journey", default=None)
+    p_ds_validate.add_argument("--session-id", default=None)
+    p_ds_validate.add_argument("--summary", required=True)
+    p_ds_validate.add_argument("--navigator-accepted", action="store_true")
+
+    p_ds_review = sub.add_parser(
+        "review-delivery-story", help="Review aggregate Delivery Story debt"
+    )
+    p_ds_review.add_argument("--method", required=True)
+    p_ds_review.add_argument("--journey", default=None)
+    p_ds_review.add_argument("--session-id", default=None)
+    p_ds_review.add_argument("--decision", required=True, choices=("no_action", "defer", "pay_now"))
+    p_ds_review.add_argument("--summary", required=True)
+
+    p_ds_coherence = sub.add_parser(
+        "coherence-delivery-story", help="Check aggregate Delivery Story coherence"
+    )
+    p_ds_coherence.add_argument("--method", required=True)
+    p_ds_coherence.add_argument("--journey", default=None)
+    p_ds_coherence.add_argument("--session-id", default=None)
+    p_ds_coherence.add_argument("--summary", required=True)
+
+    p_ds_done = sub.add_parser("done-delivery-story", help="Close aggregate Delivery Story")
+    p_ds_done.add_argument("--method", required=True)
+    p_ds_done.add_argument("--journey", default=None)
+    p_ds_done.add_argument("--session-id", default=None)
+    p_ds_done.add_argument("--summary", required=True)
+
     p_ds_plan = sub.add_parser(
         "plan-delivery-story",
         help="Create an aggregate Ariad Delivery Story Plan checkpoint",
@@ -1622,6 +1781,36 @@ def main(argv: list[str] | None = None) -> None:
         cmd_sync_cursor(args.method, journey=args.journey, session_id=args.session_id)
     elif args.command == "pull-candidates":
         cmd_pull_candidates(args.method, journey=args.journey, session_id=args.session_id)
+    elif args.command == "validate-delivery-story":
+        cmd_validate_delivery_story(
+            args.method,
+            journey=args.journey,
+            session_id=args.session_id,
+            summary=args.summary,
+            navigator_accepted=args.navigator_accepted,
+        )
+    elif args.command == "review-delivery-story":
+        cmd_review_delivery_story(
+            args.method,
+            journey=args.journey,
+            session_id=args.session_id,
+            decision=args.decision,
+            summary=args.summary,
+        )
+    elif args.command == "coherence-delivery-story":
+        cmd_coherence_delivery_story(
+            args.method,
+            journey=args.journey,
+            session_id=args.session_id,
+            summary=args.summary,
+        )
+    elif args.command == "done-delivery-story":
+        cmd_done_delivery_story(
+            args.method,
+            journey=args.journey,
+            session_id=args.session_id,
+            summary=args.summary,
+        )
     elif args.command == "plan-delivery-story":
         cmd_plan_delivery_story(
             args.method,
