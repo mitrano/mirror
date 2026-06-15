@@ -428,6 +428,80 @@ report visibly. Prepare may update the runtime cursor last delivery event, but
 must not create a Plan, approve a checkpoint, start implementation, change story
 status, commit, push, or release.
 
+## Delivery Story Navigator Flow
+
+When the active Ariad work is a Delivery Story or the Navigator refers to the
+current Delivery Story and says a natural-language equivalent of:
+
+- `quero seguir no nível da DS`
+- `seguir no nível da Delivery Story`
+- `use Delivery Story flow`
+- `não preciso validar cada US`
+- `aprove um plano geral da DS e eu valido no fim`
+
+run:
+
+```bash
+uv run python -m memory build set-flow-unit --method ariad --unit delivery_story
+```
+
+If the user names a specific journey, pass `--journey <slug>`. Return the
+`NAVIGATOR_FLOW_UNIT` surface verbatim. Explain after the surface that child
+User/Technical Stories remain traceable Driver work packages, and that choosing
+Delivery Story flow does not approve a Plan, start implementation, validate,
+push, or release.
+
+When the effective flow unit is `story_by_story`, preserve existing child-story
+Plan behavior. Do not silently use Delivery Story-level Plan unless the
+Navigator has selected `delivery_story` flow or explicitly asks to follow work at
+Delivery Story level.
+
+## Delivery Story Plan Ariad Work
+
+When the active Ariad work is a Delivery Story with
+`navigator_flow_unit=delivery_story` and the Navigator says a natural-language
+equivalent of:
+
+- `planeje a DS`
+- `planeje a Delivery Story`
+- `plan the Delivery Story`
+- `crie o plano geral da DS`
+
+run:
+
+```bash
+uv run python -m memory build plan-delivery-story --method ariad \
+  --objective "<aggregate Delivery Story objective>" \
+  --child <child-work-item-code>
+```
+
+Pass one `--child` argument for each known child User/Technical Story work
+package. If child work packages are already present in the cursor, the command
+may use them; otherwise include the known roadmap child codes. If the user names
+a specific journey, pass `--journey <slug>`.
+
+Return the `DELIVERY_STORY_PLAN_CHECKPOINT` surface verbatim. Interpret only
+after the block. Explain that the DS-level Plan is pending approval and that no
+implementation, validation, push, or release is authorized by planning alone.
+
+If the Navigator asks to plan the Delivery Story before selecting
+`delivery_story` flow, first surface or request the flow-unit choice; do not
+silently use DS-level Plan from the default `story_by_story` flow.
+
+When the Navigator approves a pending DS-level Plan with natural language such
+as `aprovo o plano da DS`, `plano da DS aprovado`, or `approve the Delivery
+Story plan`, run:
+
+```bash
+uv run python -m memory build approve-delivery-story-plan --method ariad
+```
+
+If the user names a specific journey, pass `--journey <slug>`. Return the
+approved `DELIVERY_STORY_PLAN_CHECKPOINT` surface verbatim. Explain after the
+surface that child work may proceed under the aggregate DS Plan contract, while
+unsafe operations, scope changes, debt decisions, push, release, and final Done
+boundaries remain hard stops.
+
 ## Plan Ariad Work
 
 When the user asks to plan the pulled item, create a plan for the active item, or
