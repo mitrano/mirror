@@ -185,24 +185,29 @@ def render_roadmap_snapshot_report(
 
 
 def render_pull_candidates_report(report: PullCandidatesReport) -> str:
-    """Render Ariad pull candidates."""
+    """Render Ariad pull candidates using the method visual grammar."""
     lines = [
-        "■ Ariad Pull Candidates",
+        "Delivery",
+        render_lifecycle_ribbon("pull"),
         "",
-        "journey",
-        report.journey,
-        "",
-        "method",
-        report.method,
-        "",
-        "available candidates",
-        *_format_candidates(report.candidates),
-        "",
-        "recommended pull",
-        _format_candidate(report.recommended) if report.recommended else "none",
-        "",
-        "boundary",
-        "No item was pulled. No lifecycle work was executed.",
+        "╭────────────────────────────────────────────────────────╮",
+        "│        🟪■  PULL CANDIDATES                            │",
+        "│                                                        │",
+        _card_text("journey"),
+        _card_text(report.journey),
+        "│                                                        │",
+        _card_text("method"),
+        _card_text(report.method),
+        "│                                                        │",
+        _card_text("available candidates"),
+        *_card_prefixed(_candidate_lines(report.candidates), "-"),
+        "│                                                        │",
+        _card_text("recommended pull"),
+        *_card_wrapped(_format_candidate(report.recommended) if report.recommended else "none"),
+        "│                                                        │",
+        _card_text("boundary"),
+        *_card_wrapped("No item was pulled. No lifecycle work was executed."),
+        "╰────────────────────────────────────────────────────────╯",
     ]
     return wrap_ariad_surface("pull_candidates", "\n".join(lines) + "\n")
 
@@ -383,6 +388,49 @@ def _card_line(left: str, right: str) -> str:
 def _card_text(text: str) -> str:
     width = 54
     return f"│ {text[:width]:<{width}} │"
+
+
+def _card_prefixed(items: tuple[str, ...], prefix: str) -> list[str]:
+    if not items:
+        return [_card_text("none")]
+    lines: list[str] = []
+    for item in items:
+        wrapped = _wrap_plain_text(item, width=52)
+        for index, line in enumerate(wrapped):
+            marker = prefix if index == 0 else " "
+            lines.append(_card_text(f"{marker} {line}"))
+    return lines
+
+
+def _card_wrapped(text: str) -> list[str]:
+    return [_card_text(line) for line in _wrap_plain_text(text, width=54)]
+
+
+def _wrap_plain_text(text: str, *, width: int) -> list[str]:
+    words = text.split()
+    lines: list[str] = []
+    current = ""
+    for word in words:
+        if len(word) > width:
+            if current:
+                lines.append(current)
+                current = ""
+            for start in range(0, len(word), width):
+                lines.append(word[start : start + width])
+            continue
+        candidate = f"{current} {word}".strip()
+        if len(candidate) > width and current:
+            lines.append(current)
+            current = word
+        else:
+            current = candidate
+    if current:
+        lines.append(current)
+    return lines or ["none"]
+
+
+def _candidate_lines(candidates: tuple[PullCandidate, ...]) -> tuple[str, ...]:
+    return tuple(_format_candidate(candidate) for candidate in candidates)
 
 
 def _format_candidates(candidates: tuple[PullCandidate, ...]) -> list[str]:

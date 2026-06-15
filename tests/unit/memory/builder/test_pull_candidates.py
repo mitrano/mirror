@@ -110,8 +110,10 @@ def test_render_pull_candidates_report_preserves_boundary(tmp_path):
 
     assert "<<<ARIAD:PULL_CANDIDATES>>>" in rendered
     assert "<<<END:PULL_CANDIDATES>>>" in rendered
-    assert "Ariad Pull Candidates" in rendered
-    assert "journey\nsandbox-pet-store" in rendered
+    assert "╭────────────────────────────────────────────────────────╮" in rendered
+    assert "│        🟪■  PULL CANDIDATES                            │" in rendered
+    assert "│ journey                                                │" in rendered
+    assert "│ sandbox-pet-store                                      │" in rendered
     assert "CV2.DS1 — Checkout Flow" in rendered
-    assert "recommended pull" in rendered
+    assert "│ recommended pull                                       │" in rendered
     assert "No item was pulled" in rendered

@@ -121,8 +121,8 @@ Candidate Delivery Stories:
     assert "ROADMAP SNAPSHOT" in out
     assert "Ariad: ◉ Pull | ○ Prepare | ○ Expand | ○ Plan" in out
     assert "🟪[CV2]  Checkout Flow" in out
-    assert "Ariad Pull Candidates" in out
-    assert "CV2.DS1 — Checkout Flow / Checkout entry and address capture" in out
+    assert "PULL CANDIDATES" in out
+    assert "CV2.DS1 — Checkout Flow / Checkout entry" in out
     assert "BUILDER RESUME" not in out
     assert "No item was pulled" in out
 
@@ -1430,8 +1430,8 @@ Candidate Delivery Stories:
     assert "Ariad: ◉ Pull | ○ Prepare | ○ Expand | ○ Plan" in out
     assert "🟪[CV2]  Checkout Flow" in out
     assert "view                         overview" in out
-    assert "Ariad Pull Candidates" in out
-    assert "CV2.DS1 — Checkout Flow / Checkout entry and address capture" in out
+    assert "PULL CANDIDATES" in out
+    assert "CV2.DS1 — Checkout Flow / Checkout entry" in out
     assert "No item was pulled" in out
 
 
