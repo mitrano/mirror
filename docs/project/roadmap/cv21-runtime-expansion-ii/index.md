@@ -77,11 +77,15 @@ hypotheses the spike epics must confirm hands-on.
   `PreToolUse`/`PostToolUse`, `PreCompact`/`PostCompact`, `SubagentStart`/`Stop`),
   configured via `hooks.json` or `[hooks]` in `config.toml`, with a `/hooks` trust
   model. Confirmed from the binary hook schema and `developers.openai.com/codex/hooks`.
-- **Per-turn context injection** via `UserPromptSubmit` `...HookSpecificOutputWire`,
-  **native skills** (`.codex/skills/<name>/SKILL.md` + `~/.codex/skills/`), plugins
-  + marketplaces, MCP client (`codex mcp`) and server (`codex mcp-server`),
-  `codex exec` headless, configurable `[tui] status_line`, and `codex doctor`.
-- **Hypothesis: L3 → L4 reachable;** the hook adapter is close kin to Claude's.
+- **Per-turn context injection** via `UserPromptSubmit` `hookSpecificOutput.additionalContext`;
+  **skills discovered from `.agents/skills/`** (the surface Mirror already uses,
+  symlink-aware) plus `~/.codex/skills/`; plugins + marketplaces; MCP client
+  (`codex mcp`) and server (`codex mcp-server`); `codex exec` headless;
+  configurable `[tui] status_line`; and `codex doctor`.
+- **E3 confirmed: L4 reachable.** `SessionStart`/`Stop` expose `session_id` +
+  `transcript_path`; the hook adapter is close kin to Claude's. Caveats: `async`
+  hooks are skipped (logging must be synchronous) and there is no `SessionEnd`
+  (use deferred extraction).
 
 ### Antigravity (`agy` CLI v1.0.8)
 
@@ -134,9 +138,9 @@ No fake parity: each runtime claims only what it honestly supports.
 |------|------|----------------------|--------|
 | [CV21.E1](cv21-e1-unified-plugin-mcp-spike/index.md) | Unified Plugin & MCP Spike | Validated (isolated, no config mutated): a Mirror plugin passes `claude plugin validate` and `agy plugin validate`; formats aligned but bridged by `agy plugin import claude`; MCP carries the command surface but not auto-injection. Decision: converge with thin-adapter fallback | ✅ Done |
 | CV21.E2 | Mirror Plugin & MCP Foundation (Claude) | Author the canonical Mirror Mind plugin (skills + hooks + MCP) + MCP server; convert Mirror's standalone `.claude/` to the plugin; wire `statusLine`; prove on Claude as the reference runtime; isolated smoke test | 🟢 Active |
-| CV21.E3 | Codex Upgrade Spike | Confirm `UserPromptSubmit` injection, the `Stop`/session-end + extraction story, native skill discovery + slash commands, plugin/MCP consumption; honest parity confirmed (hypothesis L4) | 🟡 Planned |
-| CV21.E4 | Codex Hook + Plugin Reimplementation | Hooks replace the CV8 wrapper and consume the shared plugin/MCP: `SessionStart`/`UserPromptSubmit`/`Stop` logging + Mirror Mode injection; target L4; keeps `interface='codex'`; isolated smoke test | 🟡 Planned |
-| CV21.E5 | Codex Native Skill & Extension Surface | `mm-*` skills move to native `.codex/skills/` + slash commands; user-owned extensions discoverable and invocable; smoke test | 🟡 Planned |
+| [CV21.E3](cv21-e3-codex-upgrade-spike/index.md) | Codex Upgrade Spike | Confirmed (read-only, no config mutated): full Claude-style hooks (`SessionStart`/`UserPromptSubmit`→`additionalContext`/`Stop`) → **L4 reachable**; `session_id` + `transcript_path` available; skills already discovered via `.agents/skills/` (no migration). Caveats: `async` hooks skipped, no `SessionEnd` | ✅ Done |
+| CV21.E4 | Codex Hook + Plugin Reimplementation | Hooks replace the CV8 wrapper and consume the shared plugin/MCP: `SessionStart`/`UserPromptSubmit`/`Stop` logging + Mirror Mode injection; target L4; keeps `interface='codex'`. Logging must be synchronous (`async` skipped); deferred extraction (no `SessionEnd`); isolated smoke test | 🟡 Planned |
+| CV21.E5 | Codex Skill & Extension Surface | `mm-*` skills already discovered via `.agents/skills/` (E3 finding — no migration); expose user-owned extensions into `.agents/skills/` and/or a Codex plugin; smoke test | 🟡 Planned |
 | CV21.E6 | Antigravity Runtime Spike | Map `agy` plugin/hook/MCP against the contract; test `agy plugin import claude` of the Mirror plugin; honest parity confirmed (hypothesis L3–L4) | 🟡 Planned |
 | CV21.E7 | Antigravity Runtime & Extension Surface | Antigravity runs Mirror via the imported plugin/adapter: logging (`interface='antigravity'`), Mirror Mode, skills, and user-owned extensions; isolated smoke test | 🟡 Planned |
 | CV21.E8 | Gemini CLI Sunset | The `.gemini/` shell-hook integration is honestly retired; Antigravity documented as its successor; all runtime-facing docs updated | 🟡 Planned |
@@ -172,8 +176,8 @@ Codex — and now Antigravity, Grok) is **not implemented**: only built-in `mm-*
 skills are surfaced. The foundation (E2) closes this structurally — external
 extensions are bundled into the canonical plugin and/or exposed via the MCP
 server, so each runtime inherits them through the same import/install path rather
-than a per-runtime projection. Codex also gains native `.codex/skills/` as a clean
-local path.
+than a per-runtime projection. For Codex, external extensions are exposed through
+the `.agents/skills/` surface it already discovers (E3) — no separate projection.
 
 ### Concrete extension work
 
