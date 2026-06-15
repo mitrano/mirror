@@ -38,6 +38,33 @@ def test_plan_delivery_story_requires_delivery_story_flow(tmp_path):
         )
 
 
+def test_plan_delivery_story_materializes_plan_artifact(tmp_path):
+    _client, store = _store(tmp_path)
+    artifact = tmp_path / "story" / "plan.md"
+    set_delivery_cursor(
+        store,
+        journey="sandbox-pet-store",
+        method="ariad",
+        active_item="CV20.DS5",
+        active_item_title="Delivery Story Level Lifecycle",
+        active_item_level="delivery_story",
+        navigator_flow_unit="delivery_story",
+        child_work_items=("CV20.DS5.US1",),
+    )
+
+    report = plan_delivery_story_checkpoint(
+        store,
+        journey="sandbox-pet-store",
+        method="ariad",
+        objective="Approve aggregate DS plan.",
+        plan_artifact_path=artifact,
+    )
+
+    assert report.plan_artifact_path == artifact
+    assert artifact.exists()
+    assert "# Delivery Story Plan — CV20.DS5" in artifact.read_text(encoding="utf-8")
+
+
 def test_plan_delivery_story_records_pending_aggregate_plan(tmp_path):
     _client, store = _store(tmp_path)
     set_delivery_cursor(
@@ -117,5 +144,6 @@ def test_render_delivery_story_plan_report_lists_child_work_packages(tmp_path):
     assert "│        🧭■  DELIVERY STORY PLAN CHECKPOINT             │" in rendered
     assert "│ delivery story                                         │" in rendered
     assert "│ CV20.DS5                                               │" in rendered
+    assert "│ plan artifact                                          │" in rendered
     assert "│ - CV20.DS5.US1                                         │" in rendered
     assert "Implementation remains blocked until the DS-level" in rendered

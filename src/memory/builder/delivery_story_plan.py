@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 from memory.builder.delivery_cursor import (
     BuilderDeliveryCursor,
@@ -24,6 +25,7 @@ class DeliveryStoryPlanReport:
     objective: str
     status: str
     cursor: BuilderDeliveryCursor
+    plan_artifact_path: Path | None = None
 
 
 def plan_delivery_story_checkpoint(
@@ -33,6 +35,7 @@ def plan_delivery_story_checkpoint(
     method: str,
     objective: str,
     child_work_items: tuple[str, ...] = (),
+    plan_artifact_path: Path | None = None,
 ) -> DeliveryStoryPlanReport:
     """Create a Delivery Story-level Plan checkpoint for aggregate flow."""
     cursor = get_delivery_cursor(store, journey)
@@ -69,7 +72,7 @@ def plan_delivery_story_checkpoint(
             cursor.aggregate_checkpoint_status, "plan", "pending"
         ),
     )
-    return DeliveryStoryPlanReport(
+    report = DeliveryStoryPlanReport(
         journey=journey,
         method=method,
         delivery_story=cursor.active_item,
@@ -78,11 +81,18 @@ def plan_delivery_story_checkpoint(
         objective=normalized_objective,
         status="pending_approval",
         cursor=updated,
+        plan_artifact_path=plan_artifact_path,
     )
+    _write_plan_artifact(report)
+    return report
 
 
 def approve_delivery_story_plan(
-    store: Store, *, journey: str, method: str
+    store: Store,
+    *,
+    journey: str,
+    method: str,
+    plan_artifact_path: Path | None = None,
 ) -> DeliveryStoryPlanReport:
     """Approve the active Delivery Story-level Plan checkpoint."""
     cursor = get_delivery_cursor(store, journey)
@@ -115,7 +125,7 @@ def approve_delivery_story_plan(
             cursor.aggregate_checkpoint_status, "plan", "approved"
         ),
     )
-    return DeliveryStoryPlanReport(
+    report = DeliveryStoryPlanReport(
         journey=journey,
         method=method,
         delivery_story=cursor.active_item,
@@ -124,7 +134,10 @@ def approve_delivery_story_plan(
         objective="Delivery Story Plan approved.",
         status="approved",
         cursor=updated,
+        plan_artifact_path=plan_artifact_path,
     )
+    _write_plan_artifact(report)
+    return report
 
 
 def render_delivery_story_plan_report(report: DeliveryStoryPlanReport) -> str:
@@ -157,6 +170,11 @@ def render_delivery_story_plan_report(report: DeliveryStoryPlanReport) -> str:
             "│                                                        │",
             _card_text("status"),
             _card_text(report.status),
+            "│                                                        │",
+            _card_text("plan artifact"),
+            *_card_wrapped(
+                str(report.plan_artifact_path) if report.plan_artifact_path else "not materialized"
+            ),
             "│                                                        │",
             _card_text("approval gate"),
             *_card_wrapped(
@@ -224,6 +242,49 @@ def _wrap_plain_text(text: str, *, width: int) -> list[str]:
     if current:
         lines.append(current)
     return lines or ["none"]
+
+
+def _write_plan_artifact(report: DeliveryStoryPlanReport) -> None:
+    if report.plan_artifact_path is None:
+        return
+    report.plan_artifact_path.parent.mkdir(parents=True, exist_ok=True)
+    report.plan_artifact_path.write_text(_render_plan_artifact(report), encoding="utf-8")
+
+
+def _render_plan_artifact(report: DeliveryStoryPlanReport) -> str:
+    child_items = "\n".join(f"- {item}" for item in report.child_work_items) or "- none"
+    approval_gate = (
+        "none"
+        if report.status == "approved"
+        else "checkpoint: after_delivery_story_plan; pending: navigator_delivery_story_plan_approval"
+    )
+    return f"""# Delivery Story Plan — {report.delivery_story}
+
+**Status:** {report.status}
+**Journey:** {report.journey}
+**Method:** {report.method}
+**Navigator Flow Unit:** {FLOW_UNIT_DELIVERY_STORY}
+
+## Delivery Story
+
+{report.delivery_story_title or "Untitled Delivery Story"}
+
+## Objective
+
+{report.objective}
+
+## Child Work Packages
+
+{child_items}
+
+## Approval Gate
+
+{approval_gate}
+
+## Boundary
+
+{_boundary(report)}
+"""
 
 
 def _normalize_items(items: tuple[str, ...]) -> tuple[str, ...]:

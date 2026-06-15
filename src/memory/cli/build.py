@@ -738,12 +738,17 @@ def cmd_plan_delivery_story(
     )
     _require_adopted_method(mem, resolved_journey, method)
     try:
+        cursor = get_delivery_cursor(mem.store, resolved_journey)
+        plan_artifact_path = _checkpoint_artifact_path(
+            mem.journeys.get_project_path(resolved_journey), cursor, "plan.md"
+        )
         report = plan_delivery_story_checkpoint(
             mem.store,
             journey=resolved_journey,
             method=method,
             objective=objective,
             child_work_items=child_work_items,
+            plan_artifact_path=plan_artifact_path,
         )
     except ValueError as exc:
         print(f"Error: {exc}", file=sys.stderr)
@@ -767,7 +772,16 @@ def cmd_approve_delivery_story_plan(
     )
     _require_adopted_method(mem, resolved_journey, method)
     try:
-        report = approve_delivery_story_plan(mem.store, journey=resolved_journey, method=method)
+        cursor = get_delivery_cursor(mem.store, resolved_journey)
+        plan_artifact_path = _checkpoint_artifact_path(
+            mem.journeys.get_project_path(resolved_journey), cursor, "plan.md"
+        )
+        report = approve_delivery_story_plan(
+            mem.store,
+            journey=resolved_journey,
+            method=method,
+            plan_artifact_path=plan_artifact_path,
+        )
     except ValueError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)

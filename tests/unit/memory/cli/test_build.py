@@ -259,6 +259,14 @@ def test_build_plan_delivery_story_records_aggregate_checkpoint(mocker, tmp_path
     db_path = default_db_path_for_home(mirror_home)
     mem = MemoryClient(env="test", db_path=db_path)
     mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    project = tmp_path / "project"
+    package = (
+        project
+        / "docs/project/roadmap/cv20-builder-mode-evolution/cv20-ds5-delivery-story-level-lifecycle"
+    )
+    package.mkdir(parents=True)
+    (package / "index.md").write_text("# CV20.DS5", encoding="utf-8")
+    mem.journeys.set_project_path("sandbox-pet-store", str(project))
     set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
     set_delivery_cursor(
         mem.store,
@@ -283,7 +291,9 @@ def test_build_plan_delivery_story_records_aggregate_checkpoint(mocker, tmp_path
     assert cursor.aggregate_checkpoint_status == ("plan:pending",)
     out = capsys.readouterr().out
     assert "<<<ARIAD:DELIVERY_STORY_PLAN_CHECKPOINT>>>" in out
-    assert "- CV20.DS5.US1" in out
+    assert "│ - CV20.DS5.US1                                         │" in out
+    assert package.joinpath("plan.md").exists()
+    assert "plan.md" in out
 
 
 def test_build_approve_delivery_story_plan_records_approval(mocker, tmp_path, capsys):
