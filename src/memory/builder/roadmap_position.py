@@ -54,5 +54,5 @@ def _position_from_file(root: Path, path: Path) -> RoadmapPosition | None:
         code=heading_match.group("code").strip(),
         title=heading_match.group("title").strip(),
         status=status,
-        path=str(path.resolve().relative_to(root)),
+        path=path.resolve().relative_to(root).as_posix(),
     )
