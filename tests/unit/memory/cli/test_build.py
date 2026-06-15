@@ -254,6 +254,41 @@ Candidate Delivery Stories:
     assert "E2E decision: required" in plan_text
 
 
+def test_build_set_flow_unit_records_delivery_story_choice(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
+    set_delivery_cursor(mem.store, journey="sandbox-pet-store", method="ariad")
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    build.cmd_set_flow_unit("ariad", journey="sandbox-pet-store", unit="delivery_story")
+
+    cursor = get_delivery_cursor(mem.store, "sandbox-pet-store")
+    assert cursor is not None
+    assert cursor.navigator_flow_unit == "delivery_story"
+    out = capsys.readouterr().out
+    assert "<<<ARIAD:NAVIGATOR_FLOW_UNIT>>>" in out
+    assert "effective flow unit\ndelivery_story" in out
+
+
+def test_build_set_flow_unit_inspects_default(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
+    set_delivery_cursor(mem.store, journey="sandbox-pet-store", method="ariad")
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    build.cmd_set_flow_unit("ariad", journey="sandbox-pet-store")
+
+    out = capsys.readouterr().out
+    assert "effective flow unit\nstory_by_story" in out
+    assert "source\ndefault" in out
+
+
 def test_build_set_cadence_accepts_accelerated(mocker, tmp_path, capsys):
     mirror_home = tmp_path / ".mirror" / "pati"
     db_path = default_db_path_for_home(mirror_home)

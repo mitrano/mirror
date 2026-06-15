@@ -13,6 +13,12 @@ from memory.builder.delivery_cursor import (
     render_delivery_cursor_sync_report,
     set_delivery_cursor,
 )
+from memory.builder.flow_unit import (
+    ALLOWED_FLOW_UNITS,
+    inspect_navigator_flow_unit,
+    render_navigator_flow_unit_report,
+    set_navigator_flow_unit,
+)
 from memory.builder.lifecycle import (
     BuilderLifecycleItem,
     approve_plan_checkpoint,
@@ -562,6 +568,42 @@ _MIRROR_LOCAL_IMPLEMENTATION_RULES = (
 )
 
 
+def cmd_set_flow_unit(
+    method: str,
+    *,
+    unit: str | None = None,
+    journey: str | None = None,
+    session_id: str | None = None,
+) -> None:
+    mem = MemoryClient()
+    _reject_unknown_method(method)
+    resolved_journey = _resolve_builder_journey(
+        mem,
+        journey=journey,
+        session_id=session_id,
+        action="navigator flow unit",
+    )
+    _require_adopted_method(mem, resolved_journey, method)
+    try:
+        if unit is None:
+            report = inspect_navigator_flow_unit(
+                mem.store,
+                journey=resolved_journey,
+                method=method,
+            )
+        else:
+            report = set_navigator_flow_unit(
+                mem.store,
+                journey=resolved_journey,
+                method=method,
+                flow_unit=unit,
+            )
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    print(render_navigator_flow_unit_report(report))
+
+
 def cmd_set_cadence(
     method: str,
     *,
@@ -608,6 +650,7 @@ def cmd_set_cadence(
         cadence_profile=profile,
         cadence_limits=limits,
         granularity_decision=cursor.granularity_decision,
+        navigator_flow_unit=cursor.navigator_flow_unit,
     )
     print(render_delivery_cursor_sync_report(updated))
 
@@ -1259,6 +1302,24 @@ def main(argv: list[str] | None = None) -> None:
         help="Runtime session id for resolving the active Builder journey",
     )
 
+    p_flow = sub.add_parser(
+        "set-flow-unit",
+        help="Inspect or set the Ariad Navigator flow unit",
+    )
+    p_flow.add_argument("--method", required=True, help="Builder method id, such as 'ariad'")
+    p_flow.add_argument(
+        "--unit",
+        choices=ALLOWED_FLOW_UNITS,
+        default=None,
+        help="Navigator flow unit: story_by_story or delivery_story. Omit to inspect.",
+    )
+    p_flow.add_argument("--journey", default=None, help="Journey slug for flow-unit update")
+    p_flow.add_argument(
+        "--session-id",
+        default=None,
+        help="Runtime session id for resolving the active Builder journey",
+    )
+
     p_cadence = sub.add_parser(
         "set-cadence",
         help="Set Ariad Builder cadence profile",
@@ -1475,6 +1536,13 @@ def main(argv: list[str] | None = None) -> None:
         )
     elif args.command == "approve-plan":
         cmd_approve_plan(args.method, journey=args.journey, session_id=args.session_id)
+    elif args.command == "set-flow-unit":
+        cmd_set_flow_unit(
+            args.method,
+            unit=args.unit,
+            journey=args.journey,
+            session_id=args.session_id,
+        )
     elif args.command == "set-cadence":
         cmd_set_cadence(
             args.method,

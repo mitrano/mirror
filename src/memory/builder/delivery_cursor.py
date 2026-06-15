@@ -23,6 +23,7 @@ class BuilderDeliveryCursor:
     cadence_profile: str | None = None
     cadence_limits: tuple[str, ...] = ()
     granularity_decision: str | None = None
+    navigator_flow_unit: str | None = None
 
 
 def get_delivery_cursor(store: Store, journey: str) -> BuilderDeliveryCursor | None:
@@ -52,6 +53,7 @@ def get_delivery_cursor(store: Store, journey: str) -> BuilderDeliveryCursor | N
         cadence_profile=_optional_string(data.get("cadence_profile")),
         cadence_limits=_optional_string_tuple(data.get("cadence_limits")),
         granularity_decision=_optional_string(data.get("granularity_decision")),
+        navigator_flow_unit=_optional_string(data.get("navigator_flow_unit")),
     )
 
 
@@ -69,6 +71,7 @@ def set_delivery_cursor(
     cadence_profile: str | None = None,
     cadence_limits: tuple[str, ...] = (),
     granularity_decision: str | None = None,
+    navigator_flow_unit: str | None = None,
 ) -> BuilderDeliveryCursor:
     """Persist the Builder delivery cursor for a journey."""
     normalized_journey = _normalize_required(journey, "journey")
@@ -85,6 +88,7 @@ def set_delivery_cursor(
         cadence_profile=_normalize_optional(cadence_profile),
         cadence_limits=_normalize_optional_tuple(cadence_limits),
         granularity_decision=_normalize_optional(granularity_decision),
+        navigator_flow_unit=_normalize_optional(navigator_flow_unit),
     )
     store.upsert_runtime_session(
         _session_id(normalized_journey),
@@ -103,6 +107,7 @@ def set_delivery_cursor(
                 "cadence_profile": cursor.cadence_profile,
                 "cadence_limits": cursor.cadence_limits,
                 "granularity_decision": cursor.granularity_decision,
+                "navigator_flow_unit": cursor.navigator_flow_unit,
             },
             ensure_ascii=False,
         ),
@@ -149,6 +154,9 @@ def render_delivery_cursor_sync_report(cursor: BuilderDeliveryCursor) -> str:
                 "",
                 "cadence limits",
                 ", ".join(cursor.cadence_limits) if cursor.cadence_limits else "none",
+                "",
+                "navigator flow unit",
+                cursor.navigator_flow_unit or "story_by_story",
                 "",
                 "active checkpoint",
                 cursor.active_checkpoint or "none",
