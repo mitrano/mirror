@@ -311,7 +311,9 @@ def test_build_approve_delivery_story_plan_records_approval(mocker, tmp_path, ca
     cursor = get_delivery_cursor(mem.store, "sandbox-pet-store")
     assert cursor is not None
     assert cursor.aggregate_checkpoint_status == ("plan:approved",)
-    assert "status\napproved" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "│ status                                                 │" in out
+    assert "│ approved                                               │" in out
 
 
 def test_build_set_flow_unit_records_delivery_story_choice(mocker, tmp_path, capsys):

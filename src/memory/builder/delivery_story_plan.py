@@ -134,42 +134,96 @@ def render_delivery_story_plan_report(report: DeliveryStoryPlanReport) -> str:
             "Delivery",
             "Ariad: ✓ Pull | ✓ Prepare | ✓ Expand | ◉ DS Plan | ○ Implement | ○ Validate | ○ Debt Review | ○ Coherence | ○ Done",
             "",
-            "■ Delivery Story Plan Checkpoint",
-            "",
-            "journey",
-            report.journey,
-            "",
-            "delivery story",
-            report.delivery_story,
-            "",
-            "delivery story title",
-            report.delivery_story_title or "none",
-            "",
-            "navigator flow unit",
-            FLOW_UNIT_DELIVERY_STORY,
-            "",
-            "child work packages",
-            *[f"- {item}" for item in report.child_work_items],
-            "",
-            "objective",
-            report.objective,
-            "",
-            "status",
-            report.status,
-            "",
-            "approval gate",
-            "checkpoint: after_delivery_story_plan" if report.status != "approved" else "none",
-            "pending: navigator_delivery_story_plan_approval"
-            if report.status != "approved"
-            else "none",
-            "",
-            "boundary",
-            "Implementation remains blocked until the DS-level Plan is approved."
-            if report.status != "approved"
-            else "DS-level Plan is approved; child work may proceed under the aggregate contract.",
+            "╭────────────────────────────────────────────────────────╮",
+            "│        🧭■  DELIVERY STORY PLAN CHECKPOINT             │",
+            "│                                                        │",
+            _card_text("journey"),
+            _card_text(report.journey),
+            "│                                                        │",
+            _card_text("delivery story"),
+            _card_text(report.delivery_story),
+            "│                                                        │",
+            _card_text("delivery story title"),
+            *_card_wrapped(report.delivery_story_title or "none"),
+            "│                                                        │",
+            _card_text("navigator flow unit"),
+            _card_text(FLOW_UNIT_DELIVERY_STORY),
+            "│                                                        │",
+            _card_text("child work packages"),
+            *_card_prefixed(report.child_work_items, "-"),
+            "│                                                        │",
+            _card_text("objective"),
+            *_card_wrapped(report.objective),
+            "│                                                        │",
+            _card_text("status"),
+            _card_text(report.status),
+            "│                                                        │",
+            _card_text("approval gate"),
+            *_card_wrapped(
+                "checkpoint: after_delivery_story_plan" if report.status != "approved" else "none"
+            ),
+            *_card_wrapped(
+                "pending: navigator_delivery_story_plan_approval"
+                if report.status != "approved"
+                else "none"
+            ),
+            "│                                                        │",
+            _card_text("boundary"),
+            *_card_wrapped(_boundary(report)),
+            "╰────────────────────────────────────────────────────────╯",
         ]
     )
     return wrap_ariad_surface("delivery_story_plan_checkpoint", body + "\n")
+
+
+def _boundary(report: DeliveryStoryPlanReport) -> str:
+    if report.status == "approved":
+        return "DS-level Plan is approved; child work may proceed under the aggregate contract."
+    return "Implementation remains blocked until the DS-level Plan is approved."
+
+
+def _card_text(text: str) -> str:
+    width = 54
+    return f"│ {text[:width]:<{width}} │"
+
+
+def _card_prefixed(items: tuple[str, ...], prefix: str) -> list[str]:
+    if not items:
+        return [_card_text("none")]
+    lines: list[str] = []
+    for item in items:
+        wrapped = _wrap_plain_text(item, width=52)
+        for index, line in enumerate(wrapped):
+            marker = prefix if index == 0 else " "
+            lines.append(_card_text(f"{marker} {line}"))
+    return lines
+
+
+def _card_wrapped(text: str) -> list[str]:
+    return [_card_text(line) for line in _wrap_plain_text(text, width=54)]
+
+
+def _wrap_plain_text(text: str, *, width: int) -> list[str]:
+    words = text.split()
+    lines: list[str] = []
+    current = ""
+    for word in words:
+        if len(word) > width:
+            if current:
+                lines.append(current)
+                current = ""
+            for start in range(0, len(word), width):
+                lines.append(word[start : start + width])
+            continue
+        candidate = f"{current} {word}".strip()
+        if len(candidate) > width and current:
+            lines.append(current)
+            current = word
+        else:
+            current = candidate
+    if current:
+        lines.append(current)
+    return lines or ["none"]
 
 
 def _normalize_items(items: tuple[str, ...]) -> tuple[str, ...]:

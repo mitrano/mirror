@@ -114,6 +114,8 @@ def test_render_delivery_story_plan_report_lists_child_work_packages(tmp_path):
     rendered = render_delivery_story_plan_report(report)
 
     assert "<<<ARIAD:DELIVERY_STORY_PLAN_CHECKPOINT>>>" in rendered
-    assert "delivery story\nCV20.DS5" in rendered
-    assert "- CV20.DS5.US1" in rendered
-    assert "Implementation remains blocked until the DS-level Plan is approved" in rendered
+    assert "│        🧭■  DELIVERY STORY PLAN CHECKPOINT             │" in rendered
+    assert "│ delivery story                                         │" in rendered
+    assert "│ CV20.DS5                                               │" in rendered
+    assert "│ - CV20.DS5.US1                                         │" in rendered
+    assert "Implementation remains blocked until the DS-level" in rendered
