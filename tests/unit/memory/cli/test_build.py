@@ -254,6 +254,66 @@ Candidate Delivery Stories:
     assert "E2E decision: required" in plan_text
 
 
+def test_build_plan_delivery_story_records_aggregate_checkpoint(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
+    set_delivery_cursor(
+        mem.store,
+        journey="sandbox-pet-store",
+        method="ariad",
+        active_item="CV20.DS5",
+        active_item_level="delivery_story",
+        navigator_flow_unit="delivery_story",
+    )
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    build.cmd_plan_delivery_story(
+        "ariad",
+        journey="sandbox-pet-store",
+        objective="Approve aggregate DS plan.",
+        child_work_items=("CV20.DS5.US1",),
+    )
+
+    cursor = get_delivery_cursor(mem.store, "sandbox-pet-store")
+    assert cursor is not None
+    assert cursor.active_checkpoint == "after_delivery_story_plan"
+    assert cursor.aggregate_checkpoint_status == ("plan:pending",)
+    out = capsys.readouterr().out
+    assert "<<<ARIAD:DELIVERY_STORY_PLAN_CHECKPOINT>>>" in out
+    assert "- CV20.DS5.US1" in out
+
+
+def test_build_approve_delivery_story_plan_records_approval(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
+    set_delivery_cursor(
+        mem.store,
+        journey="sandbox-pet-store",
+        method="ariad",
+        active_item="CV20.DS5",
+        active_item_level="delivery_story",
+        navigator_flow_unit="delivery_story",
+        child_work_items=("CV20.DS5.US1",),
+        active_checkpoint="after_delivery_story_plan",
+        pending_confirmation="navigator_delivery_story_plan_approval",
+        aggregate_checkpoint_status=("plan:pending",),
+    )
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    build.cmd_approve_delivery_story_plan("ariad", journey="sandbox-pet-store")
+
+    cursor = get_delivery_cursor(mem.store, "sandbox-pet-store")
+    assert cursor is not None
+    assert cursor.aggregate_checkpoint_status == ("plan:approved",)
+    assert "status\napproved" in capsys.readouterr().out
+
+
 def test_build_set_flow_unit_records_delivery_story_choice(mocker, tmp_path, capsys):
     mirror_home = tmp_path / ".mirror" / "pati"
     db_path = default_db_path_for_home(mirror_home)

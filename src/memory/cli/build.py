@@ -13,6 +13,11 @@ from memory.builder.delivery_cursor import (
     render_delivery_cursor_sync_report,
     set_delivery_cursor,
 )
+from memory.builder.delivery_story_plan import (
+    approve_delivery_story_plan,
+    plan_delivery_story_checkpoint,
+    render_delivery_story_plan_report,
+)
 from memory.builder.flow_unit import (
     ALLOWED_FLOW_UNITS,
     inspect_navigator_flow_unit,
@@ -566,6 +571,60 @@ _MIRROR_LOCAL_IMPLEMENTATION_RULES = (
     "Do not use git add .; commit only story-scoped files.",
     "Use descriptive English commit messages explaining why.",
 )
+
+
+def cmd_plan_delivery_story(
+    method: str,
+    *,
+    objective: str,
+    child_work_items: tuple[str, ...] = (),
+    journey: str | None = None,
+    session_id: str | None = None,
+) -> None:
+    mem = MemoryClient()
+    _reject_unknown_method(method)
+    resolved_journey = _resolve_builder_journey(
+        mem,
+        journey=journey,
+        session_id=session_id,
+        action="Delivery Story Plan",
+    )
+    _require_adopted_method(mem, resolved_journey, method)
+    try:
+        report = plan_delivery_story_checkpoint(
+            mem.store,
+            journey=resolved_journey,
+            method=method,
+            objective=objective,
+            child_work_items=child_work_items,
+        )
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    print(render_delivery_story_plan_report(report))
+
+
+def cmd_approve_delivery_story_plan(
+    method: str,
+    *,
+    journey: str | None = None,
+    session_id: str | None = None,
+) -> None:
+    mem = MemoryClient()
+    _reject_unknown_method(method)
+    resolved_journey = _resolve_builder_journey(
+        mem,
+        journey=journey,
+        session_id=session_id,
+        action="Delivery Story Plan approval",
+    )
+    _require_adopted_method(mem, resolved_journey, method)
+    try:
+        report = approve_delivery_story_plan(mem.store, journey=resolved_journey, method=method)
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    print(render_delivery_story_plan_report(report))
 
 
 def cmd_set_flow_unit(
@@ -1276,6 +1335,40 @@ def main(argv: list[str] | None = None) -> None:
     )
     p_pull.add_argument("--why-now", required=True, help="Why this item/level is pulled now")
 
+    p_ds_plan = sub.add_parser(
+        "plan-delivery-story",
+        help="Create an aggregate Ariad Delivery Story Plan checkpoint",
+    )
+    p_ds_plan.add_argument("--method", required=True, help="Builder method id, such as 'ariad'")
+    p_ds_plan.add_argument("--journey", default=None, help="Journey slug for DS Plan")
+    p_ds_plan.add_argument(
+        "--session-id",
+        default=None,
+        help="Runtime session id for resolving the active Builder journey",
+    )
+    p_ds_plan.add_argument(
+        "--objective", required=True, help="Aggregate Delivery Story Plan objective"
+    )
+    p_ds_plan.add_argument(
+        "--child",
+        dest="children",
+        action="append",
+        default=[],
+        help="Child work package id; may be repeated",
+    )
+
+    p_ds_approve = sub.add_parser(
+        "approve-delivery-story-plan",
+        help="Approve the active aggregate Ariad Delivery Story Plan checkpoint",
+    )
+    p_ds_approve.add_argument("--method", required=True, help="Builder method id, such as 'ariad'")
+    p_ds_approve.add_argument("--journey", default=None, help="Journey slug for DS Plan approval")
+    p_ds_approve.add_argument(
+        "--session-id",
+        default=None,
+        help="Runtime session id for resolving the active Builder journey",
+    )
+
     p_plan = sub.add_parser(
         "plan-item",
         help="Create the Ariad Plan checkpoint for the prepared lifecycle item",
@@ -1529,6 +1622,20 @@ def main(argv: list[str] | None = None) -> None:
         cmd_sync_cursor(args.method, journey=args.journey, session_id=args.session_id)
     elif args.command == "pull-candidates":
         cmd_pull_candidates(args.method, journey=args.journey, session_id=args.session_id)
+    elif args.command == "plan-delivery-story":
+        cmd_plan_delivery_story(
+            args.method,
+            journey=args.journey,
+            session_id=args.session_id,
+            objective=args.objective,
+            child_work_items=tuple(args.children),
+        )
+    elif args.command == "approve-delivery-story-plan":
+        cmd_approve_delivery_story_plan(
+            args.method,
+            journey=args.journey,
+            session_id=args.session_id,
+        )
     elif args.command == "plan-item":
         cmd_plan_item(
             args.method,
