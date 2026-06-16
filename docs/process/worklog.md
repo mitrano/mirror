@@ -2356,7 +2356,10 @@ Reference: [CV1.E4 Pi Operational Validation](../project/roadmap/cv1-pi-runtime/
 
 ---
 
-## Done
+## Earlier Milestones
+
+*Pre-consolidation worklog retained for history. Newer milestones live in the
+`## Done` section at the top of this file.*
 
 ### 2026-04-29 — CV8.E2 complete: Gemini CLI runtime implementation
 
@@ -2479,8 +2482,14 @@ Implementation plan produced for E6: `backfill-codex-session` CLI command,
 
 ## Next
 
-- **CV9 (Planned):** Mirror Mind 1.0 — refactoring, stabilization, and public release preparation.
-- **Continuous refinement** of identity based on real usage.
+- **CV9 (In Progress):** Mirror Mind 1.0 — stabilization, boundary hardening, and the remaining conversation-metadata lifecycle apply work.
+- **CV20 (In Progress):** Builder Mode Evolution — the Ariad method DSL (parser, registry, adoption, lifecycle execution).
+- **CV21 (In Progress):** Runtime Expansion II — package Mirror once as a canonical plugin + MCP server and propagate it to Claude, Codex, Antigravity, and Grok Build.
+- **Continuous refinement** of identity, memory quality, and runtime behavior based on real usage.
+
+The authoritative status of every CV/Epic/Story lives in the
+[Roadmap](../project/roadmap/index.md); this list is a pointer, not a second
+source of truth.
 
 ---
 
