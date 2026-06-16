@@ -151,6 +151,44 @@ modules exist.
 
 ---
 
+## Current Builder Baseline
+
+### Ariad governs Builder delivery for Mirror Mind
+
+**State as of v0.28.0:** Mirror Mind has adopted Ariad prospectively at the
+parent `mirror-mind` journey level. Builder Mode remains backward-compatible for
+journeys that have not adopted Ariad, but Mirror Mind delivery work now uses
+Ariad runtime checkpoints, deterministic marked surfaces, and explicit hard
+gates.
+
+**Completed release boundary:** `v0.28.0 — Ariad Delivery Story Lifecycle`
+closed `CV20.DS5`. Builder supports both Navigator flow units:
+
+- `story_by_story`: child User/Technical Stories are Navigator-facing lifecycle
+  units.
+- `delivery_story`: the parent Delivery Story is the Navigator-facing lifecycle
+  unit while child User/Technical Stories remain traceable Driver work packages.
+
+In `delivery_story` flow, Builder can plan, approve, validate, review, check
+coherence, and close the Delivery Story as one aggregate lifecycle. Canonical
+checkpoint artifacts are materialized in the roadmap package as `plan.md`,
+`validation.md`, `review.md`, `coherence.md`, and `done.md`. Navigator-facing
+Ariad surfaces should render with the visual card grammar, not only as plain
+marked text blocks.
+
+**Release state:** `main` and `stable` were published for `v0.28.0`. `main` then
+received one CI-stabilization commit for a path-wrapping assertion. GitHub
+Actions passed on `main` after that fix. The `v0.28.0` tag and `stable` point at
+the release commit before the test-only stabilization commit.
+
+**Next Builder work:** Continue with `CV20.DS6 — Release And Push Policies`.
+That work should make commit, push, release intent, tag creation, stable
+promotion, and CI verification explicit Ariad-governed boundaries. Do not assume
+push/release permission from ordinary Done; release and stable promotion remain
+separate Navigator-authorized hard gates.
+
+---
+
 ## Glossary
 
 | Term | Meaning |
