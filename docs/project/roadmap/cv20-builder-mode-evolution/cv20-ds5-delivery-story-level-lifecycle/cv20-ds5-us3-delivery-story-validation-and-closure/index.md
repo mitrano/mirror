@@ -2,7 +2,7 @@
 
 # CV20.DS5.US3 — Delivery Story Validation And Closure
 
-**Status:** 🟡 Planned
+**Status:** ✅ Done
 **Type:** User Story
 
 ---
