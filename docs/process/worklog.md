@@ -12,6 +12,12 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-06-16 — v0.27.1 Windows UTF-8 Repair Command prepared
+
+Diagnosed a local Windows encoding issue where several Mirror journey descriptions and context snippets appeared as mojibake (`Ã©`, `Ã§`, `Ã£`) after runtime compatibility updates. Confirmed the current CLI already prefers UTF-8 stdio; the remaining issue was historical text persisted incorrectly in SQLite. Backed up the production memory database, repaired the local reversible rows, then added `python -m memory repair-encoding` as an explicit dry-run/apply command with backup before mutation. Documented the policy as user-data repair rather than automatic migration and prepared `v0.27.1 — Windows UTF-8 Repair Command`.
+
+Validation: local production DB scan ended with `pending reversible mojibake: 0`; command/unit tests cover Latin-1 and Windows-1252 repairs, safe handling of `Âncora`, DB scan/apply, and top-level CLI dispatch.
+
 ### 2026-06-14 — v0.27.0 Ariad Builder Lifecycle Runtime prepared
 
 Closed CV20.DS4 Story Lifecycle Runtime as a release boundary. Builder now supports the complete Ariad happy path from Pull through Done with deterministic surfaces, method-level surface transport, story packages, hard Plan/Validation/Review/Coherence/Done gates, conservative higher-autonomy cadence, and repeatable sandbox dogfooding. Release notes for `v0.27.0 — Ariad Builder Lifecycle Runtime` were prepared.

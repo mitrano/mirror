@@ -12,6 +12,7 @@ Future release notes should use the structure defined in [Release Notes](../proc
 
 ## Releases
 
+- [v0.27.1 — Windows UTF-8 Repair Command](v0.27.1.md) — patch release that adds an explicit dry-run/apply repair command for reversible Portuguese mojibake in local SQLite user text, with backup before mutation.
 - [v0.27.0 — Ariad Builder Lifecycle Runtime](v0.27.0.md) — minor release that adds the full Ariad Builder lifecycle from Pull through Done, deterministic surfaces, hard gates, story packages, validation acceptance, Debt Review, Coherence, Done, and conservative higher-autonomy cadence.
 - [v0.26.2 — Web Conversation Bulk Actions](v0.26.2.md) — emergency patch release that adds selected bulk assignment and deletion to the main web Conversations view.
 - [v0.26.1 — Soul Mode English Integration Copy](v0.26.1.md) — patch release that normalizes hard-coded Soul Mode integration prompts and additive identity section headings to the English baseline.

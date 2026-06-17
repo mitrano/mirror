@@ -56,6 +56,8 @@ Commands:
                        Usage: python -m memory conversation-logger <status|mute|unmute|switch|...>
   backup               Create a zipped backup of the memory database
                        Usage: python -m memory backup [--silent]
+  repair-encoding      Dry-run/apply repair for reversible UTF-8/Windows mojibake in user text
+                       Usage: python -m memory repair-encoding [--mirror-home PATH] [--apply] [--no-backup]
   journal              Record a journal entry
                        Usage: python -m memory journal [--journey SLUG] [--mirror-home PATH] <text>
   journey              Inspect or update a journey
@@ -192,6 +194,11 @@ def main() -> None:
         from memory.cli.backup import main as _backup_main
 
         _backup_main()
+
+    elif command == "repair-encoding":
+        from memory.cli.repair_encoding import main as _repair_encoding_main
+
+        sys.exit(_repair_encoding_main(sys.argv[2:]))
 
     elif command == "journal":
         sys.argv = [sys.argv[0], *sys.argv[2:]]
