@@ -105,7 +105,7 @@ def render_roadmap_snapshot_report(
     candidates: tuple[PullCandidate, ...] = (),
 ) -> str:
     """Render Ariad roadmap snapshot using the method visual grammar."""
-    focus = _focus_item(report.items)
+    focus = _focus_item(report.items, candidates=candidates)
     result = "ready to pull" if candidates else "no pull candidates"
     lines = [
         "ROADMAP SNAPSHOT",
@@ -137,7 +137,7 @@ def render_roadmap_snapshot_report(
         delivery_candidates = tuple(
             candidate for candidate in candidates if candidate.code.startswith(f"{focus.code}.")
         )
-        current = delivery_candidates[0] if delivery_candidates else None
+        current = _recommend(delivery_candidates) if delivery_candidates else None
         if current is not None:
             lines.extend(
                 [
@@ -225,7 +225,13 @@ def _snapshot_items_from_content(content: str) -> list[RoadmapSnapshotItem]:
         if in_table and line.startswith("|"):
             parts = [part.strip() for part in line.strip("|").split("|")]
             if len(parts) >= 3:
-                items.append(RoadmapSnapshotItem(code=parts[0], title=parts[1], status=parts[2]))
+                items.append(
+                    RoadmapSnapshotItem(
+                        code=_strip_markdown_link(parts[0]),
+                        title=_strip_markdown_link(parts[1]),
+                        status=parts[2],
+                    )
+                )
             continue
         if in_table and line:
             break
@@ -356,8 +362,18 @@ def _recommend(candidates: tuple[PullCandidate, ...]) -> PullCandidate | None:
     return candidates[0] if candidates else None
 
 
-def _focus_item(items: tuple[RoadmapSnapshotItem, ...]) -> RoadmapSnapshotItem | None:
-    for preferred_status in ("Active", "Candidate", "Planned", "Future"):
+def _focus_item(
+    items: tuple[RoadmapSnapshotItem, ...],
+    *,
+    candidates: tuple[PullCandidate, ...] = (),
+) -> RoadmapSnapshotItem | None:
+    recommended = _recommend(candidates) if candidates else None
+    if recommended is not None:
+        recommended_cv = recommended.code.split(".", 1)[0]
+        for item in items:
+            if item.code == recommended_cv:
+                return item
+    for preferred_status in ("Active", "In Progress", "Candidate", "Planned", "Future"):
         for item in items:
             if preferred_status in item.status:
                 return item
@@ -365,7 +381,7 @@ def _focus_item(items: tuple[RoadmapSnapshotItem, ...]) -> RoadmapSnapshotItem |
 
 
 def _status_marker(status: str) -> str:
-    if "Active" in status:
+    if "Active" in status or "In Progress" in status:
         return "◉ active"
     if "Candidate" in status:
         return "◉ candidate"
@@ -374,6 +390,11 @@ def _status_marker(status: str) -> str:
     if "Done" in status:
         return "✓ done"
     return f"○ {status.lower()}"
+
+
+def _strip_markdown_link(value: str) -> str:
+    match = re.fullmatch(r"\[(?P<label>[^\]]+)\]\([^)]*\)", value.strip())
+    return match.group("label") if match else value
 
 
 def _card_line(left: str, right: str) -> str:

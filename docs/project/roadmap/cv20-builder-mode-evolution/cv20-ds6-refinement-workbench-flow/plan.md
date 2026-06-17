@@ -112,6 +112,34 @@ changes become new CRs or future work.
 Quick refinement is not a separate unit. It is a short experience that creates a
 minimal RS with one CR and pulls it immediately.
 
+## Seed Change Requests
+
+These provisional CRs are captured before Workbench exists. Migrate them into the
+Workbench once DS6 provides durable RS/CR storage.
+
+### CR: Roadmap Snapshot focuses CV10 instead of active Builder work
+
+Status: implemented as immediate pre-Workbench refinement.
+
+Context: during Builder activation for `builder-mode-evolution`, `ROADMAP
+SNAPSHOT` displayed CV10 because snapshot focus reads
+`docs/project/roadmap/index.md` and prioritized textual status `Planned`, while
+CV20 is marked `🟢 In Progress`.
+
+Requested change: normalize roadmap status interpretation and/or bias snapshot
+focus toward the active journey or current recommended pull so Builder Home shows
+the relevant CV20/DS6 field.
+
+Outcome: roadmap snapshot now strips markdown links from roadmap table cells,
+treats `In Progress` as active, and uses the recommended pull candidate's CV as
+focus when candidates are available. Builder activation now shows CV20 and
+CV20.DS6.US1 instead of CV10.
+
+Why it matters: Builder Home must orient the Navigator around the real current
+work field. Showing CV10 while recommending CV20.DS6.US1 creates trust drift.
+
+Candidate target: `CV20.DS6.US1 Builder Home Work Fields`.
+
 ## Risks
 
 - Builder Home can become too broad if it tries to solve all navigation at once.

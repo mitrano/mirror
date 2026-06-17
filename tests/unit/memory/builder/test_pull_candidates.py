@@ -41,6 +41,58 @@ def test_inspect_roadmap_snapshot_reads_capability_table(tmp_path):
     assert "Roadmap was inspected only" in rendered
 
 
+def test_roadmap_snapshot_prioritizes_in_progress_over_planned(tmp_path):
+    roadmap = tmp_path / "docs/project/roadmap/index.md"
+    roadmap.parent.mkdir(parents=True)
+    roadmap.write_text(
+        """# Roadmap
+
+| Code | Capability Value | Status |
+|------|------------------|--------|
+| [CV10](cv10/index.md) | Coherence Engine | 🟡 Planned |
+| [CV20](cv20/index.md) | Builder Mode Evolution | 🟢 In Progress |
+""",
+        encoding="utf-8",
+    )
+
+    report = inspect_roadmap_snapshot(tmp_path, journey="builder-mode-evolution", method="ariad")
+    rendered = render_roadmap_snapshot_report(report)
+
+    assert "🟪[CV20]  Builder Mode Evolution" in rendered
+    assert "◉ active" in rendered
+    assert "🟪[[CV10]" not in rendered
+
+
+def test_roadmap_snapshot_uses_recommended_candidate_cv_as_focus(tmp_path):
+    roadmap = tmp_path / "docs/project/roadmap/index.md"
+    roadmap.parent.mkdir(parents=True)
+    roadmap.write_text(
+        """# Roadmap
+
+| Code | Capability Value | Status |
+|------|------------------|--------|
+| [CV10](cv10/index.md) | Coherence Engine | 🟡 Planned |
+| [CV20](cv20/index.md) | Builder Mode Evolution | 🟡 Planned |
+""",
+        encoding="utf-8",
+    )
+    ds = tmp_path / "docs/project/roadmap/cv20/cv20-ds6/cv20-ds6-us1/index.md"
+    ds.parent.mkdir(parents=True)
+    ds.write_text(
+        "# CV20.DS6.US1 — Builder Home Work Fields\n\n**Status:** 🟡 Planned\n**Type:** User Story\n",
+        encoding="utf-8",
+    )
+
+    snapshot = inspect_roadmap_snapshot(tmp_path, journey="builder-mode-evolution", method="ariad")
+    candidates = inspect_pull_candidates(tmp_path, journey="builder-mode-evolution", method="ariad")
+    rendered = render_roadmap_snapshot_report(snapshot, candidates=candidates.candidates)
+
+    assert "🟪[CV20]  Builder Mode Evolution" in rendered
+    assert "└─ 🟦[US1] Builder Home Work Fields" in rendered
+    assert "CV20.DS6.US1" in rendered
+    assert "Builder Home Work Fields" in rendered
+
+
 def test_inspect_pull_candidates_lists_planned_roadmap_items(tmp_path):
     ds = tmp_path / "docs/project/roadmap/cv2/cv2-ds1/index.md"
     ds.parent.mkdir(parents=True)
