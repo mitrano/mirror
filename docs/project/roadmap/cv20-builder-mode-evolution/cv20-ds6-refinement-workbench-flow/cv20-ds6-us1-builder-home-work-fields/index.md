@@ -2,7 +2,7 @@
 
 # CV20.DS6.US1 — Builder Home Work Fields
 
-**Status:** 🟡 Planned
+**Status:** ✅ Done
 **Type:** User Story
 
 ---
@@ -62,3 +62,7 @@ And no lifecycle work is pulled or executed automatically
 
 - [Plan](plan.md)
 - [Test Guide](test-guide.md)
+- [Validation](validation.md)
+- [Debt Review](review.md)
+- [Coherence](coherence.md)
+- [Done](done.md)
