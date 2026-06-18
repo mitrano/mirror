@@ -138,11 +138,16 @@ Candidate Delivery Stories:
     assert "BUILDER HOME" in out
     assert "🟪 Delivery field" in out
     assert "🧰 Refinement field" in out
-    assert "workbench storage: not implemented yet" in out
+    assert "workbench storage: implemented" in out
+    assert "stored RSs: 0" in out
+    assert "stored CRs: 0" in out
+    assert "unassigned CRs: 0" in out
     assert "seed CRs: 2" in out
-    assert "next refinement move: implement Workbench Storage" in out
-    assert "Model before durable RS/CR work" in out
+    assert "next refinement move: compose or capture Refinement" in out
+    assert "Work when requested" in out
     assert "pull recommended Delivery item" in out
+    assert "compose or capture Refinement Work when requested" in out
+    assert "implement Workbench Storage Model before durable" not in out
     assert "ROADMAP SNAPSHOT" in out
     assert "Ariad: ◉ Pull | ○ Prepare | ○ Expand | ○ Plan" in out
     assert "🟪[CV2]  Checkout Flow" in out

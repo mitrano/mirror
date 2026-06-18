@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import re
+import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
 from memory.builder.lifecycle_ribbon import render_lifecycle_ribbon
 from memory.builder.pull_candidates import PullCandidatesReport
 from memory.builder.surface_protocol import wrap_ariad_surface
+from memory.builder.workbench import WorkbenchSnapshot, get_workbench_snapshot
+from memory.storage.store import Store
 
 
 @dataclass(frozen=True)
@@ -20,17 +23,24 @@ class RefinementFieldSnapshot:
     seed_change_requests: int
     seed_change_request_source: str | None
     next_move: str
+    refinement_story_count: int = 0
+    change_request_count: int = 0
+    unassigned_change_request_count: int = 0
 
 
-def inspect_refinement_field(project_path: Path | None) -> RefinementFieldSnapshot:
+def inspect_refinement_field(
+    project_path: Path | None,
+    *,
+    store: Store | None = None,
+    journey: str | None = None,
+) -> RefinementFieldSnapshot:
     """Inspect current refinement field without requiring durable Workbench storage."""
+    workbench = _safe_workbench_snapshot(store, journey)
     if project_path is None:
-        return RefinementFieldSnapshot(
-            active_refinement_story=None,
-            storage_state="not implemented yet",
-            seed_change_requests=0,
-            seed_change_request_source=None,
-            next_move="implement Workbench Storage Model before durable RS/CR work",
+        return _refinement_snapshot(
+            seed_count=0,
+            seed_source=None,
+            workbench=workbench,
         )
     root = project_path.expanduser().resolve()
     ds6_plan = (
@@ -48,12 +58,10 @@ def inspect_refinement_field(project_path: Path | None) -> RefinementFieldSnapsh
         seed_count = len(re.findall(r"^###\s+CR:", content, flags=re.MULTILINE))
         if seed_count:
             seed_source = str(ds6_plan.resolve().relative_to(root))
-    return RefinementFieldSnapshot(
-        active_refinement_story=None,
-        storage_state="not implemented yet",
-        seed_change_requests=seed_count,
-        seed_change_request_source=seed_source,
-        next_move="implement Workbench Storage Model before durable RS/CR work",
+    return _refinement_snapshot(
+        seed_count=seed_count,
+        seed_source=seed_source,
+        workbench=workbench,
     )
 
 
@@ -89,6 +97,9 @@ def render_builder_home_surface(
         _card_text("🧰 Refinement field"),
         _card_text(f"active RS: {refinement.active_refinement_story or 'none'}"),
         _card_text(f"workbench storage: {refinement.storage_state}"),
+        _card_text(f"stored RSs: {refinement.refinement_story_count}"),
+        _card_text(f"stored CRs: {refinement.change_request_count}"),
+        _card_text(f"unassigned CRs: {refinement.unassigned_change_request_count}"),
         _card_text(f"seed CRs: {refinement.seed_change_requests}"),
     ]
     if refinement.seed_change_request_source:
@@ -98,18 +109,7 @@ def render_builder_home_surface(
             *_card_wrapped(f"next refinement move: {refinement.next_move}"),
             "│                                                        │",
             _card_text("available moves"),
-            *_card_prefixed(
-                tuple(
-                    move
-                    for move in (
-                        "pull recommended Delivery item",
-                        "inspect roadmap further",
-                        "review seed Change Requests",
-                        "implement Workbench Storage Model before durable RS/CR work",
-                    )
-                ),
-                "-",
-            ),
+            *_card_prefixed(_available_refinement_moves(refinement), "-"),
             "│                                                        │",
             _card_text("boundary"),
             *_card_wrapped(
@@ -119,6 +119,56 @@ def render_builder_home_surface(
         ]
     )
     return wrap_ariad_surface("builder_home", "\n".join(lines) + "\n")
+
+
+def _available_refinement_moves(refinement: RefinementFieldSnapshot) -> tuple[str, ...]:
+    moves = [
+        "pull recommended Delivery item",
+        "inspect roadmap further",
+        "review seed Change Requests",
+    ]
+    if refinement.storage_state == "implemented":
+        moves.append("compose or capture Refinement Work when requested")
+    else:
+        moves.append("implement Workbench Storage Model before durable RS/CR work")
+    return tuple(moves)
+
+
+def _safe_workbench_snapshot(store: Store | None, journey: str | None) -> WorkbenchSnapshot | None:
+    if store is None or journey is None:
+        return None
+    try:
+        return get_workbench_snapshot(store, journey)
+    except sqlite3.OperationalError:
+        return None
+
+
+def _refinement_snapshot(
+    *,
+    seed_count: int,
+    seed_source: str | None,
+    workbench: WorkbenchSnapshot | None,
+) -> RefinementFieldSnapshot:
+    if workbench is None:
+        return RefinementFieldSnapshot(
+            active_refinement_story=None,
+            storage_state="not implemented yet",
+            seed_change_requests=seed_count,
+            seed_change_request_source=seed_source,
+            next_move="implement Workbench Storage Model before durable RS/CR work",
+        )
+    return RefinementFieldSnapshot(
+        active_refinement_story=(
+            workbench.active_refinement_story.title if workbench.active_refinement_story else None
+        ),
+        storage_state=workbench.storage_state,
+        seed_change_requests=seed_count,
+        seed_change_request_source=seed_source,
+        next_move="compose or capture Refinement Work when requested",
+        refinement_story_count=workbench.refinement_story_count,
+        change_request_count=workbench.change_request_count,
+        unassigned_change_request_count=workbench.unassigned_change_request_count,
+    )
 
 
 def _format_recommended(candidate: object | None) -> str:

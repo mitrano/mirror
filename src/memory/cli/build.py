@@ -257,7 +257,7 @@ def _print_builder_entry_surface(
                 journey=slug,
                 method=adopted_method,
                 candidates_report=candidates_report,
-                refinement=inspect_refinement_field(project_root),
+                refinement=inspect_refinement_field(project_root, store=mem.store, journey=slug),
             )
         )
         print(

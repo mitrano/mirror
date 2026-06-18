@@ -422,6 +422,63 @@ def _migrate_create_identity_integrations(conn: sqlite3.Connection) -> None:
     )
 
 
+def _migrate_create_builder_workbench(conn: sqlite3.Connection) -> None:
+    """Create durable Builder Workbench storage for Refinement Work."""
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS builder_refinement_stories (
+            id TEXT PRIMARY KEY,
+            journey TEXT NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            status TEXT NOT NULL DEFAULT 'draft',
+            position INTEGER NOT NULL DEFAULT 0,
+            source TEXT NOT NULL DEFAULT 'manual',
+            provenance TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            pulled_at TEXT,
+            closed_at TEXT,
+            CHECK(status IN ('draft', 'open', 'active', 'closed', 'parked'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_builder_refinement_stories_journey_status
+            ON builder_refinement_stories(journey, status, position, updated_at);
+
+        CREATE TABLE IF NOT EXISTS builder_change_requests (
+            id TEXT PRIMARY KEY,
+            journey TEXT NOT NULL,
+            refinement_story_id TEXT REFERENCES builder_refinement_stories(id),
+            title TEXT NOT NULL,
+            body TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'captured',
+            position INTEGER NOT NULL DEFAULT 0,
+            source TEXT NOT NULL DEFAULT 'manual',
+            provenance TEXT,
+            outcome_notes TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            completed_at TEXT,
+            CHECK(status IN (
+                'captured', 'planned', 'active', 'implemented', 'validated',
+                'done', 'parked', 'rejected', 'promoted'
+            ))
+        );
+        CREATE INDEX IF NOT EXISTS idx_builder_change_requests_story_status
+            ON builder_change_requests(journey, refinement_story_id, status, position, updated_at);
+        CREATE INDEX IF NOT EXISTS idx_builder_change_requests_journey_status
+            ON builder_change_requests(journey, status, updated_at);
+
+        CREATE TABLE IF NOT EXISTS builder_refinement_cursors (
+            journey TEXT PRIMARY KEY,
+            active_refinement_story_id TEXT REFERENCES builder_refinement_stories(id),
+            active_change_request_id TEXT REFERENCES builder_change_requests(id),
+            last_refinement_event TEXT,
+            updated_at TEXT NOT NULL
+        );
+        """
+    )
+
+
 MigrationApply = Callable[[sqlite3.Connection], None]
 
 
@@ -440,6 +497,7 @@ MIGRATIONS: list[tuple[str, MigrationApply]] = [
     ("012_create_operation_run_events", _migrate_create_operation_run_events),
     ("013_create_exploratory_stories", _migrate_create_exploratory_stories),
     ("014_create_identity_integrations", _migrate_create_identity_integrations),
+    ("015_create_builder_workbench", _migrate_create_builder_workbench),
 ]
 
 
