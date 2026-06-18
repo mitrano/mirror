@@ -70,6 +70,18 @@ def test_change_request_association_rejects_cross_journey_story(store):
         store.attach_change_request_to_story(change_request.id, story.id)
 
 
+def test_update_refinement_story_status_records_pull_time(store):
+    story = store.create_refinement_story(journey="mirror", title="Builder polish")
+
+    updated = store.update_refinement_story_status(
+        story.id, "active", pulled_at="2026-06-17T00:00:00Z"
+    )
+
+    assert updated.status == "active"
+    assert updated.pulled_at == "2026-06-17T00:00:00Z"
+    assert updated.updated_at != story.updated_at
+
+
 def test_refinement_cursor_is_independent_from_delivery_cursor(store):
     story = store.create_refinement_story(journey="mirror", title="Builder polish")
     change_request = store.create_change_request(
