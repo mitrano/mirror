@@ -19,6 +19,7 @@ uv run python -m memory tasks [SUBCOMMAND] [ARGS]
 - `--status STATUS`: filter by status (`todo`, `doing`, `done`, `blocked`)
 - `--all`: include completed tasks
 - `add "TITLE" --journey SLUG [--due YYYY-MM-DD] [--stage STAGE]`: create a task
+- `show TASK_ID`: show full friendly details for a task
 - `done TASK_ID`: mark task as completed
 - `doing TASK_ID`: mark task as in progress
 - `block TASK_ID`: mark task as blocked

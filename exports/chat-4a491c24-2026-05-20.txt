@@ -1,0 +1,337 @@
+# Conversation: Queria um prompt genérico para que eu mande para uma IA....
+**Date:** 2026-05-20
+**ID:** `4a491c24`
+
+---
+
+**User:**
+Queria um prompt genérico para que eu mande para uma IA. Aonde ela gere todo, toda a informação que você precisa para que você crie uma jornada. Eu quero que esse prompt seja genérico, eu vou dizer o tema do que eu quero, lá na outra IA. O seu prompt então vai perguntar tudo sobre o tema que eu vou fornecer. Então, você pode criar todo o prompt. No final eu escrevo o tema que a outra IA tem que gerar. Nesse prompt coloque o que é necessário para que facilmente eu consiga gerar a jornada aqui dentro do Mirror.
+
+**Mirror:**
+Claro. Aqui está um prompt genérico que você pode mandar para outra IA. No final, você só troca o campo **TEMA**.
+
+```markdown
+Você é um assistente estratégico especializado em estruturar jornadas de projeto, desenvolvimento pessoal, criação, estudo, produto ou transformação.
+
+Quero que você me ajude a gerar todas as informações necessárias para criar uma jornada dentro do sistema Mirror Mind.
+
+A jornada deve ser clara, prática, acompanhável e fácil de transformar em:
+
+- nome da jornada
+- slug
+- descrição
+- briefing
+- contexto
+- caminho da jornada / journey path
+- fases
+- objetivos
+- tarefas iniciais
+- critérios de sucesso
+- riscos
+- perguntas em aberto
+- próximos passos
+
+## Tema da jornada
+
+TEMA: [ESCREVA AQUI O TEMA]
+
+---
+
+## Sua tarefa
+
+A partir do tema acima, faça uma análise completa e gere uma proposta de jornada.
+
+Se o tema estiver ambíguo, primeiro faça perguntas de clarificação.  
+Se for possível inferir uma boa estrutura inicial, gere a jornada diretamente e inclua também uma seção chamada “Perguntas para refinar depois”.
+
+A resposta deve ser estruturada no formato abaixo.
+
+---
+
+# Jornada proposta
+
+## 1. Nome da jornada
+
+Crie um nome claro, humano e memorável para a jornada.
+
+## 2. Slug
+
+Crie um slug curto, em inglês ou português sem acentos, usando letras minúsculas e hífens.
+
+Exemplo:
+
+```text
+minha-jornada
+```
+
+## 3. Descrição curta
+
+Escreva uma descrição de 1 a 3 frases dizendo o que essa jornada é.
+
+## 4. Briefing
+
+Explique de forma mais completa:
+
+- qual é o objetivo central da jornada
+- por que ela importa
+- qual transformação ela busca produzir
+- quais decisões ou entregáveis ela deve apoiar
+- qual seria um bom resultado final
+
+## 5. Contexto
+
+Gere um contexto detalhado para que outra IA consiga entender essa jornada no futuro.
+
+Inclua:
+
+- situação atual presumida
+- motivações
+- limitações
+- recursos disponíveis
+- tensões ou trade-offs
+- histórico provável, se relevante
+- dependências externas
+- público envolvido, se houver
+
+## 6. Estado inicial da jornada
+
+Descreva o ponto de partida.
+
+Inclua:
+
+- onde estamos agora
+- o que já parece claro
+- o que ainda é incerto
+- qual é o próximo movimento mais inteligente
+
+## 7. Objetivos principais
+
+Liste de 3 a 7 objetivos principais da jornada.
+
+Para cada objetivo, inclua:
+
+- objetivo
+- por que importa
+- evidência de progresso
+
+## 8. Fases da jornada
+
+Divida a jornada em fases.
+
+Para cada fase, inclua:
+
+- nome da fase
+- intenção
+- principais ações
+- entregáveis esperados
+- sinal de que a fase foi concluída
+
+Use este formato:
+
+```markdown
+### Fase 1 — Nome da fase
+
+**Intenção:**  
+...
+
+**Ações principais:**  
+- ...
+
+**Entregáveis:**  
+- ...
+
+**Conclusão da fase:**  
+...
+```
+
+## 9. Journey Path
+
+Crie um documento vivo de acompanhamento da jornada.
+
+Ele deve funcionar como um status atualizado que eu possa colar no Mirror Mind depois.
+
+Use este formato:
+
+```markdown
+# Journey Path — [Nome da Jornada]
+
+## Status atual
+
+...
+
+## Fase atual
+
+...
+
+## Direção
+
+...
+
+## Decisões tomadas
+
+- ...
+
+## Próximas decisões
+
+- ...
+
+## Próximas ações
+
+- ...
+
+## Riscos e tensões
+
+- ...
+
+## Evidências de progresso
+
+- ...
+
+## Perguntas abertas
+
+- ...
+```
+
+## 10. Tarefas iniciais
+
+Liste tarefas práticas para começar.
+
+Use este formato:
+
+```markdown
+- [ ] Tarefa
+  - Por quê:
+  - Resultado esperado:
+```
+
+Priorize tarefas pequenas, acionáveis e úteis.
+
+## 11. Critérios de sucesso
+
+Liste critérios objetivos e subjetivos para saber se a jornada está funcionando.
+
+Separe em:
+
+### Critérios objetivos
+
+- ...
+
+### Critérios subjetivos
+
+- ...
+
+## 12. Riscos, armadilhas e sinais de alerta
+
+Liste possíveis riscos.
+
+Para cada risco, inclua:
+
+- risco
+- como ele aparece
+- como mitigar
+
+## 13. Perguntas para refinar depois
+
+Liste perguntas que eu deveria responder para melhorar a jornada.
+
+## 14. Resumo para criação no Mirror Mind
+
+No final, gere uma versão compacta pronta para eu usar na criação da jornada.
+
+Use exatamente este formato:
+
+```markdown
+## Mirror Journey Creation
+
+**slug:**  
+...
+
+**name:**  
+...
+
+**description:**  
+...
+
+**briefing:**  
+...
+
+**context:**  
+...
+```
+
+## 15. Comando sugerido para criar a jornada
+
+Monte também um comando aproximado neste formato:
+
+```bash
+uv run python -m memory journey create <slug> \
+  --name "<name>" \
+  --description "<description>" \
+  --briefing "<briefing>" \
+  --context "<context>"
+```
+
+Não precisa ser perfeito para terminal se os textos forem longos, mas deve me ajudar a copiar as partes certas.
+
+---
+
+Importante:
+
+- Seja específico.
+- Não gere uma jornada genérica demais.
+- Transforme o tema em uma estrutura operacional.
+- Se houver várias interpretações possíveis do tema, escolha a mais útil e declare suas premissas.
+- Escreva em português do Brasil.
+```
+
+Você pode usar assim:
+
+```markdown
+TEMA: construir uma consultoria de IA para pequenos negócios
+```
+
+Depois você traz aqui a resposta da outra IA, e eu transformo isso em uma jornada real do Mirror com `slug`, `briefing`, `context`, `journey path` e tarefas iniciais.
+
+**User:**
+como faço para exportar todo este chat para um arquivo txt?
+
+**Mirror:**
+No Pi, o jeito mais simples costuma ser usar o comando de exportação/cópia do próprio terminal, se disponível.
+
+Opções práticas:
+
+1. **Selecionar tudo no terminal**
+   - Use o mouse para selecionar a conversa inteira.
+   - Copie.
+   - Cole em um arquivo:
+     ```bash
+     nano chat.txt
+     ```
+     ou:
+     ```bash
+     code chat.txt
+     ```
+
+2. **Se você estiver usando `tmux`**
+   ```bash
+   tmux capture-pane -S - -p > chat.txt
+   ```
+
+3. **Se o Pi estiver rodando em um terminal normal**
+   Você pode tentar salvar o scrollback pelo próprio terminal:
+   - GNOME Terminal: menu → “Save Contents”
+   - iTerm2: Shell → Export Text As
+   - VS Code terminal: selecionar/copiar ou usar scrollback
+
+4. **Se a conversa foi registrada no Mirror Mind**
+   Podemos listar conversas recentes com:
+   ```bash
+   uv run python -m memory conversations --limit 10
+   ```
+   Depois recuperar/exportar a conversa específica.
+
+Se quiser, eu posso verificar se este chat foi salvo no banco do Mirror e te passar o comando exato para exportar para `.txt`.
+
+**User:**
+faça isso
+

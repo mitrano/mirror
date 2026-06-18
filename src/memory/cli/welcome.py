@@ -16,22 +16,22 @@ from memory import MemoryClient
 from memory.cli.common import db_path_from_mirror_home
 from memory.config import resolve_mirror_home
 
-INVITATION = "→ Where shall we begin?"
+INVITATION = "→ Estou pronto. O que você quer fazer agora?"
 SEPARATOR = " · "
 
 _MONTH_ABBR = (
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
+    "jan",
+    "fev",
+    "mar",
+    "abr",
+    "mai",
+    "jun",
+    "jul",
+    "ago",
+    "set",
+    "out",
+    "nov",
+    "dez",
 )
 
 
@@ -119,10 +119,10 @@ def _format_stats(
     since: str | None,
 ) -> str:
     parts = [
-        f"{_fmt_count(journeys)} journeys",
-        f"{_fmt_count(personas)} personas",
-        f"{_fmt_count(memories)} memories",
-        f"{_fmt_count(conversations)} conversations",
+        _format_count_label(journeys, singular="jornada", plural="jornadas"),
+        _format_count_label(personas, singular="persona", plural="personas"),
+        _format_count_label(memories, singular="memória", plural="memórias"),
+        _format_count_label(conversations, singular="conversa", plural="conversas"),
         _since_label(since),
     ]
     return SEPARATOR.join(parts)
@@ -155,18 +155,23 @@ def _scalar(mem: MemoryClient, sql: str, params: tuple = ()) -> int:
 
 def _fmt_count(value: int) -> str:
     if value >= 1000:
-        return f"{value:,}"
+        return f"{value:,}".replace(",", ".")
     return str(value)
+
+
+def _format_count_label(value: int, *, singular: str, plural: str) -> str:
+    label = singular if value == 1 else plural
+    return f"{_fmt_count(value)} {label}"
 
 
 def _since_label(first_started: str | None) -> str:
     if not first_started:
-        return "since today"
+        return "desde hoje"
     dt = _parse_iso(first_started)
     if dt is None:
-        return "since today"
+        return "desde hoje"
     month = _MONTH_ABBR[dt.month - 1]
-    return f"since {month} {dt.year}"
+    return f"desde {month} {dt.year}"
 
 
 def _resolve_home(mirror_home: str | Path | None) -> Path | None:

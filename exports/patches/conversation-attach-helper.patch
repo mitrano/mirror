@@ -1,0 +1,343 @@
+From 78261e13d7c9c3539fceb971e2238a0ba5eaadf7 Mon Sep 17 00:00:00 2001
+From: Ricardo Alvares <ricardo.alvares@jcatlm.com.br>
+Date: Tue, 26 May 2026 17:30:18 -0300
+Subject: [PATCH 1/2] Add helper to attach Pi sessions to journeys
+
+---
+ src/memory/cli/conversation_logger.py         | 79 +++++++++++++++++++
+ .../memory/cli/test_conversation_logger.py    | 60 ++++++++++++++
+ 2 files changed, 139 insertions(+)
+
+diff --git a/src/memory/cli/conversation_logger.py b/src/memory/cli/conversation_logger.py
+index 471d031..b5092b7 100644
+--- a/src/memory/cli/conversation_logger.py
++++ b/src/memory/cli/conversation_logger.py
+@@ -290,6 +290,55 @@ def _parse_pi_timestamp(ts: object) -> str:
+     return _now()
+ 
+ 
++def _latest_pi_session_file(sessions_dir: str | Path | None = None) -> Path | None:
++    if sessions_dir is not None:
++        pi_sessions_dir = Path(sessions_dir).expanduser()
++    elif _PI_SESSIONS_DIR is not None:
++        pi_sessions_dir = _PI_SESSIONS_DIR
++    else:
++        pi_sessions_dir = _resolve_pi_sessions_dir()
++
++    if not pi_sessions_dir.exists():
++        return None
++    files = [path for path in pi_sessions_dir.rglob("*.jsonl") if path.is_file()]
++    if not files:
++        return None
++    return max(files, key=lambda path: path.stat().st_mtime)
++
++
++def attach_latest_pi_session(
++    *,
++    journey: str,
++    persona: str = "engineer",
++    mirror_home: str | Path | None = None,
++    sessions_dir: str | Path | None = None,
++) -> str | None:
++    """Attach the most recently modified Pi session to a journey."""
++    session_file = _latest_pi_session_file(sessions_dir=sessions_dir)
++    if session_file is None:
++        return None
++
++    session_id = str(session_file)
++    mem = _memory_client(mirror_home)
++    conv = mem.runtime_sessions.get_or_create_conversation(
++        session_id,
++        interface="pi",
++        persona=persona,
++        journey=journey,
++    )
++    mem.store.update_conversation(conv.id, persona=persona, journey=journey)
++    mem.store.upsert_runtime_session(
++        session_id,
++        conversation_id=conv.id,
++        interface="pi",
++        persona=persona,
++        journey=journey,
++        active=True,
++        closed_at=None,
++    )
++    return conv.id
++
++
+ def backfill_pi_sessions(
+     mirror_home: str | Path | None = None,
+     *,
+@@ -575,6 +624,36 @@ def main(argv: list[str] | None = None) -> None:
+             fn(remaining[0], remaining[1], interface=interface, mirror_home=mirror_home)
+     elif cmd == "session-start":
+         print(session_start(mirror_home=mirror_home))
++    elif cmd == "attach-latest-pi":
++        remaining = list(args[1:])
++        journey = None
++        persona = "engineer"
++        sessions_dir = None
++        if "--journey" in remaining:
++            idx = remaining.index("--journey")
++            if idx + 1 < len(remaining):
++                journey = remaining[idx + 1]
++        if "--persona" in remaining:
++            idx = remaining.index("--persona")
++            if idx + 1 < len(remaining):
++                persona = remaining[idx + 1]
++        if "--sessions-dir" in remaining:
++            idx = remaining.index("--sessions-dir")
++            if idx + 1 < len(remaining):
++                sessions_dir = remaining[idx + 1]
++        if not journey:
++            print("Error: attach-latest-pi requires --journey SLUG", file=sys.stderr)
++            sys.exit(1)
++        conv_id = attach_latest_pi_session(
++            journey=journey,
++            persona=persona,
++            mirror_home=mirror_home,
++            sessions_dir=sessions_dir,
++        )
++        if conv_id:
++            print(f"Conversation attached to journey {journey}: {conv_id}")
++        else:
++            print("No Pi session file found.")
+     elif cmd == "session-end-pi":
+         if len(args) >= 2:
+             end_session(args[1], extract=False, mirror_home=mirror_home)
+diff --git a/tests/unit/memory/cli/test_conversation_logger.py b/tests/unit/memory/cli/test_conversation_logger.py
+index deba6ca..39d79cd 100644
+--- a/tests/unit/memory/cli/test_conversation_logger.py
++++ b/tests/unit/memory/cli/test_conversation_logger.py
+@@ -1,6 +1,7 @@
+ """Unit tests for conversation_logger."""
+ 
+ import json
++import os
+ from unittest.mock import MagicMock
+ 
+ from memory.models import Conversation, Message
+@@ -178,6 +179,65 @@ class TestSessionEndPi:
+         end_session.assert_called_once_with("pi-session-id", extract=False, mirror_home=None)
+ 
+ 
++class TestAttachLatestPiSession:
++    def test_attaches_most_recent_pi_session_to_journey(self, mocker, tmp_path):
++        older_dir = tmp_path / "sessions" / "older"
++        newer_dir = tmp_path / "sessions" / "newer"
++        older_dir.mkdir(parents=True)
++        newer_dir.mkdir(parents=True)
++        older = older_dir / "older.jsonl"
++        newer = newer_dir / "newer.jsonl"
++        older.write_text("{}\n")
++        newer.write_text("{}\n")
++        os.utime(older, (1, 1))
++        os.utime(newer, (2, 2))
++
++        mock_mem = MagicMock()
++        mock_mem.runtime_sessions.get_or_create_conversation.return_value = MagicMock(id="conv-1")
++        mocker.patch("memory.cli.conversation_logger._memory_client", return_value=mock_mem)
++
++        from memory.cli.conversation_logger import attach_latest_pi_session
++
++        conv_id = attach_latest_pi_session(
++            journey="plan-pmo-corp",
++            persona="engineer",
++            sessions_dir=tmp_path / "sessions",
++        )
++
++        assert conv_id == "conv-1"
++        mock_mem.runtime_sessions.get_or_create_conversation.assert_called_once_with(
++            str(newer), interface="pi", persona="engineer", journey="plan-pmo-corp"
++        )
++        mock_mem.store.update_conversation.assert_called_once_with(
++            "conv-1", persona="engineer", journey="plan-pmo-corp"
++        )
++        mock_mem.store.upsert_runtime_session.assert_called_once_with(
++            str(newer),
++            conversation_id="conv-1",
++            interface="pi",
++            persona="engineer",
++            journey="plan-pmo-corp",
++            active=True,
++            closed_at=None,
++        )
++
++    def test_attach_latest_pi_session_returns_none_without_sessions(self, tmp_path):
++        from memory.cli.conversation_logger import attach_latest_pi_session
++
++        assert attach_latest_pi_session(journey="plan-pmo-corp", sessions_dir=tmp_path) is None
++
++    def test_attach_latest_pi_cli_requires_journey(self, capsys):
++        from memory.cli.conversation_logger import main
++
++        try:
++            main(["attach-latest-pi"])
++        except SystemExit as exc:
++            assert exc.code == 1
++
++        captured = capsys.readouterr()
++        assert "requires --journey" in captured.err
++
++
+ class TestBackfillPiSessions:
+     def test_imports_valid_jsonl(self, mocker, tmp_path):
+         pi_dir = tmp_path / "sessions" / "--project--"
+-- 
+2.53.0
+
+
+From 36a57ca1104d1254cdab5095e84a86a7ac48648b Mon Sep 17 00:00:00 2001
+From: Ricardo Alvares <ricardo.alvares@jcatlm.com.br>
+Date: Tue, 26 May 2026 17:33:03 -0300
+Subject: [PATCH 2/2] Allow attaching conversations to journeys by id
+
+---
+ src/memory/cli/conversation_logger.py         | 50 ++++++++++++++++---
+ .../memory/cli/test_conversation_logger.py    | 47 +++++++++++++++++
+ 2 files changed, 89 insertions(+), 8 deletions(-)
+
+diff --git a/src/memory/cli/conversation_logger.py b/src/memory/cli/conversation_logger.py
+index b5092b7..8965809 100644
+--- a/src/memory/cli/conversation_logger.py
++++ b/src/memory/cli/conversation_logger.py
+@@ -306,6 +306,25 @@ def _latest_pi_session_file(sessions_dir: str | Path | None = None) -> Path | No
+     return max(files, key=lambda path: path.stat().st_mtime)
+ 
+ 
++def attach_conversation_to_journey(
++    conversation_id: str,
++    *,
++    journey: str,
++    persona: str = "engineer",
++    mirror_home: str | Path | None = None,
++) -> str | None:
++    """Attach an existing conversation, addressed by id or id prefix, to a journey."""
++    mem = _memory_client(mirror_home)
++    conv = mem.store.get_conversation(conversation_id)
++    if conv is None:
++        conv = mem.store.find_conversation_by_id_prefix(conversation_id)
++    if conv is None:
++        return None
++
++    mem.store.update_conversation(conv.id, persona=persona, journey=journey)
++    return conv.id
++
++
+ def attach_latest_pi_session(
+     *,
+     journey: str,
+@@ -624,11 +643,12 @@ def main(argv: list[str] | None = None) -> None:
+             fn(remaining[0], remaining[1], interface=interface, mirror_home=mirror_home)
+     elif cmd == "session-start":
+         print(session_start(mirror_home=mirror_home))
+-    elif cmd == "attach-latest-pi":
++    elif cmd in ("attach", "attach-latest-pi"):
+         remaining = list(args[1:])
+         journey = None
+         persona = "engineer"
+         sessions_dir = None
++        conversation_id = None
+         if "--journey" in remaining:
+             idx = remaining.index("--journey")
+             if idx + 1 < len(remaining):
+@@ -641,17 +661,31 @@ def main(argv: list[str] | None = None) -> None:
+             idx = remaining.index("--sessions-dir")
+             if idx + 1 < len(remaining):
+                 sessions_dir = remaining[idx + 1]
++        if "--conversation" in remaining:
++            idx = remaining.index("--conversation")
++            if idx + 1 < len(remaining):
++                conversation_id = remaining[idx + 1]
+         if not journey:
+-            print("Error: attach-latest-pi requires --journey SLUG", file=sys.stderr)
++            print(f"Error: {cmd} requires --journey SLUG", file=sys.stderr)
+             sys.exit(1)
+-        conv_id = attach_latest_pi_session(
+-            journey=journey,
+-            persona=persona,
+-            mirror_home=mirror_home,
+-            sessions_dir=sessions_dir,
+-        )
++        if conversation_id:
++            conv_id = attach_conversation_to_journey(
++                conversation_id,
++                journey=journey,
++                persona=persona,
++                mirror_home=mirror_home,
++            )
++        else:
++            conv_id = attach_latest_pi_session(
++                journey=journey,
++                persona=persona,
++                mirror_home=mirror_home,
++                sessions_dir=sessions_dir,
++            )
+         if conv_id:
+             print(f"Conversation attached to journey {journey}: {conv_id}")
++        elif conversation_id:
++            print(f"Conversation not found: {conversation_id}")
+         else:
+             print("No Pi session file found.")
+     elif cmd == "session-end-pi":
+diff --git a/tests/unit/memory/cli/test_conversation_logger.py b/tests/unit/memory/cli/test_conversation_logger.py
+index 39d79cd..4d78494 100644
+--- a/tests/unit/memory/cli/test_conversation_logger.py
++++ b/tests/unit/memory/cli/test_conversation_logger.py
+@@ -179,6 +179,53 @@ class TestSessionEndPi:
+         end_session.assert_called_once_with("pi-session-id", extract=False, mirror_home=None)
+ 
+ 
++class TestAttachConversationToJourney:
++    def test_attaches_existing_conversation_by_id(self, mocker):
++        conv = Conversation(id="3fd487ca", interface="pi")
++        mock_mem = MagicMock()
++        mock_mem.store.get_conversation.return_value = conv
++        mocker.patch("memory.cli.conversation_logger._memory_client", return_value=mock_mem)
++
++        from memory.cli.conversation_logger import attach_conversation_to_journey
++
++        conv_id = attach_conversation_to_journey(
++            "3fd487ca", journey="plan-pmo-corp", persona="engineer"
++        )
++
++        assert conv_id == "3fd487ca"
++        mock_mem.store.update_conversation.assert_called_once_with(
++            "3fd487ca", persona="engineer", journey="plan-pmo-corp"
++        )
++
++    def test_attaches_existing_conversation_by_id_prefix(self, mocker):
++        conv = Conversation(id="3fd487ca-abcd", interface="pi")
++        mock_mem = MagicMock()
++        mock_mem.store.get_conversation.return_value = None
++        mock_mem.store.find_conversation_by_id_prefix.return_value = conv
++        mocker.patch("memory.cli.conversation_logger._memory_client", return_value=mock_mem)
++
++        from memory.cli.conversation_logger import attach_conversation_to_journey
++
++        conv_id = attach_conversation_to_journey("3fd", journey="plan-pmo-corp")
++
++        assert conv_id == "3fd487ca-abcd"
++        mock_mem.store.find_conversation_by_id_prefix.assert_called_once_with("3fd")
++        mock_mem.store.update_conversation.assert_called_once_with(
++            "3fd487ca-abcd", persona="engineer", journey="plan-pmo-corp"
++        )
++
++    def test_attach_conversation_to_journey_returns_none_when_not_found(self, mocker):
++        mock_mem = MagicMock()
++        mock_mem.store.get_conversation.return_value = None
++        mock_mem.store.find_conversation_by_id_prefix.return_value = None
++        mocker.patch("memory.cli.conversation_logger._memory_client", return_value=mock_mem)
++
++        from memory.cli.conversation_logger import attach_conversation_to_journey
++
++        assert attach_conversation_to_journey("missing", journey="plan-pmo-corp") is None
++        mock_mem.store.update_conversation.assert_not_called()
++
++
+ class TestAttachLatestPiSession:
+     def test_attaches_most_recent_pi_session_to_journey(self, mocker, tmp_path):
+         older_dir = tmp_path / "sessions" / "older"
+-- 
+2.53.0
+

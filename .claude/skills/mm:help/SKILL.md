@@ -32,6 +32,7 @@ Show the user the available commands in this format:
 |---------|-----------|
 | `/mm:journeys` | Lists journeys with status and current stage |
 | `/mm:journey [id]` | Shows detailed status for one journey or all journeys |
+| `/mm:journey create [id]` | Interactively creates a journey |
 | | If the journey has `sync_file`, reads from the external file |
 
 ### Memories And Journal

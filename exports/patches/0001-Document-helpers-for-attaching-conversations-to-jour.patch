@@ -1,0 +1,3210 @@
+From 35a93f97c4bfc82fd0558933fc739aabd2a6cb8f Mon Sep 17 00:00:00 2001
+From: Ricardo Alvares <ricardo.alvares@jcatlm.com.br>
+Date: Tue, 26 May 2026 17:46:16 -0300
+Subject: [PATCH] Document helpers for attaching conversations to journeys
+
+---
+ .claude/skills/mm:conversations/SKILL.md      |   15 +
+ .pi/skills/mm-conversations/SKILL.md          |   15 +
+ REFERENCE.md                                  |   67 +-
+ docs/manual-mirror-completo-user.md           | 1659 +++++++++++++++++
+ docs/manual-mirror-completo.md                | 1342 +++++++++++++
+ docs/process/troubleshooting.md               |   11 +
+ docs/product/specs/runtime-interface/index.md |    8 +
+ 7 files changed, 3115 insertions(+), 2 deletions(-)
+ create mode 100644 docs/manual-mirror-completo-user.md
+ create mode 100644 docs/manual-mirror-completo.md
+
+diff --git a/.claude/skills/mm:conversations/SKILL.md b/.claude/skills/mm:conversations/SKILL.md
+index 2daf2a4..2709ee7 100644
+--- a/.claude/skills/mm:conversations/SKILL.md
++++ b/.claude/skills/mm:conversations/SKILL.md
+@@ -15,3 +15,18 @@ uv run python -m memory conversations [--limit N] [--journey ID] [--persona ID]
+ If `$ARGUMENTS` contains a filter such as a journey slug, use it as `--journey`.
+ 
+ Present the result to the user. Mention that `/mm:recall <id>` loads a conversation.
++
++Use this command to discover conversation IDs before recalling or repairing
++conversation metadata. If the user needs to associate an existing conversation
++with a journey, the underlying helpers are:
++
++```bash
++uv run python -m memory conversation-logger attach --conversation <conversation_id> --journey <journey_slug> [--persona <name>]
++uv run python -m memory conversation-logger attach-latest-pi --journey <journey_slug> [--persona <name>]
++```
++
++`<conversation_id>` may be a full ID or an unambiguous prefix. Validate with:
++
++```bash
++uv run python -m memory conversations --journey <journey_slug>
++```
+diff --git a/.pi/skills/mm-conversations/SKILL.md b/.pi/skills/mm-conversations/SKILL.md
+index 79ec6df..7e570e8 100644
+--- a/.pi/skills/mm-conversations/SKILL.md
++++ b/.pi/skills/mm-conversations/SKILL.md
+@@ -13,3 +13,18 @@ uv run python -m memory conversations [args]
+ ```
+ 
+ Present the output to the user without modification.
++
++Use this command to discover conversation IDs before recalling or repairing
++conversation metadata. If the user needs to associate an existing conversation
++with a journey, the underlying helpers are:
++
++```bash
++uv run python -m memory conversation-logger attach --conversation <conversation_id> --journey <journey_slug> [--persona <name>]
++uv run python -m memory conversation-logger attach-latest-pi --journey <journey_slug> [--persona <name>]
++```
++
++`<conversation_id>` may be a full ID or an unambiguous prefix. Validate with:
++
++```bash
++uv run python -m memory conversations --journey <journey_slug>
++```
+diff --git a/REFERENCE.md b/REFERENCE.md
+index 2213abb..abee268 100644
+--- a/REFERENCE.md
++++ b/REFERENCE.md
+@@ -21,9 +21,9 @@ Codex uses the `$mm-` prefix. All runtimes call the same Python core.
+ | `/mm-identity` | `$mm-identity` | `/mm:identity` | Read and update identity directly in the database | `list [--layer L]`, `get <layer> <key>`, `set <layer> <key>`, `edit <layer> <key>` |
+ | `/mm-consult` | `$mm-consult` | `/mm:consult` | Asks other LLMs through OpenRouter with Mirror context | `<family> [tier] "prompt"`, `credits` |
+ | `/mm-journeys` | `$mm-journeys` | `/mm:journeys` | Lists journeys with status | no arguments |
+-| `/mm-journey` | `$mm-journey` | `/mm:journey` | Shows detailed journey identity, journey path, memories, and conversations | `[journey]`, `update <journey> <content>` |
++| `/mm-journey` | `$mm-journey` | `/mm:journey` | Shows detailed journey identity, journey path, memories, and conversations; can create journeys interactively | `[journey]`, `create [journey]`, `update <journey> <content>` |
+ | `/mm-memories` | `$mm-memories` | `/mm:memories` | Lists or searches memories by type, layer, and journey | `--type T`, `--layer L`, `--journey J`, `--search "Q"`, `--limit N` |
+-| `/mm-tasks` | `$mm-tasks` | `/mm:tasks` | Manages tasks by journey | `list`, `add "title"`, `done <id>`, `doing <id>`, `block <id>`, `delete <id>`, `import`, `sync` |
++| `/mm-tasks` | `$mm-tasks` | `/mm:tasks` | Manages tasks by journey | `list`, `add "title"`, `show <id>`, `done <id>`, `doing <id>`, `block <id>`, `delete <id>`, `import`, `sync` |
+ | `/mm-week` | `$mm-week` | `/mm:week` | Weekly planning | `view`, `plan "text"`, `save` |
+ | `/mm-journal` | `$mm-journal` | `/mm:journal` | Records a personal journal entry | `[--journey J] "text"` |
+ | `/mm-recall` | `$mm-recall` | `/mm:recall` | Loads a previous conversation into context | `<conversation_id> [--limit N]` |
+@@ -47,6 +47,69 @@ uv run python -m memory list personas --verbose
+ The database is the source of truth for personas. There is no authoritative
+ static table; `list personas --verbose` reflects the current seeded state.
+ 
++### Conversation association helper
++
++Use the conversation association helper when a conversation already exists in
++the database but was not recorded under the right journey, or when a Pi session
++was started before the journey was selected. This is metadata repair: it does
++not rewrite messages, extract new memories, or change the journey path.
++
++To attach a known conversation to a journey, pass the conversation ID or any ID
++prefix that resolves to exactly one existing conversation:
++
++```bash
++uv run python -m memory conversation-logger attach --conversation <conversation_id> --journey <journey_slug>
++```
++
++Example:
++
++```bash
++uv run python -m memory conversation-logger attach --conversation 3fd487ca --journey plan-pmo-corp
++```
++
++To attach the most recent Pi session, use the dedicated helper:
++
++```bash
++uv run python -m memory conversation-logger attach-latest-pi --journey <journey_slug>
++```
++
++Example:
++
++```bash
++uv run python -m memory conversation-logger attach-latest-pi --journey plan-pmo-corp
++```
++
++The difference is scope: `attach` is explicit and works on the conversation you
++identify; `attach-latest-pi` is a convenience command for the latest Pi session.
++Use `attach` when you already know the target conversation, need to repair an
++older conversation, or want deterministic behavior. Use `attach-latest-pi` right
++after noticing the current/latest Pi conversation is missing its journey.
++
++Both forms accept `--persona` when the conversation should also be tagged with a
++specific persona:
++
++```bash
++uv run python -m memory conversation-logger attach --conversation <conversation_id> --journey <journey_slug> --persona engineer
++uv run python -m memory conversation-logger attach-latest-pi --journey <journey_slug> --persona engineer
++```
++
++Find candidate IDs with the runtime command or the Python CLI:
++
++```text
++/mm-conversations
++```
++
++```bash
++uv run python -m memory conversations
++```
++
++Then validate that the conversation appears under the journey:
++
++```bash
++uv run python -m memory conversations --journey <journey_slug>
++uv run python -m memory conversations --journey plan-pmo-corp
++```
++
+ ---
+ 
+ ## Configuration
+diff --git a/docs/manual-mirror-completo-user.md b/docs/manual-mirror-completo-user.md
+new file mode 100644
+index 0000000..a8bf789
+--- /dev/null
++++ b/docs/manual-mirror-completo-user.md
+@@ -0,0 +1,1659 @@
++# Manual do Usuário do Mirror Mind
++
++Este manual apresenta o Mirror Mind de forma progressiva: primeiro os conceitos, depois a instalação, os primeiros passos, o uso diário, os comandos, os recursos avançados, a manutenção e as boas práticas.
++
++---
++
++## Índice
++
++- [1. Para quem é este manual](#1-para-quem-é-este-manual)
++- [2. O que você vai aprender](#2-o-que-você-vai-aprender)
++- [3. Pré-requisitos](#3-pré-requisitos)
++- [4. Como usar este manual](#4-como-usar-este-manual)
++- [5. O que é o Mirror Mind](#5-o-que-é-o-mirror-mind)
++- [6. Conceitos fundamentais](#6-conceitos-fundamentais)
++  - [6.1 Identidade](#61-identidade)
++  - [6.2 Memória](#62-memória)
++  - [6.3 Jornada](#63-jornada)
++  - [6.4 Documento vivo ou journey path](#64-documento-vivo-ou-journey-path)
++  - [6.5 Tarefa](#65-tarefa)
++  - [6.6 Persona](#66-persona)
++  - [6.7 Histórico de conversas](#67-histórico-de-conversas)
++  - [6.8 Attachments](#68-attachments)
++- [7. Diferenças entre os principais elementos](#7-diferenças-entre-os-principais-elementos)
++- [8. Instalação básica](#8-instalação-básica)
++  - [8.1 Instalar dependências](#81-instalar-dependências)
++  - [8.2 Configurar ambiente](#82-configurar-ambiente)
++  - [8.3 Inicializar usuário](#83-inicializar-usuário)
++  - [8.4 Semear identidade no banco](#84-semear-identidade-no-banco)
++  - [8.5 Verificar instalação](#85-verificar-instalação)
++- [9. Primeiros passos](#9-primeiros-passos)
++  - [9.1 Listar jornadas](#91-listar-jornadas)
++  - [9.2 Consultar uma jornada](#92-consultar-uma-jornada)
++  - [9.3 Criar uma jornada](#93-criar-uma-jornada)
++  - [9.4 Registrar uma memória simples no diário](#94-registrar-uma-memória-simples-no-diário)
++- [10. Uso diário do Mirror](#10-uso-diário-do-mirror)
++  - [10.1 Escolher uma jornada](#101-escolher-uma-jornada)
++  - [10.2 Trabalhar em modo reflexão](#102-trabalhar-em-modo-reflexão)
++  - [10.3 Trabalhar em modo construção](#103-trabalhar-em-modo-construção)
++  - [10.4 Consultar conversas anteriores](#104-consultar-conversas-anteriores)
++- [11. Comandos mais usados](#11-comandos-mais-usados)
++- [12. Jornadas](#12-jornadas)
++  - [12.1 Listar jornadas](#121-listar-jornadas)
++  - [12.2 Ver o estado de uma jornada](#122-ver-o-estado-de-uma-jornada)
++  - [12.3 Criar jornada](#123-criar-jornada)
++  - [12.4 Atualizar o documento vivo da jornada](#124-atualizar-o-documento-vivo-da-jornada)
++  - [12.5 Associar uma jornada a uma pasta](#125-associar-uma-jornada-a-uma-pasta)
++- [13. Memórias](#13-memórias)
++  - [13.1 Listar memórias](#131-listar-memórias)
++  - [13.2 Filtrar memórias por jornada](#132-filtrar-memórias-por-jornada)
++  - [13.3 Pesquisar memórias](#133-pesquisar-memórias)
++  - [13.4 Tipos comuns de memória](#134-tipos-comuns-de-memória)
++- [14. Conversas](#14-conversas)
++  - [14.1 Listar conversas recentes](#141-listar-conversas-recentes)
++  - [14.2 Filtrar conversas por jornada](#142-filtrar-conversas-por-jornada)
++  - [14.3 Associar uma conversa existente a uma jornada](#143-associar-uma-conversa-existente-a-uma-jornada)
++  - [14.4 Recuperar uma conversa](#144-recuperar-uma-conversa)
++- [15. Tarefas](#15-tarefas)
++  - [15.1 Quando usar tarefas](#151-quando-usar-tarefas)
++  - [15.2 Listar tarefas](#152-listar-tarefas)
++  - [15.3 Criar tarefa](#153-criar-tarefa)
++  - [15.4 Ver detalhes de uma tarefa](#154-ver-detalhes-de-uma-tarefa)
++  - [15.5 Atualizar estado de uma tarefa](#155-atualizar-estado-de-uma-tarefa)
++  - [15.6 Importar tarefas do documento vivo](#156-importar-tarefas-do-documento-vivo)
++- [16. Diário](#16-diário)
++- [17. Identidade](#17-identidade)
++  - [17.1 Listar identidades](#171-listar-identidades)
++  - [17.2 Ler uma identidade específica](#172-ler-uma-identidade-específica)
++  - [17.3 Editar identidade](#173-editar-identidade)
++- [18. Personas](#18-personas)
++  - [18.1 O que é uma persona](#181-o-que-é-uma-persona)
++  - [18.2 Quando uma persona é ativada](#182-quando-uma-persona-é-ativada)
++  - [18.3 Ver personas existentes](#183-ver-personas-existentes)
++  - [18.4 Inspecionar, editar e testar personas](#184-inspecionar-editar-e-testar-personas)
++- [19. Attachments](#19-attachments)
++- [20. Modos de operação e comandos por runtime](#20-modos-de-operação-e-comandos-por-runtime)
++  - [20.1 Mirror Mode](#201-mirror-mode)
++  - [20.2 Builder Mode](#202-builder-mode)
++  - [20.3 Tabela de comandos por runtime](#203-tabela-de-comandos-por-runtime)
++- [21. Recursos avançados](#21-recursos-avançados)
++  - [21.1 Consultar outros modelos](#211-consultar-outros-modelos)
++  - [21.2 Consolidação de memórias](#212-consolidação-de-memórias)
++  - [21.3 Shadow](#213-shadow)
++  - [21.4 Extensões](#214-extensões)
++  - [21.5 Python API](#215-python-api)
++- [22. Estrutura técnica do projeto](#22-estrutura-técnica-do-projeto)
++- [23. Manutenção e segurança](#23-manutenção-e-segurança)
++  - [23.1 Backup](#231-backup)
++  - [23.2 Patches locais](#232-patches-locais)
++- [24. Boas práticas](#24-boas-práticas)
++  - [24.1 Boas práticas para jornadas](#241-boas-práticas-para-jornadas)
++  - [24.2 Boas práticas para documentos vivos](#242-boas-práticas-para-documentos-vivos)
++  - [24.3 Boas práticas para arquivos de projeto](#243-boas-práticas-para-arquivos-de-projeto)
++  - [24.4 Boas práticas para tarefas](#244-boas-práticas-para-tarefas)
++  - [24.5 Boas práticas de segurança](#245-boas-práticas-de-segurança)
++- [25. Problemas comuns e como resolver](#25-problemas-comuns-e-como-resolver)
++- [26. Referências internas](#26-referências-internas)
++- [27. Resumo operacional](#27-resumo-operacional)
++
++---
++
++## 1. Para quem é este manual
++
++Este manual é para usuários que querem usar o Mirror Mind como sistema local de memória, identidade e continuidade para agentes de IA.
++
++Ele serve tanto para quem está começando quanto para quem já usa o Mirror e precisa consultar comandos, conceitos e boas práticas.
++
++> **Observação:** este documento prioriza o uso prático. Ele explica os conceitos necessários antes de apresentar comandos e recursos avançados.
++
++---
++
++## 2. O que você vai aprender
++
++Ao final deste manual, você deve conseguir:
++
++- entender o que é o Mirror Mind;
++- diferenciar identidade, memória, jornada, tarefa, persona, conversa e documento vivo;
++- instalar e inicializar o Mirror;
++- criar e consultar jornadas;
++- registrar memórias e entradas de diário;
++- listar e recuperar conversas anteriores;
++- criar e acompanhar tarefas;
++- usar `Mirror Mode` e `Builder Mode`;
++- consultar attachments e documentos associados;
++- usar recursos avançados, como extensões, consolidação, shadow, API Python e consulta a outros modelos;
++- manter o ambiente seguro com backups e boas práticas.
++
++---
++
++## 3. Pré-requisitos
++
++Para usar este manual, é recomendável ter:
++
++- acesso ao repositório do Mirror;
++- Python e `uv` instalados;
++- terminal disponível;
++- noções básicas de linha de comando;
++- arquivo `.env` configurável;
++- chave `OPENROUTER_API_KEY`, caso você queira usar consultas a outros modelos.
++
++> **Atenção:** comandos que acessam LLMs externos podem gerar custo. Use com consciência, especialmente comandos de consulta, avaliação, geração de descritores, embeddings e busca semântica.
++
++---
++
++## 4. Como usar este manual
++
++Leia as seções iniciais em ordem se você estiver começando. Elas explicam a lógica do sistema antes dos comandos.
++
++Depois, use o índice como referência rápida. Cada seção de comando segue o mesmo padrão:
++
++1. explicação do que o comando faz;
++2. comando em bloco `bash`;
++3. resultado esperado;
++4. observações ou alertas quando necessário.
++
++> **Boa prática:** antes de executar comandos que alteram dados, como atualização de jornada, edição de identidade ou remoção de tarefa, consulte primeiro o estado atual.
++
++---
++
++## 5. O que é o Mirror Mind
++
++O Mirror Mind é um framework local-first de memória, identidade e continuidade para agentes de IA.
++
++Na prática, ele permite que conversas, decisões, aprendizados, projetos e padrões pessoais sejam preservados ao longo do tempo. Em vez de cada chat começar do zero, o Mirror mantém uma base local com contexto reutilizável.
++
++A base principal fica em SQLite, normalmente em:
++
++```text
++~/.mirror-minds/<usuario>/memory.db
++```
++
++O Mirror organiza informações em elementos como:
++
++- identidade do usuário;
++- personas especializadas;
++- jornadas ou projetos;
++- memórias extraídas de conversas;
++- tarefas;
++- histórico de conversas;
++- documentos vivos chamados `journey_path`;
++- attachments associados a jornadas.
++
++---
++
++## 6. Conceitos fundamentais
++
++Antes de usar os comandos, é importante entender os principais blocos do Mirror.
++
++### 6.1 Identidade
++
++A identidade define quem é o usuário e como o Mirror deve operar. Ela funciona como uma camada de contexto permanente.
++
++A identidade é organizada em camadas:
++
++| Camada | Função |
++|---|---|
++| `self` | identidade profunda, visão de mundo e propósito |
++| `ego` | comportamento operacional, tom e postura |
++| `user` | dados e contexto do usuário |
++| `persona` | lentes especializadas, como `engineer`, `writer` ou `therapist` |
++| `shadow` | tensões, pontos cegos e padrões recorrentes |
++| `journey` | identidade de uma jornada |
++| `journey_path` | documento vivo de acompanhamento da jornada |
++
++### 6.2 Memória
++
++Memória é uma informação preservada no banco do Mirror para ser reutilizada no futuro.
++
++Ela pode registrar decisões, aprendizados, padrões, ideias, compromissos, reflexões e tensões.
++
++> **Observação:** memória não é o mesmo que histórico completo da conversa. A memória é uma síntese útil; a conversa é o registro do diálogo.
++
++### 6.3 Jornada
++
++Uma jornada é um espaço de continuidade para um tema, projeto ou frente importante.
++
++Ela pode guardar:
++
++- descrição;
++- briefing;
++- contexto;
++- memórias relacionadas;
++- conversas associadas;
++- tarefas;
++- notas;
++- comandos úteis;
++- progresso atual.
++
++Exemplos de jornadas:
++
++```text
++mirror-aprendizado
++psicologia
++pmo-ti-jca
++proj-anota
++```
++
++### 6.4 Documento vivo ou journey path
++
++O `journey_path` é o documento vivo da jornada. Ele funciona como uma página de acompanhamento, manual, roteiro prático ou registro estruturado.
++
++> **Atenção:** o comando `journey update` substitui o conteúdo inteiro do `journey_path`. Para não apagar conteúdo antigo, consulte a jornada, copie o conteúdo atual, adicione a nova parte e atualize com o conteúdo completo.
++
++### 6.5 Tarefa
++
++Tarefa é uma ação prática associada ao uso do Mirror ou a uma jornada específica.
++
++Use tarefas quando houver algo claro a fazer, por exemplo:
++
++- revisar um briefing;
++- criar um documento;
++- executar uma validação;
++- acompanhar uma pendência;
++- marcar algo como bloqueado ou concluído.
++
++### 6.6 Persona
++
++Uma persona é uma lente especializada da identidade do Mirror.
++
++Ela não é outro assistente separado. É o mesmo Mirror operando com um foco específico, como engenharia, escrita, estratégia, saúde, finanças ou reflexão emocional.
++
++Exemplos de personas:
++
++- `engineer`;
++- `writer`;
++- `therapist`;
++- `strategist`;
++- `teacher`.
++
++### 6.7 Histórico de conversas
++
++O histórico de conversas é o registro de diálogos anteriores. Ele permite recuperar sessões passadas e consultar o que foi discutido.
++
++A conversa preserva o fluxo; a memória preserva os pontos importantes extraídos ou registrados.
++
++### 6.8 Attachments
++
++Attachments são documentos ou conteúdos associados a uma jornada e guardados no banco SQLite do Mirror.
++
++Eles funcionam como uma base de conhecimento vinculada à jornada.
++
++---
++
++## 7. Diferenças entre os principais elementos
++
++Esta tabela resume as diferenças mais importantes.
++
++| Elemento | Serve para | Exemplo |
++|---|---|---|
++| `memória` | preservar aprendizados, decisões e padrões | “Ricardo decidiu usar `mirror-aprendizado` como manual vivo.” |
++| `jornada` | organizar continuidade de um tema ou projeto | `mirror-aprendizado` |
++| `tarefa` | acompanhar uma ação executável | “Documentar comandos UV” |
++| `identidade` | definir contexto permanente e modo de operação | camada `ego` ou `user` |
++| `persona` | aplicar uma lente especializada | `engineer` para código |
++| `journey_path` | manter um documento vivo da jornada | roteiro, manual ou plano |
++| `conversa` | registrar o diálogo completo ou parcial | sessão anterior recuperada por `recall` |
++| `attachment` | associar documentos à jornada | `manual-mirror-completo` |
++
++> **Boa prática:** use jornadas para contexto estratégico, tarefas para ação, memórias para decisões e aprendizados, e documentos vivos para organização estruturada.
++
++---
++
++## 8. Instalação básica
++
++Todos os comandos desta seção devem ser executados no terminal.
++
++### 8.1 Instalar dependências
++
++Este comando clona o repositório, entra na pasta do projeto e instala as dependências com `uv`.
++
++```bash
++git clone https://github.com/viniciusteles/mirror.git
++cd mirror
++uv sync
++```
++
++Resultado esperado: o ambiente Python do projeto será preparado.
++
++### 8.2 Configurar ambiente
++
++Copie o arquivo de exemplo de variáveis de ambiente.
++
++```bash
++cp .env.example .env
++```
++
++Depois, configure no `.env` pelo menos:
++
++```env
++MIRROR_USER=seu-nome
++OPENROUTER_API_KEY=sk-or-...
++```
++
++Resultado esperado: o Mirror saberá qual usuário carregar e terá chave para recursos que dependem do OpenRouter.
++
++### 8.3 Inicializar usuário
++
++Este comando cria a estrutura inicial do usuário no Mirror.
++
++```bash
++uv run python -m memory init seu-nome
++```
++
++Resultado esperado: a pasta local do usuário será criada em `~/.mirror-minds/<usuario>/`.
++
++### 8.4 Semear identidade no banco
++
++Este comando carrega os arquivos de identidade iniciais para o banco SQLite.
++
++```bash
++uv run python -m memory seed
++```
++
++Resultado esperado: identidades, personas e jornadas iniciais serão inseridas no banco, quando ainda não existirem.
++
++### 8.5 Verificar instalação
++
++Use estes comandos para confirmar que personas, jornadas e roteamento estão funcionando.
++
++```bash
++uv run python -m memory list personas --verbose
++uv run python -m memory list journeys
++uv run python -m memory detect-persona "quero ajuda para escrever um artigo"
++```
++
++Resultado esperado: o terminal deve listar personas, jornadas e a persona detectada para a frase informada.
++
++---
++
++## 9. Primeiros passos
++
++Esta seção mostra um fluxo mínimo para começar a usar o Mirror.
++
++### 9.1 Listar jornadas
++
++Use este comando para ver quais jornadas existem.
++
++```bash
++uv run python -m memory journeys
++```
++
++Resultado esperado: uma lista de jornadas com status, estágio e descrição.
++
++### 9.2 Consultar uma jornada
++
++Use este comando para ver o estado completo de uma jornada.
++
++```bash
++uv run python -m memory journey mirror-aprendizado
++```
++
++Resultado esperado: o terminal mostrará identidade da jornada, documento vivo, memórias recentes e conversas recentes.
++
++### 9.3 Criar uma jornada
++
++Use este comando quando quiser criar um novo espaço de continuidade.
++
++```bash
++uv run python -m memory journey create psicologia \
++  --name "Psicologia" \
++  --description "Estudos e reflexões sobre psicologia." \
++  --briefing "Usar esta jornada para temas ligados à psicologia." \
++  --context "Jornada criada para organizar aprendizados, leituras e práticas."
++```
++
++Resultado esperado: a jornada `psicologia` será criada no banco.
++
++### 9.4 Registrar uma memória simples no diário
++
++Use o diário para registrar uma observação ou aprendizado.
++
++```bash
++uv run python -m memory journal --journey mirror-aprendizado "Hoje aprendi como consultar jornadas usando UV."
++```
++
++Resultado esperado: uma entrada de diário será registrada e associada à jornada `mirror-aprendizado`.
++
++---
++
++## 10. Uso diário do Mirror
++
++O uso diário do Mirror normalmente segue este ciclo:
++
++1. escolher uma jornada;
++2. carregar contexto;
++3. trabalhar em reflexão ou construção;
++4. registrar decisões, aprendizados ou tarefas;
++5. consultar histórico quando necessário.
++
++### 10.1 Escolher uma jornada
++
++Use jornadas para separar temas importantes. Por exemplo:
++
++- `mirror-aprendizado` para aprender o próprio Mirror;
++- `pmo-ti-jca` para um projeto específico;
++- `psicologia` para estudos e reflexões.
++
++### 10.2 Trabalhar em modo reflexão
++
++Use `Mirror Mode` para decisões, sentimentos, estratégia, escrita, mentoria, saúde, sentido e reflexão pessoal.
++
++Em Pi ou Gemini CLI:
++
++```text
++/mm-mirror
++```
++
++Em Codex:
++
++```text
++$mm-mirror
++```
++
++Em Claude Code:
++
++```text
++/mm:mirror
++```
++
++### 10.3 Trabalhar em modo construção
++
++Use `Builder Mode` para código, documentos, arquitetura, YAML, bugs, tarefas técnicas e criação de artefatos.
++
++Em Pi ou Gemini CLI:
++
++```text
++/mm-build mirror-aprendizado
++```
++
++Em Codex:
++
++```text
++$mm-build mirror-aprendizado
++```
++
++Em Claude Code:
++
++```text
++/mm:build mirror-aprendizado
++```
++
++Pelo terminal:
++
++```bash
++uv run python -m memory build load mirror-aprendizado
++```
++
++Resultado esperado: o contexto da jornada será carregado para trabalho ativo.
++
++### 10.4 Consultar conversas anteriores
++
++Quando precisar recuperar algo discutido antes, liste as conversas e depois use `recall`.
++
++```bash
++uv run python -m memory conversations --journey mirror-aprendizado
++```
++
++Depois de obter o `conversation_id`, use:
++
++```bash
++uv run python -m memory recall <conversation_id>
++```
++
++---
++
++## 11. Comandos mais usados
++
++Esta é uma lista rápida dos comandos de uso mais frequente.
++
++```bash
++uv run python -m memory journeys
++uv run python -m memory journey <slug>
++uv run python -m memory journey create <slug> --name "Nome" --description "Descrição"
++uv run python -m memory memories --journey <slug>
++uv run python -m memory conversations --journey <slug>
++uv run python -m memory conversation-logger attach --conversation <conversation_id> --journey <slug>
++uv run python -m memory conversation-logger attach-latest-pi --journey <slug>
++uv run python -m memory recall <conversation_id>
++uv run python -m memory tasks list --journey <slug>
++uv run python -m memory journal --journey <slug> "Texto"
++uv run python -m memory backup
++```
++
++Para atualizar um documento vivo:
++
++```bash
++uv run python -m memory journey update <slug> - <<'EOF'
++Conteúdo completo do documento vivo
++EOF
++```
++
++> **Atenção:** `journey update` substitui o conteúdo inteiro do documento vivo.
++
++---
++
++## 12. Jornadas
++
++Jornadas são a principal forma de organizar continuidade no Mirror.
++
++### 12.1 Listar jornadas
++
++Use este comando para listar jornadas existentes.
++
++```bash
++uv run python -m memory journeys
++```
++
++Forma alternativa:
++
++```bash
++uv run python -m memory list journeys
++```
++
++Resultado esperado: ambas as formas listam jornadas disponíveis.
++
++### 12.2 Ver o estado de uma jornada
++
++Use este comando para consultar uma jornada específica.
++
++```bash
++uv run python -m memory journey mirror-aprendizado
++```
++
++Forma equivalente:
++
++```bash
++uv run python -m memory journey status mirror-aprendizado
++```
++
++Resultado esperado: o terminal mostra o estado completo da jornada.
++
++### 12.3 Criar jornada
++
++Use este comando para criar uma jornada com nome, descrição, briefing e contexto.
++
++```bash
++uv run python -m memory journey create psicologia \
++  --name "Psicologia" \
++  --description "Estudos e reflexões sobre psicologia." \
++  --briefing "Usar esta jornada para temas ligados à psicologia." \
++  --context "Jornada criada para organizar aprendizados, leituras e práticas."
++```
++
++### 12.4 Atualizar o documento vivo da jornada
++
++Use este comando para substituir o `journey_path` de uma jornada.
++
++```bash
++uv run python -m memory journey update mirror-aprendizado "Novo conteúdo do journey path."
++```
++
++Para textos maiores, use `stdin`:
++
++```bash
++uv run python -m memory journey update mirror-aprendizado - <<'EOF'
++## Área nova
++
++Conteúdo novo aqui.
++EOF
++```
++
++> **Atenção:** o comando acima substitui o conteúdo inteiro do `journey_path`. Se quiser preservar o conteúdo antigo, consulte primeiro a jornada, copie o conteúdo atual, edite e envie o documento completo.
++
++### 12.5 Associar uma jornada a uma pasta
++
++Use este comando para vincular uma jornada a um diretório local ou projeto.
++
++```bash
++uv run python -m memory journey set-path mirror-aprendizado /caminho/da/pasta
++```
++
++Resultado esperado: a jornada passa a ter uma pasta associada.
++
++---
++
++## 13. Memórias
++
++Memórias guardam aprendizados e decisões que precisam sobreviver ao tempo.
++
++### 13.1 Listar memórias
++
++Use este comando para listar memórias registradas.
++
++```bash
++uv run python -m memory memories
++```
++
++### 13.2 Filtrar memórias por jornada
++
++Use este comando para listar apenas memórias de uma jornada.
++
++```bash
++uv run python -m memory memories --journey mirror-aprendizado
++```
++
++### 13.3 Pesquisar memórias
++
++Use este comando para buscar memórias por texto.
++
++```bash
++uv run python -m memory memories --search "comandos"
++```
++
++Para pesquisar dentro de uma jornada específica:
++
++```bash
++uv run python -m memory memories --journey mirror-aprendizado --search "comandos"
++```
++
++Resultado esperado: o terminal lista memórias relacionadas ao termo pesquisado.
++
++### 13.4 Tipos comuns de memória
++
++As memórias podem ter tipos como:
++
++- `decision`;
++- `insight`;
++- `idea`;
++- `journal`;
++- `tension`;
++- `learning`;
++- `pattern`;
++- `commitment`;
++- `reflection`.
++
++---
++
++## 14. Conversas
++
++Conversas são registros de sessões anteriores. Elas ajudam a recuperar contexto detalhado.
++
++### 14.1 Listar conversas recentes
++
++Use este comando para listar conversas recentes.
++
++```bash
++uv run python -m memory conversations
++```
++
++### 14.2 Filtrar conversas por jornada
++
++Use este comando para listar conversas associadas a uma jornada.
++
++```bash
++uv run python -m memory conversations --journey mirror-aprendizado
++```
++
++Para limitar a quantidade:
++
++```bash
++uv run python -m memory conversations --journey mirror-aprendizado --limit 10
++```
++
++### 14.3 Associar uma conversa existente a uma jornada
++
++Use este recurso quando a conversa já existe no Mirror, mas não ficou associada
++à jornada correta. Isso costuma acontecer quando você começou uma sessão antes
++de carregar a jornada, ou quando percebeu depois que uma conversa de trabalho
++deveria aparecer em uma jornada como `plan-pmo-corp`.
++
++Para descobrir o ID da conversa, use o comando do runtime:
++
++```text
++/mm-conversations
++```
++
++Ou liste pelo terminal:
++
++```bash
++uv run python -m memory conversations
++```
++
++O ID pode ser completo ou apenas o prefixo, desde que esse prefixo identifique
++uma única conversa existente. Com o ID em mãos, associe a conversa à jornada:
++
++```bash
++uv run python -m memory conversation-logger attach --conversation <conversation_id> --journey <journey_slug>
++```
++
++Exemplo:
++
++```bash
++uv run python -m memory conversation-logger attach --conversation 3fd487ca --journey plan-pmo-corp
++```
++
++Se você quer associar a sessão Pi mais recente, use:
++
++```bash
++uv run python -m memory conversation-logger attach-latest-pi --journey <journey_slug>
++```
++
++Exemplo:
++
++```bash
++uv run python -m memory conversation-logger attach-latest-pi --journey plan-pmo-corp
++```
++
++A diferença é simples: `attach` exige que você informe qual conversa quer
++associar; `attach-latest-pi` escolhe automaticamente a sessão Pi mais recente.
++Use `attach` para correções precisas ou conversas antigas. Use
++`attach-latest-pi` logo após notar que a sessão Pi atual/recente ficou sem
++jornada.
++
++Ambos aceitam persona:
++
++```bash
++uv run python -m memory conversation-logger attach --conversation <conversation_id> --journey <journey_slug> --persona engineer
++```
++
++Para validar que funcionou, liste as conversas da jornada:
++
++```bash
++uv run python -m memory conversations --journey <journey_slug>
++uv run python -m memory conversations --journey plan-pmo-corp
++```
++
++### 14.4 Recuperar uma conversa
++
++Use este comando para carregar mensagens de uma conversa anterior.
++
++```bash
++uv run python -m memory recall <conversation_id>
++```
++
++Com limite de mensagens:
++
++```bash
++uv run python -m memory recall <conversation_id> --limit 20
++```
++
++Resultado esperado: o terminal mostra mensagens da conversa recuperada.
++
++---
++
++## 15. Tarefas
++
++Tarefas transformam intenção em acompanhamento operacional.
++
++### 15.1 Quando usar tarefas
++
++Use tarefas quando houver uma ação clara. Use memórias para aprendizados, decisões e padrões. Use o `journey_path` para contexto vivo, roteiro e notas estruturadas.
++
++Estados comuns de uma tarefa:
++
++- `todo` ou pendente;
++- `doing` ou em andamento;
++- `blocked` ou bloqueada;
++- `done` ou concluída.
++
++### 15.2 Listar tarefas
++
++Use este comando para listar todas as tarefas.
++
++```bash
++uv run python -m memory tasks list
++```
++
++Para listar tarefas de uma jornada:
++
++```bash
++uv run python -m memory tasks list --journey mirror-aprendizado
++```
++
++### 15.3 Criar tarefa
++
++Use este comando para criar uma tarefa associada a uma jornada.
++
++```bash
++uv run python -m memory tasks add "Documentar comandos UV" --journey mirror-aprendizado
++```
++
++Resultado esperado: uma nova tarefa será criada para a jornada `mirror-aprendizado`.
++
++### 15.4 Ver detalhes de uma tarefa
++
++Depois de listar tarefas e obter o ID, use este comando para ver todos os detalhes.
++
++```bash
++uv run python -m memory tasks show <task_id>
++```
++
++Também é possível usar apenas o começo do ID, desde que esse prefixo identifique uma única tarefa.
++
++```bash
++uv run python -m memory tasks show <prefixo-do-id>
++```
++
++Resultado esperado: o comando mostra objetivo, ID, jornada, status, origem, etapa, prazo, horário, datas, contexto e metadados.
++
++Exemplo de saída:
++
++```text
++📋 Tarefa
++
++Objetivo: Melhorar cooldown do Gemini
++
++Identificação:
++- ID: `abc123...`
++- Jornada: `proj-anota`
++- Status: ○ todo
++- Origem: conversation
++
++Planejamento:
++- Etapa: Fallback de transcrição
++- Prazo: 2026-05-23
++- Horário agendado: 2026-05-23T09:00
++- Dica de horário: manhã
++
++Datas:
++- Criada em: 2026-05-22T...
++- Atualizada em: 2026-05-22T...
++- Concluída em: (not set)
++
++Contexto:
++Objetivo: evitar tentativas repetidas contra Gemini após quota.
++
++Metadados:
++(not set)
++```
++
++### 15.5 Atualizar estado de uma tarefa
++
++Marcar como em andamento:
++
++```bash
++uv run python -m memory tasks doing <task_id>
++```
++
++Bloquear tarefa:
++
++```bash
++uv run python -m memory tasks block <task_id>
++```
++
++Concluir tarefa:
++
++```bash
++uv run python -m memory tasks done <task_id>
++```
++
++Apagar tarefa:
++
++```bash
++uv run python -m memory tasks delete <task_id>
++```
++
++### 15.6 Importar tarefas do documento vivo
++
++Use este comando para importar checkboxes do `journey_path`.
++
++```bash
++uv run python -m memory tasks import mirror-aprendizado
++```
++
++Exemplo de checkboxes reconhecidos:
++
++```markdown
++- [ ] Criar documento inicial
++- [x] Revisar comandos principais
++```
++
++---
++
++## 16. Diário
++
++O diário registra entradas livres, com ou sem jornada associada.
++
++Para registrar uma entrada geral:
++
++```bash
++uv run python -m memory journal "Hoje aprendi um conceito importante."
++```
++
++Para registrar uma entrada associada a uma jornada:
++
++```bash
++uv run python -m memory journal --journey mirror-aprendizado "Hoje aprendi como consultar jornadas usando UV."
++```
++
++Resultado esperado: uma memória do tipo diário será criada.
++
++---
++
++## 17. Identidade
++
++A identidade define o contexto permanente do Mirror.
++
++### 17.1 Listar identidades
++
++Use este comando para listar identidades no banco.
++
++```bash
++uv run python -m memory identity list
++```
++
++Para listar apenas uma camada:
++
++```bash
++uv run python -m memory identity list --layer persona
++```
++
++### 17.2 Ler uma identidade específica
++
++Use este comando para ler uma entrada específica.
++
++```bash
++uv run python -m memory identity get journey mirror-aprendizado
++```
++
++Resultado esperado: o conteúdo da identidade da jornada será exibido.
++
++### 17.3 Editar identidade
++
++Use este comando para editar uma identidade no editor configurado.
++
++```bash
++uv run python -m memory identity edit user identity
++```
++
++> **Atenção:** editar identidade altera o comportamento futuro do Mirror. Faça isso com cuidado.
++
++---
++
++## 18. Personas
++
++### 18.1 O que é uma persona
++
++Uma persona é uma lente especializada. Ela orienta como o Mirror responde a determinado tipo de assunto.
++
++A lista padrão desta instalação inclui:
++
++- `coach` — hábitos, metas, consistência, execução;
++- `designer` — design, UX/UI, marca, interface;
++- `doctor` — saúde, sintomas, bem-estar, medicina;
++- `engineer` — código, arquitetura, bugs, testes;
++- `financial` — dinheiro, orçamento, investimentos, finanças;
++- `prompt-engineer` — prompts, comportamento de LLM, instruções, arquivos de persona ou skill;
++- `researcher` — pesquisa, evidências, síntese, investigação;
++- `strategist` — estratégia, posicionamento, negócios, trade-offs;
++- `teacher` — ensino, didática, explicação, aprendizagem;
++- `therapist` — emoções, padrões, tensões, saúde mental;
++- `thinker` — pensamento, conceitos, modelos, clareza;
++- `writer` — escrita, edição, voz, publicação.
++
++### 18.2 Quando uma persona é ativada
++
++A persona é ativada quando o tema da conversa combina com palavras-chave e descritores de roteamento.
++
++Exemplo: pedidos sobre código tendem a ativar `engineer`; pedidos sobre texto tendem a ativar `writer`; pedidos sobre emoções tendem a ativar `therapist`.
++
++Quando uma persona aparece na resposta, o formato é:
++
++```text
++◇ engineer
++
++[resposta]
++```
++
++Se nenhuma persona especializada for ativada, o `ego` responde sozinho e não há assinatura.
++
++### 18.3 Ver personas existentes
++
++Use este comando para listar personas com detalhes.
++
++```bash
++uv run python -m memory list personas --verbose
++```
++
++Forma simples:
++
++```bash
++uv run python -m memory list personas
++```
++
++### 18.4 Inspecionar, editar e testar personas
++
++Inspecionar uma persona:
++
++```bash
++uv run python -m memory inspect persona writer
++```
++
++Editar uma persona existente:
++
++```bash
++uv run python -m memory identity edit persona writer
++```
++
++Criar ou substituir uma persona via `stdin`:
++
++```bash
++cat persona.md | uv run python -m memory identity set persona minha-persona
++```
++
++Gerar descritor de roteamento depois de alterar ou criar uma persona:
++
++```bash
++uv run python -m memory descriptor generate --layer persona --key minha-persona
++```
++
++Testar qual persona seria ativada por uma frase:
++
++```bash
++uv run python -m memory detect-persona "preciso organizar uma estratégia de negócio"
++```
++
++Listar conversas filtrando por persona:
++
++```bash
++uv run python -m memory conversations --persona engineer
++```
++
++---
++
++## 19. Attachments
++
++Attachments são documentos associados a uma jornada e guardados no banco SQLite.
++
++Use este script para listar attachments de uma jornada.
++
++```python
++from memory import MemoryClient
++
++with MemoryClient() as mem:
++    attachments = mem.get_attachments("mirror-aprendizado")
++
++    if not attachments:
++        print("Nenhum attachment encontrado.")
++    else:
++        for att in attachments:
++            print(f"- {att.name}")
++            print(f"  ID: {att.id}")
++            print(f"  Descrição: {att.description}")
++            print(f"  Tipo: {att.content_type}")
++            print()
++```
++
++Para executar diretamente pelo terminal:
++
++```bash
++uv run python - <<'PY'
++from memory import MemoryClient
++
++with MemoryClient() as mem:
++    attachments = mem.get_attachments("mirror-aprendizado")
++
++    if not attachments:
++        print("Nenhum attachment encontrado.")
++    else:
++        for att in attachments:
++            print(f"- {att.name}")
++            print(f"  ID: {att.id}")
++            print(f"  Descrição: {att.description}")
++            print(f"  Tipo: {att.content_type}")
++            print()
++PY
++```
++
++Resultado esperado: o script lista todos os attachments associados à jornada `mirror-aprendizado`.
++
++---
++
++## 20. Modos de operação e comandos por runtime
++
++O Mirror pode ser usado em diferentes runtimes. Os dois modos principais são `Mirror Mode` e `Builder Mode`.
++
++### 20.1 Mirror Mode
++
++Use `Mirror Mode` para reflexão, decisões, sentido, escrita, estratégia, emoções e continuidade pessoal.
++
++Pi e Gemini CLI:
++
++```text
++/mm-mirror
++```
++
++Codex:
++
++```text
++$mm-mirror
++```
++
++Claude Code:
++
++```text
++/mm:mirror
++```
++
++### 20.2 Builder Mode
++
++Use `Builder Mode` para construção: código, documentos, arquitetura, YAML, bugs, tarefas técnicas e artefatos.
++
++Pi e Gemini CLI:
++
++```text
++/mm-build mirror-aprendizado
++```
++
++Codex:
++
++```text
++$mm-build mirror-aprendizado
++```
++
++Claude Code:
++
++```text
++/mm:build mirror-aprendizado
++```
++
++Pelo terminal:
++
++```bash
++uv run python -m memory build load mirror-aprendizado
++```
++
++### 20.3 Tabela de comandos por runtime
++
++| Função | Pi/Gemini | Codex | Claude Code |
++|---|---|---|---|
++| Mirror Mode | `/mm-mirror` | `$mm-mirror` | `/mm:mirror` |
++| Builder Mode | `/mm-build` | `$mm-build` | `/mm:build` |
++| Jornadas | `/mm-journeys` | `$mm-journeys` | `/mm:journeys` |
++| Jornada específica | `/mm-journey <slug>` | `$mm-journey <slug>` | `/mm:journey <slug>` |
++| Memórias | `/mm-memories` | `$mm-memories` | `/mm:memories` |
++| Conversas | `/mm-conversations` | `$mm-conversations` | `/mm:conversations` |
++| Recall | `/mm-recall` | `$mm-recall` | `/mm:recall` |
++| Tarefas | `/mm-tasks` | `$mm-tasks` | `/mm:tasks` |
++| Diário | `/mm-journal` | `$mm-journal` | `/mm:journal` |
++| Backup | `/mm-backup` | `$mm-backup` | `/mm:backup` |
++| Ajuda | `/mm-help` | `$mm-help` | `/mm:help` |
++
++---
++
++## 21. Recursos avançados
++
++### 21.1 Consultar outros modelos
++
++O Mirror pode consultar outros LLMs via OpenRouter.
++
++Use este comando para perguntar a um modelo da família `openai`.
++
++```bash
++uv run python -m memory consult openai "Qual seria uma boa estrutura para minha jornada de psicologia?"
++```
++
++Com jornada associada:
++
++```bash
++uv run python -m memory consult openai "Revise este plano" --journey mirror-aprendizado
++```
++
++Para ver créditos:
++
++```bash
++uv run python -m memory consult credits
++```
++
++> **Atenção:** consultas a LLMs externos podem gerar custo.
++
++### 21.2 Consolidação de memórias
++
++A consolidação identifica padrões recorrentes e propõe fusões ou atualizações.
++
++Escanear consolidações:
++
++```bash
++uv run python -m memory consolidate scan
++```
++
++Listar propostas:
++
++```bash
++uv run python -m memory consolidate list
++```
++
++Aplicar uma proposta:
++
++```bash
++uv run python -m memory consolidate apply <id>
++```
++
++Rejeitar uma proposta:
++
++```bash
++uv run python -m memory consolidate reject <id>
++```
++
++### 21.3 Shadow
++
++A camada `shadow` ajuda a registrar tensões, pontos cegos e padrões menos explícitos.
++
++Escanear candidatos:
++
++```bash
++uv run python -m memory shadow scan
++```
++
++Listar candidatos:
++
++```bash
++uv run python -m memory shadow list
++```
++
++Ver detalhes:
++
++```bash
++uv run python -m memory shadow show <id>
++```
++
++Aplicar candidato:
++
++```bash
++uv run python -m memory shadow apply <id>
++```
++
++Rejeitar candidato:
++
++```bash
++uv run python -m memory shadow reject <id>
++```
++
++### 21.4 Extensões
++
++Extensões adicionam capacidades ao Mirror sem modificar o core.
++
++Tipos principais:
++
++- `prompt-skill`: instruções em Markdown para orquestrar comandos existentes;
++- `command-skill`: extensão com código, estado próprio e subcomandos.
++
++Comandos básicos:
++
++```bash
++uv run python -m memory extensions list
++uv run python -m memory extensions validate
++uv run python -m memory extensions install <id> --extensions-root <diretorio>
++uv run python -m memory ext list
++uv run python -m memory ext <id> --help
++```
++
++### 21.5 Python API
++
++Para scripts e extensões, use `MemoryClient`.
++
++```python
++from memory import MemoryClient
++
++with MemoryClient() as mem:
++    status = mem.get_journey_status("mirror-aprendizado")
++    print(status)
++```
++
++Registrar uma entrada de diário por Python:
++
++```python
++from memory import MemoryClient
++
++with MemoryClient() as mem:
++    mem.add_journal(
++        "Aprendi a consultar jornadas pelo UV.",
++        journey="mirror-aprendizado",
++    )
++```
++
++Pesquisar memórias por Python:
++
++```python
++from memory import MemoryClient
++
++with MemoryClient() as mem:
++    results = mem.search("comandos UV", journey="mirror-aprendizado")
++    for result in results:
++        print(result.memory.title, result.score)
++```
++
++---
++
++## 22. Estrutura técnica do projeto
++
++O código principal fica em:
++
++```text
++src/memory/
++```
++
++Subpastas importantes:
++
++| Pasta | Função |
++|---|---|
++| `cli/` | comandos de terminal |
++| `services/` | lógica de domínio |
++| `storage/` | acesso ao SQLite |
++| `intelligence/` | extração, busca e roteamento com LLM |
++| `hooks/` | integrações com runtimes |
++| `skills/` | lógica compartilhada por comandos e skills |
++
++Direção de dependência:
++
++```text
++cli / hooks
++  ↓
++services
++  ↓
++storage
++  ↓
++db SQLite
++```
++
++---
++
++## 23. Manutenção e segurança
++
++### 23.1 Backup
++
++Use este comando para criar um backup do banco de memória.
++
++```bash
++uv run python -m memory backup
++```
++
++Resultado esperado: o backup será salvo no diretório configurado, normalmente em:
++
++```text
++~/.mirror-minds/<usuario>/backups/
++```
++
++### 23.2 Patches locais
++
++Patches locais guardam mudanças feitas no Mirror que ainda não estão commitadas ou que podem ser perdidas ao atualizar o repositório.
++
++Nesta instalação, existe uma área para patches em:
++
++```text
++exports/patches/
++```
++
++#### Patch do comando tasks show
++
++Foi criado um patch para preservar o comando:
++
++```bash
++uv run python -m memory tasks show <task_id>
++```
++
++Arquivos do patch:
++
++```text
++exports/patches/tasks-show-command.patch
++exports/patches/tasks-show-command.README.md
++```
++
++Esse patch adiciona uma visualização amigável e completa dos detalhes de uma tarefa.
++
++#### Testar antes de aplicar
++
++Use este comando para verificar se o patch ainda pode ser aplicado.
++
++```bash
++git apply --check exports/patches/tasks-show-command.patch
++```
++
++Resultado esperado: se não houver erro, o patch está compatível.
++
++#### Aplicar o patch
++
++Use este comando para aplicar o patch.
++
++```bash
++git apply exports/patches/tasks-show-command.patch
++```
++
++Depois de aplicar, valide o comando:
++
++```bash
++uv run python -m memory tasks show <task_id>
++```
++
++Rode os testes relacionados:
++
++```bash
++uv run pytest tests/unit/memory/cli/test_tasks_cmd.py -q
++uv run ruff check src/memory/cli/tasks_cmd.py tests/unit/memory/cli/test_tasks_cmd.py
++```
++
++#### Se o patch falhar
++
++Se `git apply --check` falhar, provavelmente o repositório mudou nos mesmos arquivos. Nesse caso:
++
++1. leia `exports/patches/tasks-show-command.README.md`;
++2. abra `exports/patches/tasks-show-command.patch`;
++3. reaplique manualmente a ideia do patch nos arquivos atuais;
++4. rode os testes;
++5. gere um novo patch atualizado.
++
++Para gerar novamente o patch depois de ajustar:
++
++```bash
++git diff -- src/memory/cli/tasks_cmd.py src/memory/__main__.py tests/unit/memory/cli/test_tasks_cmd.py REFERENCE.md .pi/skills/mm-tasks/SKILL.md .claude/skills/mm:tasks/SKILL.md docs/manual-mirror-completo.md > exports/patches/tasks-show-command.patch
++```
++
++---
++
++## 24. Boas práticas
++
++### 24.1 Boas práticas para jornadas
++
++- Use slugs curtos e em minúsculas, como `mirror-aprendizado`, `psicologia` ou `pmo-ti-jca`.
++- Use uma jornada por frente importante.
++- Coloque comandos, decisões e próximos passos no `journey_path` quando isso fizer sentido.
++- Use memórias para aprendizados e decisões que devem sobreviver ao tempo.
++
++### 24.2 Boas práticas para documentos vivos
++
++Antes de atualizar um `journey_path`, consulte a jornada.
++
++```bash
++uv run python -m memory journey mirror-aprendizado
++```
++
++Depois, atualize com o conteúdo completo.
++
++```bash
++uv run python -m memory journey update mirror-aprendizado - <<'EOF'
++[conteúdo antigo]
++
++[conteúdo novo]
++EOF
++```
++
++> **Atenção:** não envie apenas o trecho novo se a intenção for preservar o documento inteiro.
++
++### 24.3 Boas práticas para arquivos de projeto
++
++Arquivos de projeto são documentos e artefatos mantidos dentro do repositório ou pasta operacional de um projeto. Exemplos:
++
++- `README.md`;
++- `docs/next-steps.md`;
++- `docs/decisions.md`;
++- `docs/architecture.md`;
++- guias de setup;
++- planos técnicos;
++- checklists de validação.
++
++Eles não são a memória estratégica do Mirror. Eles são a documentação acionável que permite continuar a execução prática sem depender do histórico da conversa.
++
++Atualize arquivos de projeto quando a informação orientar execução técnica futura, como:
++
++- próximos passos técnicos;
++- setup;
++- arquitetura;
++- decisões implementáveis;
++- instruções de execução;
++- pendências de código;
++- validações;
++- testes;
++- comandos;
++- integrações;
++- documentação necessária para continuidade prática.
++
++A diferença prática é:
++
++- a jornada guarda intenção, decisões, direção estratégica, contexto de retomada, critérios de sucesso, mudanças importantes de rumo e acordos operacionais;
++- os arquivos do projeto guardam detalhes técnicos acionáveis: como executar, validar, implementar, configurar, integrar e continuar o trabalho.
++
++Exemplos de informações que vão na jornada:
++
++- por que a frente existe e qual resultado importa;
++- decisões estratégicas e mudanças relevantes de direção;
++- critérios de sucesso e acordos operacionais;
++- contexto sintético para retomada em sessões futuras;
++- aprendizados ou padrões que devem permanecer na memória da jornada.
++
++Exemplos de informações que vão em arquivos do projeto:
++
++- comandos de instalação, teste, build, deploy ou validação;
++- detalhes de arquitetura, integrações, APIs e configuração;
++- próximos passos técnicos e pendências de código;
++- decisões implementáveis que afetam arquivos, módulos ou runtime;
++- documentação necessária para outro agente ou pessoa continuar a execução.
++
++> **Boa prática:** quando uma informação for importante tanto para memória estratégica quanto para execução técnica, registre nos dois lugares: na jornada, de forma sintética e contextual; no arquivo do projeto, de forma operacional e acionável.
++
++Antes de criar documentação nova, verifique se já existe um arquivo apropriado. Não crie documentação genérica desnecessária se o projeto já tiver estrutura própria.
++
++### 24.4 Boas práticas para tarefas
++
++- Crie tarefas com jornada associada sempre que possível.
++- Use `doing`, `block` e `done` para manter estado claro.
++- Importe checkboxes do `journey_path` quando fizer sentido.
++- Use tarefas apenas para ações claras; não transforme toda ideia em tarefa.
++
++### 24.5 Boas práticas de segurança
++
++- Faça backups regularmente.
++- Não edite o banco SQLite diretamente sem necessidade.
++- Prefira comandos UV ou `MemoryClient`.
++- Lembre que `.env` contém chaves privadas.
++- Revise comandos destrutivos antes de executar.
++
++---
++
++## 25. Problemas comuns e como resolver
++
++### O comando não encontra o módulo memory
++
++Possível causa: você não está executando dentro do ambiente do projeto ou não está usando `uv run`.
++
++Use:
++
++```bash
++uv run python -m memory journeys
++```
++
++### A jornada não aparece
++
++Verifique se as identidades foram semeadas.
++
++```bash
++uv run python -m memory seed
++uv run python -m memory journeys
++```
++
++### O documento vivo foi sobrescrito
++
++O comando `journey update` substitui o conteúdo inteiro. Se você enviou apenas um trecho, o conteúdo anterior pode ter sido perdido.
++
++> **Boa prática:** antes de atualizar, rode `uv run python -m memory journey <slug>` e copie o conteúdo atual.
++
++### Não sei qual jornada usar
++
++Liste as jornadas e leia as descrições.
++
++```bash
++uv run python -m memory journeys
++```
++
++Se nenhuma jornada corresponder ao tema, crie uma nova.
++
++### Não sei qual persona foi usada
++
++Durante a resposta, a persona aparece com assinatura como `◇ engineer`. Se não houver assinatura, o `ego` respondeu sozinho.
++
++Você também pode listar conversas por persona:
++
++```bash
++uv run python -m memory conversations --persona engineer
++```
++
++### Um comando parece ambíguo
++
++Mantenha o comando original, mas valide com `--help` quando disponível.
++
++```bash
++uv run python -m memory --help
++uv run python -m memory tasks --help
++uv run python -m memory identity --help
++```
++
++> **Observação:** alguns comandos podem variar conforme a versão local do Mirror.
++
++### O patch local não aplica
++
++Teste primeiro:
++
++```bash
++git apply --check exports/patches/tasks-show-command.patch
++```
++
++Se falhar, siga o procedimento da seção [Patches locais](#232-patches-locais).
++
++---
++
++## 26. Referências internas
++
++Documentos úteis no repositório:
++
++```text
++README.md
++REFERENCE.md
++docs/getting-started.md
++docs/architecture.md
++docs/api.md
++docs/product/extensions/index.md
++docs/process/development-guide.md
++```
++
++---
++
++## 27. Resumo operacional
++
++O Mirror funciona melhor quando cada tipo de informação tem um lugar claro.
++
++Use:
++
++- `jornadas` para organizar temas e projetos importantes;
++- `memórias` para aprendizados, decisões e padrões duradouros;
++- `tarefas` para ações executáveis;
++- `journey_path` para roteiro vivo e contexto estruturado;
++- `conversas` para recuperar diálogos anteriores;
++- `personas` para aplicar lentes especializadas;
++- `attachments` para associar documentos a jornadas;
++- `backup` para proteger a base local.
++
++Comandos essenciais:
++
++```bash
++uv run python -m memory journeys
++uv run python -m memory journey <slug>
++uv run python -m memory memories --journey <slug>
++uv run python -m memory conversations --journey <slug>
++uv run python -m memory conversation-logger attach --conversation <conversation_id> --journey <slug>
++uv run python -m memory conversation-logger attach-latest-pi --journey <slug>
++uv run python -m memory recall <conversation_id>
++uv run python -m memory tasks list --journey <slug>
++uv run python -m memory journal --journey <slug> "Texto"
++uv run python -m memory backup
++```
++
++> **Boa prática final:** comece simples. Crie uma jornada para cada frente importante, registre aprendizados como memórias, transforme ações em tarefas e mantenha os documentos vivos apenas quando eles realmente ajudarem na continuidade.
+diff --git a/docs/manual-mirror-completo.md b/docs/manual-mirror-completo.md
+new file mode 100644
+index 0000000..3bf8ee6
+--- /dev/null
++++ b/docs/manual-mirror-completo.md
+@@ -0,0 +1,1342 @@
++# Manual Completo do Mirror Mind
++
++Este documento é um guia prático para usar o Mirror Mind no dia a dia: conceitos, instalação, comandos UV, jornadas, memórias, personas, tarefas e modos de operação.
++
++---
++
++## Índice
++
++<details>
++<summary>O que é o Mirror Mind</summary>
++
++- [Abrir seção](#1-o-que-é-o-mirror-mind)
++
++</details>
++
++<details>
++<summary>Componentes principais</summary>
++
++- [Abrir seção](#2-componentes-principais)
++- [Identidade](#identidade)
++- [Jornadas](#jornadas)
++- [Journey path](#journey-path)
++
++</details>
++
++<details>
++<summary>Instalação básica</summary>
++
++- [Abrir seção](#3-instalação-básica)
++- [Instalar dependências](#instalar-dependências)
++- [Configurar ambiente](#configurar-ambiente)
++- [Inicializar usuário](#inicializar-usuário)
++- [Semear identidade no banco](#semear-identidade-no-banco)
++- [Verificar instalação](#verificar-instalação)
++
++</details>
++
++<details>
++<summary>Comandos UV essenciais</summary>
++
++- [Abrir seção](#4-comandos-uv-essenciais)
++- [Listar jornadas](#listar-jornadas)
++- [Consultar uma jornada](#consultar-uma-jornada)
++- [Criar jornada](#criar-jornada)
++- [Atualizar journey path](#atualizar-journey-path)
++- [Associar jornada a uma pasta](#associar-jornada-a-uma-pasta)
++- [Carregar contexto em Builder Mode](#carregar-contexto-em-builder-mode)
++
++</details>
++
++<details>
++<summary>Memórias</summary>
++
++- [Abrir seção](#5-memórias)
++- [Listar memórias](#listar-memórias)
++- [Filtrar por jornada](#filtrar-por-jornada)
++- [Pesquisar memórias](#pesquisar-memórias)
++- [Pesquisar dentro de uma jornada](#pesquisar-dentro-de-uma-jornada)
++
++</details>
++
++<details>
++<summary>Conversas</summary>
++
++- [Abrir seção](#6-conversas)
++- [Listar conversas recentes](#listar-conversas-recentes)
++- [Filtrar por jornada](#filtrar-por-jornada-1)
++- [Limitar quantidade](#limitar-quantidade)
++- [Recuperar conversa específica](#recuperar-conversa-específica)
++
++</details>
++
++<details>
++<summary>Attachments</summary>
++
++- [Abrir seção](#7-attachments)
++- [Listar attachments de uma jornada](#listar-attachments-de-uma-jornada)
++
++</details>
++
++<details>
++<summary>Diário</summary>
++
++- [Abrir seção](#8-diário)
++- [Registrar entrada de diário](#registrar-entrada-de-diário)
++- [Registrar diário associado a uma jornada](#registrar-diário-associado-a-uma-jornada)
++
++</details>
++
++<details>
++<summary>Tarefas</summary>
++
++- [Abrir seção](#9-tarefas)
++- [Listar tarefas](#listar-tarefas)
++- [Listar tarefas de uma jornada](#listar-tarefas-de-uma-jornada)
++- [Criar tarefa](#criar-tarefa)
++- [Ver detalhes completos de uma tarefa](#ver-detalhes-completos-de-uma-tarefa)
++- [Marcar tarefa como em andamento](#marcar-tarefa-como-em-andamento)
++- [Bloquear tarefa](#bloquear-tarefa)
++- [Concluir tarefa](#concluir-tarefa)
++- [Apagar tarefa](#apagar-tarefa)
++- [Importar tarefas do journey path](#importar-tarefas-do-journey-path)
++
++</details>
++
++<details>
++<summary>Identidade</summary>
++
++- [Abrir seção](#10-identidade)
++- [Listar identidades](#listar-identidades)
++- [Listar por camada](#listar-por-camada)
++- [Ler registro específico](#ler-registro-específico)
++- [Editar identidade](#editar-identidade)
++
++</details>
++
++<details>
++<summary>Personas</summary>
++
++- [Abrir seção](#11-personas)
++- [O que é uma persona](#o-que-é-uma-persona)
++- [Quando uma persona é ativada](#quando-uma-persona-é-ativada)
++- [Diferença entre persona e jornada](#diferença-entre-persona-e-jornada)
++- [Quais personas padrão existem](#quais-personas-padrão-existem)
++- [Como a persona aparece numa resposta](#como-a-persona-aparece-numa-resposta)
++- [Ver personas existentes](#ver-personas-existentes)
++- [Inspecionar persona](#inspecionar-persona)
++- [Editar ou criar personas](#editar-ou-criar-personas)
++- [Detectar persona para uma frase](#detectar-persona-para-uma-frase)
++- [Saber qual persona foi usada numa conversa](#saber-qual-persona-foi-usada-numa-conversa)
++
++</details>
++
++<details>
++<summary>Mirror Mode e Builder Mode</summary>
++
++- [Abrir seção](#12-mirror-mode-e-builder-mode)
++- [Mirror Mode](#mirror-mode)
++- [Builder Mode](#builder-mode)
++
++</details>
++
++<details>
++<summary>Comandos por runtime</summary>
++
++- [Abrir seção](#13-comandos-por-runtime)
++
++</details>
++
++<details>
++<summary>Backup</summary>
++
++- [Abrir seção](#14-backup)
++- [Criar backup](#criar-backup)
++
++</details>
++
++<details>
++<summary>Consultar outros modelos</summary>
++
++- [Abrir seção](#15-consultar-outros-modelos)
++
++</details>
++
++<details>
++<summary>Consolidação e sombra</summary>
++
++- [Abrir seção](#16-consolidação-e-sombra)
++- [Consolidação de memórias](#consolidação-de-memórias)
++- [Shadow](#shadow)
++
++</details>
++
++<details>
++<summary>Estrutura técnica</summary>
++
++- [Abrir seção](#17-estrutura-técnica)
++
++</details>
++
++<details>
++<summary>Python API</summary>
++
++- [Abrir seção](#18-python-api)
++
++</details>
++
++<details>
++<summary>Extensões</summary>
++
++- [Abrir seção](#19-extensões)
++
++</details>
++
++<details>
++<summary>Patches locais</summary>
++
++- [Abrir seção](#20-patches-locais)
++- [Patch do comando `tasks show`](#patch-do-comando-tasks-show)
++- [Como testar antes de aplicar](#como-testar-antes-de-aplicar)
++- [Como aplicar o patch](#como-aplicar-o-patch)
++- [Se o patch falhar](#se-o-patch-falhar)
++
++</details>
++
++<details>
++<summary>Boas práticas</summary>
++
++- [Abrir seção](#21-boas-práticas)
++- [Para jornadas](#para-jornadas)
++- [Para atualizações de journey path](#para-atualizações-de-journey-path)
++- [Para arquivos de projeto](#para-arquivos-de-projeto)
++- [Para tarefas](#para-tarefas)
++- [Para segurança](#para-segurança)
++
++</details>
++
++<details>
++<summary>Referências internas</summary>
++
++- [Abrir seção](#22-referências-internas)
++
++</details>
++
++<details>
++<summary>Resumo rápido</summary>
++
++- [Abrir seção](#23-resumo-rápido)
++
++</details>
++
++---
++
++## 1. O que é o Mirror Mind
++
++[Voltar ao índice](#índice)
++
++O Mirror Mind é um framework local-first de memória, identidade e continuidade para agentes de IA. Ele permite que conversas, decisões, aprendizados, projetos e padrões pessoais sejam preservados ao longo do tempo.
++
++Em vez de cada chat começar do zero, o Mirror usa uma base local com:
++
++- identidade do usuário;
++- personas especializadas;
++- jornadas/projetos;
++- memórias extraídas de conversas;
++- tarefas;
++- histórico de conversas;
++- documentos vivos chamados `journey_path`.
++
++A base principal fica em SQLite, normalmente em:
++
++```text
++~/.mirror-minds/<usuario>/memory.db
++```
++
++---
++
++## 2. Componentes principais
++
++[Voltar ao índice](#índice)
++
++### Identidade
++
++A identidade define quem é o usuário e como o Mirror deve operar. Ela é organizada em camadas:
++
++| Camada | Função |
++|---|---|
++| `self` | identidade profunda, visão de mundo, propósito |
++| `ego` | comportamento operacional, tom e postura |
++| `user` | dados e contexto do usuário |
++| `persona` | lentes especializadas, como engineer, writer, therapist etc. |
++| `shadow` | tensões, pontos cegos e padrões recorrentes |
++| `journey` | identidade de uma jornada |
++| `journey_path` | documento vivo de acompanhamento da jornada |
++
++### Jornadas
++
++Uma jornada é um espaço de continuidade para um tema, projeto ou frente importante.
++
++Ela pode guardar:
++
++- descrição;
++- briefing;
++- contexto;
++- memórias relacionadas;
++- conversas associadas;
++- tarefas;
++- notas;
++- comandos úteis;
++- progresso atual.
++
++### Journey path
++
++O `journey_path` é o documento vivo da jornada. Ele funciona como uma página de acompanhamento, manual ou roteiro prático.
++
++Importante: o comando `journey update` substitui o conteúdo inteiro do `journey_path`. Para não apagar conteúdo antigo, primeiro consulte a jornada, copie o conteúdo atual, adicione a nova parte e atualize com o conteúdo completo.
++
++---
++
++## 3. Instalação básica
++
++[Voltar ao índice](#índice)
++
++### Instalar dependências
++
++```bash
++git clone https://github.com/viniciusteles/mirror.git
++cd mirror
++uv sync
++```
++
++### Configurar ambiente
++
++```bash
++cp .env.example .env
++```
++
++No `.env`, configure pelo menos:
++
++```env
++MIRROR_USER=seu-nome
++OPENROUTER_API_KEY=sk-or-...
++```
++
++### Inicializar usuário
++
++```bash
++uv run python -m memory init seu-nome
++```
++
++### Semear identidade no banco
++
++```bash
++uv run python -m memory seed
++```
++
++### Verificar instalação
++
++```bash
++uv run python -m memory list personas --verbose
++uv run python -m memory list journeys
++uv run python -m memory detect-persona "quero ajuda para escrever um artigo"
++```
++
++---
++
++## 4. Comandos UV essenciais
++
++[Voltar ao índice](#índice)
++
++Todos os comandos abaixo devem ser executados na pasta do repositório Mirror.
++
++### Listar jornadas
++
++```bash
++uv run python -m memory journeys
++```
++
++Lista as jornadas existentes.
++
++```bash
++uv run python -m memory list journeys
++```
++
++Também lista jornadas pela interface geral de listagem.
++
++### Consultar uma jornada
++
++```bash
++uv run python -m memory journey mirror-aprendizado
++```
++
++Mostra o estado completo da jornada: identidade, journey path, memórias recentes e conversas recentes.
++
++```bash
++uv run python -m memory journey status mirror-aprendizado
++```
++
++Forma equivalente de consultar status de uma jornada.
++
++### Criar jornada
++
++```bash
++uv run python -m memory journey create psicologia \
++  --name "Psicologia" \
++  --description "Estudos e reflexões sobre psicologia." \
++  --briefing "Usar esta jornada para temas ligados à psicologia." \
++  --context "Jornada criada para organizar aprendizados, leituras e práticas."
++```
++
++Cria uma nova jornada.
++
++### Atualizar journey path
++
++```bash
++uv run python -m memory journey update mirror-aprendizado "Novo conteúdo do journey path."
++```
++
++Substitui o conteúdo vivo da jornada.
++
++Para textos maiores:
++
++```bash
++uv run python -m memory journey update mirror-aprendizado - <<'EOF'
++## Área nova
++
++Conteúdo novo aqui.
++EOF
++```
++
++### Associar jornada a uma pasta
++
++```bash
++uv run python -m memory journey set-path mirror-aprendizado /caminho/da/pasta
++```
++
++Associa a jornada a um diretório local/projeto.
++
++### Carregar contexto em Builder Mode
++
++```bash
++uv run python -m memory build load mirror-aprendizado
++```
++
++Carrega contexto da jornada para construção técnica ou edição de artefatos.
++
++---
++
++## 5. Memórias
++
++[Voltar ao índice](#índice)
++
++### Listar memórias
++
++```bash
++uv run python -m memory memories
++```
++
++### Filtrar por jornada
++
++```bash
++uv run python -m memory memories --journey mirror-aprendizado
++```
++
++### Pesquisar memórias
++
++```bash
++uv run python -m memory memories --search "comandos"
++```
++
++### Pesquisar dentro de uma jornada
++
++```bash
++uv run python -m memory memories --journey mirror-aprendizado --search "comandos"
++```
++
++As memórias podem ter tipos como:
++
++- `decision`;
++- `insight`;
++- `idea`;
++- `journal`;
++- `tension`;
++- `learning`;
++- `pattern`;
++- `commitment`;
++- `reflection`.
++
++---
++
++## 6. Conversas
++
++[Voltar ao índice](#índice)
++
++### Listar conversas recentes
++
++```bash
++uv run python -m memory conversations
++```
++
++### Filtrar por jornada
++
++```bash
++uv run python -m memory conversations --journey mirror-aprendizado
++```
++
++### Limitar quantidade
++
++```bash
++uv run python -m memory conversations --journey mirror-aprendizado --limit 10
++```
++
++### Associar uma conversa existente a uma jornada
++
++Use este helper quando uma conversa já existe no banco, mas não ficou associada
++à jornada correta. Isso é útil, por exemplo, quando você começou uma sessão no
++Pi antes de escolher a jornada, ou quando percebeu depois que uma conversa sobre
++`plan-pmo-corp` ficou sem vínculo de jornada.
++
++Primeiro descubra o ID da conversa com:
++
++```text
++/mm-conversations
++```
++
++ou pelo terminal:
++
++```bash
++uv run python -m memory conversations
++```
++
++Depois associe a conversa à jornada. O ID pode ser completo ou apenas um
++prefixo, desde que esse prefixo resolva para uma conversa existente e única:
++
++```bash
++uv run python -m memory conversation-logger attach --conversation <conversation_id> --journey <journey_slug>
++```
++
++Exemplo:
++
++```bash
++uv run python -m memory conversation-logger attach --conversation 3fd487ca --journey plan-pmo-corp
++```
++
++Se a conversa a corrigir for a sessão Pi mais recente, use o helper curto:
++
++```bash
++uv run python -m memory conversation-logger attach-latest-pi --journey <journey_slug>
++```
++
++Exemplo:
++
++```bash
++uv run python -m memory conversation-logger attach-latest-pi --journey plan-pmo-corp
++```
++
++Diferença prática:
++
++- `attach` associa uma conversa específica informada por ID ou prefixo;
++- `attach-latest-pi` associa automaticamente a sessão Pi mais recente.
++
++Ambos aceitam persona:
++
++```bash
++uv run python -m memory conversation-logger attach --conversation <conversation_id> --journey <journey_slug> --persona engineer
++```
++
++Para validar:
++
++```bash
++uv run python -m memory conversations --journey <journey_slug>
++uv run python -m memory conversations --journey plan-pmo-corp
++```
++
++### Recuperar conversa específica
++
++```bash
++uv run python -m memory recall <conversation_id>
++```
++
++Com limite de mensagens:
++
++```bash
++uv run python -m memory recall <conversation_id> --limit 20
++```
++
++---
++
++## 7. Attachments
++
++[Voltar ao índice](#índice)
++
++Attachments são documentos ou conteúdos associados a uma jornada e guardados no banco SQLite do Mirror.
++
++### Listar attachments de uma jornada
++
++```bash
++uv run python - <<'PY'
++from memory import MemoryClient
++
++with MemoryClient() as mem:
++    attachments = mem.get_attachments("mirror-aprendizado")
++
++    if not attachments:
++        print("Nenhum attachment encontrado.")
++    else:
++        for att in attachments:
++            print(f"- {att.name}")
++            print(f"  ID: {att.id}")
++            print(f"  Descrição: {att.description}")
++            print(f"  Tipo: {att.content_type}")
++            print()
++PY
++```
++
++Lista todos os attachments associados à jornada `mirror-aprendizado`.
++
++---
++
++## 8. Diário
++
++[Voltar ao índice](#índice)
++
++### Registrar entrada de diário
++
++```bash
++uv run python -m memory journal "Hoje aprendi um conceito importante."
++```
++
++### Registrar diário associado a uma jornada
++
++```bash
++uv run python -m memory journal --journey mirror-aprendizado "Hoje aprendi como consultar jornadas usando UV."
++```
++
++---
++
++## 9. Tarefas
++
++[Voltar ao índice](#índice)
++
++Tarefas são ações práticas associadas ao uso do Mirror. Elas servem para transformar uma jornada em acompanhamento operacional: o contexto da jornada diz **o que é importante**, as memórias registram **o que foi aprendido ou decidido**, e as tarefas mostram **o que precisa ser feito agora ou depois**.
++
++Uma tarefa pode existir sem jornada, mas fica mais útil quando vinculada a uma jornada específica. Assim, cada frente de trabalho ou aprendizado mantém sua própria lista de próximos passos. Por exemplo, na jornada `mirror-aprendizado`, uma tarefa pode ser "Documentar comandos UV"; em uma jornada de projeto, pode ser "Revisar briefing" ou "Criar plano da próxima entrega".
++
++As tarefas ajudam a:
++
++- manter próximos passos visíveis;
++- separar ideias e aprendizados de ações executáveis;
++- acompanhar o estado de cada ação;
++- organizar pendências por jornada;
++- importar checkboxes do `journey_path` para a lista de tarefas;
++- evitar que decisões importantes fiquem perdidas no histórico da conversa.
++
++Estados comuns de uma tarefa:
++
++- **pendente** — ainda precisa ser feita;
++- **em andamento** — já começou;
++- **bloqueada** — depende de algo antes de avançar;
++- **concluída** — já foi finalizada.
++
++Na prática, use tarefas quando houver uma ação clara. Use memórias para aprendizados, decisões e padrões que devem sobreviver ao tempo. Use o `journey_path` para contexto vivo, roteiro e notas estruturadas da jornada.
++
++### Listar tarefas
++
++```bash
++uv run python -m memory tasks list
++```
++
++### Listar tarefas de uma jornada
++
++```bash
++uv run python -m memory tasks list --journey mirror-aprendizado
++```
++
++### Criar tarefa
++
++```bash
++uv run python -m memory tasks add "Documentar comandos UV" --journey mirror-aprendizado
++```
++
++### Ver detalhes completos de uma tarefa
++
++Depois de listar as tarefas de uma jornada e obter o ID da tarefa, use:
++
++```bash
++uv run python -m memory tasks show <task_id>
++```
++
++Também é possível usar apenas o começo do ID, desde que esse prefixo identifique uma única tarefa:
++
++```bash
++uv run python -m memory tasks show <prefixo-do-id>
++```
++
++Esse comando mostra uma visão amigável e completa da tarefa, incluindo:
++
++- objetivo/título da tarefa;
++- ID completo;
++- jornada associada;
++- status atual;
++- origem da tarefa;
++- etapa/ciclo da jornada, quando houver;
++- prazo;
++- horário agendado;
++- dica de horário;
++- data de criação;
++- data da última atualização;
++- data de conclusão, quando houver;
++- contexto detalhado;
++- metadados internos.
++
++Exemplo de saída:
++
++```text
++📋 Tarefa
++
++Objetivo: Melhorar cooldown do Gemini
++
++Identificação:
++- ID: `abc123...`
++- Jornada: `proj-anota`
++- Status: ○ todo
++- Origem: conversation
++
++Planejamento:
++- Etapa: Fallback de transcrição
++- Prazo: 2026-05-23
++- Horário agendado: 2026-05-23T09:00
++- Dica de horário: manhã
++
++Datas:
++- Criada em: 2026-05-22T...
++- Atualizada em: 2026-05-22T...
++- Concluída em: (not set)
++
++Contexto:
++Objetivo: evitar tentativas repetidas contra Gemini após quota.
++
++Metadados:
++(not set)
++```
++
++Use `tasks show` quando quiser ver “tudo, tudo, tudo” de uma tarefa em formato legível, sem precisar consultar diretamente o SQLite ou usar Python manualmente.
++
++### Marcar tarefa como em andamento
++
++```bash
++uv run python -m memory tasks doing <task_id>
++```
++
++### Bloquear tarefa
++
++```bash
++uv run python -m memory tasks block <task_id>
++```
++
++### Concluir tarefa
++
++```bash
++uv run python -m memory tasks done <task_id>
++```
++
++### Apagar tarefa
++
++```bash
++uv run python -m memory tasks delete <task_id>
++```
++
++### Importar tarefas do journey path
++
++```bash
++uv run python -m memory tasks import mirror-aprendizado
++```
++
++O import lê checkboxes no `journey_path`, por exemplo:
++
++```markdown
++- [ ] Criar documento inicial
++- [x] Revisar comandos principais
++```
++
++---
++
++## 10. Identidade
++
++[Voltar ao índice](#índice)
++
++### Listar identidades
++
++```bash
++uv run python -m memory identity list
++```
++
++### Listar por camada
++
++```bash
++uv run python -m memory identity list --layer persona
++```
++
++### Ler registro específico
++
++```bash
++uv run python -m memory identity get journey mirror-aprendizado
++```
++
++### Editar identidade
++
++```bash
++uv run python -m memory identity edit user identity
++```
++
++---
++
++## 11. Personas
++
++[Voltar ao índice](#índice)
++
++### O que é uma persona
++
++Uma persona é uma lente especializada da identidade do Mirror. Ela não é outro assistente separado: é o mesmo Mirror operando com um foco específico, como engenharia, escrita, estratégia, saúde, finanças ou reflexão emocional.
++
++### Quando uma persona é ativada
++
++A persona é ativada quando o tema da conversa combina com as palavras-chave e o descritor de roteamento daquela persona. Por exemplo, pedidos sobre código tendem a ativar `engineer`; pedidos sobre texto tendem a ativar `writer`; pedidos sobre emoções tendem a ativar `therapist`.
++
++### Diferença entre persona e jornada
++
++- **persona** define a lente de resposta: como o Mirror pensa aquele assunto;
++- **jornada** define o espaço de continuidade: onde contexto, memórias, tarefas e documentos daquele tema/projeto ficam organizados.
++
++### Quais personas padrão existem
++
++As personas padrão disponíveis nesta instalação são:
++
++- `coach` — hábitos, metas, consistência, execução;
++- `designer` — design, UX/UI, marca, interface;
++- `doctor` — saúde, sintomas, bem-estar, medicina;
++- `engineer` — código, arquitetura, bugs, testes;
++- `financial` — dinheiro, orçamento, investimentos, finanças;
++- `prompt-engineer` — prompts, comportamento de LLM, instruções, arquivos de persona/skill;
++- `researcher` — pesquisa, evidências, síntese, investigação;
++- `strategist` — estratégia, posicionamento, negócios, trade-offs;
++- `teacher` — ensino, didática, explicação, aprendizagem;
++- `therapist` — emoções, padrões, tensões, saúde mental;
++- `thinker` — pensamento, conceitos, modelos, clareza;
++- `writer` — escrita, edição, voz, publicação.
++
++### Como a persona aparece numa resposta
++
++Quando uma persona está ativa numa resposta, ela pode aparecer com assinatura no formato:
++
++```text
++◇ engineer
++
++[resposta]
++```
++
++Se nenhuma persona especializada for ativada, o ego responde sozinho e não há assinatura.
++
++### Ver personas existentes
++
++```bash
++uv run python -m memory list personas --verbose
++```
++
++Lista as personas existentes no banco do Mirror com mais detalhes, incluindo `routing_keywords`.
++
++```bash
++uv run python -m memory list personas
++```
++
++Mostra uma lista mais simples das personas disponíveis.
++
++### Inspecionar persona
++
++```bash
++uv run python -m memory inspect persona writer
++```
++
++Inspeciona uma persona específica. Troque `writer` por outra persona, como `engineer`, `therapist` ou `strategist`.
++
++### Editar ou criar personas
++
++Para editar uma persona existente:
++
++```bash
++uv run python -m memory identity edit persona writer
++```
++
++Para criar ou substituir uma persona via stdin:
++
++```bash
++cat persona.md | uv run python -m memory identity set persona minha-persona
++```
++
++Depois de alterar ou criar uma persona, gere novamente os descritores se quiser que o roteamento automático reflita melhor o novo conteúdo:
++
++```bash
++uv run python -m memory descriptor generate --layer persona --key minha-persona
++```
++
++### Detectar persona para uma frase
++
++```bash
++uv run python -m memory detect-persona "preciso organizar uma estratégia de negócio"
++```
++
++Testa qual persona o Mirror ativaria para uma frase.
++
++### Saber qual persona foi usada numa conversa
++
++Durante a resposta, a persona aparece com a assinatura `◇ nome-da-persona` quando uma persona especializada está ativa. Se não houver assinatura, o ego respondeu sozinho.
++
++Para listar conversas filtrando por persona:
++
++```bash
++uv run python -m memory conversations --persona engineer
++```
++
++Para recuperar uma conversa e verificar as mensagens:
++
++```bash
++uv run python -m memory recall <conversation_id>
++```
++
++A lista real vem do banco SQLite do seu Mirror, então ela pode variar conforme sua identidade foi seeded/editada.
++
++---
++
++## 12. Mirror Mode e Builder Mode
++
++[Voltar ao índice](#índice)
++
++### Mirror Mode
++
++Mirror Mode é usado para reflexão, decisões, sentido, escrita, estratégia, emoções e continuidade pessoal.
++
++Em Pi/Gemini:
++
++```text
++/mm-mirror
++```
++
++Em Codex:
++
++```text
++$mm-mirror
++```
++
++Em Claude Code:
++
++```text
++/mm:mirror
++```
++
++### Builder Mode
++
++Builder Mode é usado para construção: código, documentos, arquitetura, YAML, bugs, tarefas técnicas e artefatos.
++
++Em Pi/Gemini:
++
++```text
++/mm-build mirror-aprendizado
++```
++
++Em Codex:
++
++```text
++$mm-build mirror-aprendizado
++```
++
++Em Claude Code:
++
++```text
++/mm:build mirror-aprendizado
++```
++
++Pelo UV:
++
++```bash
++uv run python -m memory build load mirror-aprendizado
++```
++
++---
++
++## 13. Comandos por runtime
++
++[Voltar ao índice](#índice)
++
++| Função | Pi/Gemini | Codex | Claude Code |
++|---|---|---|---|
++| Mirror Mode | `/mm-mirror` | `$mm-mirror` | `/mm:mirror` |
++| Builder Mode | `/mm-build` | `$mm-build` | `/mm:build` |
++| Jornadas | `/mm-journeys` | `$mm-journeys` | `/mm:journeys` |
++| Jornada específica | `/mm-journey <slug>` | `$mm-journey <slug>` | `/mm:journey <slug>` |
++| Memórias | `/mm-memories` | `$mm-memories` | `/mm:memories` |
++| Conversas | `/mm-conversations` | `$mm-conversations` | `/mm:conversations` |
++| Recall | `/mm-recall` | `$mm-recall` | `/mm:recall` |
++| Tarefas | `/mm-tasks` | `$mm-tasks` | `/mm:tasks` |
++| Diário | `/mm-journal` | `$mm-journal` | `/mm:journal` |
++| Backup | `/mm-backup` | `$mm-backup` | `/mm:backup` |
++| Ajuda | `/mm-help` | `$mm-help` | `/mm:help` |
++
++---
++
++## 14. Backup
++
++[Voltar ao índice](#índice)
++
++### Criar backup
++
++```bash
++uv run python -m memory backup
++```
++
++O backup é salvo no diretório configurado, normalmente:
++
++```text
++~/.mirror-minds/<usuario>/backups/
++```
++
++---
++
++## 15. Consultar outros modelos
++
++[Voltar ao índice](#índice)
++
++O Mirror pode consultar outros LLMs via OpenRouter.
++
++```bash
++uv run python -m memory consult openai "Qual seria uma boa estrutura para minha jornada de psicologia?"
++```
++
++Com jornada:
++
++```bash
++uv run python -m memory consult openai "Revise este plano" --journey mirror-aprendizado
++```
++
++Ver créditos:
++
++```bash
++uv run python -m memory consult credits
++```
++
++---
++
++## 16. Consolidação e sombra
++
++[Voltar ao índice](#índice)
++
++### Consolidação de memórias
++
++```bash
++uv run python -m memory consolidate scan
++uv run python -m memory consolidate list
++uv run python -m memory consolidate apply <id>
++uv run python -m memory consolidate reject <id>
++```
++
++A consolidação identifica padrões recorrentes e propõe fusões ou atualizações.
++
++### Shadow
++
++```bash
++uv run python -m memory shadow scan
++uv run python -m memory shadow list
++uv run python -m memory shadow show <id>
++uv run python -m memory shadow apply <id>
++uv run python -m memory shadow reject <id>
++```
++
++A camada shadow ajuda a registrar tensões, pontos cegos e padrões menos explícitos.
++
++---
++
++## 17. Estrutura técnica
++
++[Voltar ao índice](#índice)
++
++O código principal fica em:
++
++```text
++src/memory/
++```
++
++Subpastas importantes:
++
++| Pasta | Função |
++|---|---|
++| `cli/` | comandos de terminal |
++| `services/` | lógica de domínio |
++| `storage/` | acesso ao SQLite |
++| `intelligence/` | extração, busca, roteamento com LLM |
++| `hooks/` | integrações com runtimes |
++| `skills/` | lógica compartilhada por comandos/skills |
++
++A direção de dependência é:
++
++```text
++cli / hooks
++  ↓
++services
++  ↓
++storage
++  ↓
++db SQLite
++```
++
++---
++
++## 18. Python API
++
++[Voltar ao índice](#índice)
++
++Para scripts e extensões, use `MemoryClient`:
++
++```python
++from memory import MemoryClient
++
++with MemoryClient() as mem:
++    status = mem.get_journey_status("mirror-aprendizado")
++    print(status)
++```
++
++Exemplos úteis:
++
++```python
++from memory import MemoryClient
++
++with MemoryClient() as mem:
++    mem.add_journal(
++        "Aprendi a consultar jornadas pelo UV.",
++        journey="mirror-aprendizado",
++    )
++```
++
++```python
++from memory import MemoryClient
++
++with MemoryClient() as mem:
++    results = mem.search("comandos UV", journey="mirror-aprendizado")
++    for result in results:
++        print(result.memory.title, result.score)
++```
++
++---
++
++## 19. Extensões
++
++[Voltar ao índice](#índice)
++
++Extensões adicionam capacidades ao Mirror sem modificar o core.
++
++Tipos principais:
++
++- `prompt-skill`: instruções em Markdown para orquestrar comandos existentes;
++- `command-skill`: extensão com código, estado próprio e subcomandos.
++
++Comandos básicos:
++
++```bash
++uv run python -m memory extensions list
++uv run python -m memory extensions validate
++uv run python -m memory extensions install <id> --extensions-root <diretorio>
++uv run python -m memory ext list
++uv run python -m memory ext <id> --help
++```
++
++---
++
++## 20. Patches locais
++
++[Voltar ao índice](#índice)
++
++Patches locais guardam mudanças feitas no Mirror que ainda não estão commitadas ou que podem ser perdidas ao atualizar o repositório. Eles funcionam como um arquivo de reaplicação: se uma atualização do repositório remover uma melhoria local, o patch permite aplicar novamente a mudança.
++
++Nesta instalação, existe uma área para patches em:
++
++```text
++exports/patches/
++```
++
++### Patch do comando `tasks show`
++
++Foi criado um patch para preservar o comando:
++
++```bash
++uv run python -m memory tasks show <task_id>
++```
++
++Arquivos do patch:
++
++```text
++exports/patches/tasks-show-command.patch
++exports/patches/tasks-show-command.README.md
++```
++
++Esse patch adiciona uma visualização amigável e completa dos detalhes de uma tarefa.
++
++### Como testar antes de aplicar
++
++Depois de atualizar o repositório do Mirror, teste se o patch ainda pode ser aplicado:
++
++```bash
++git apply --check exports/patches/tasks-show-command.patch
++```
++
++Se esse comando não mostrar erro, o patch está compatível.
++
++### Como aplicar o patch
++
++```bash
++git apply exports/patches/tasks-show-command.patch
++```
++
++Depois de aplicar, valide o comando:
++
++```bash
++uv run python -m memory tasks show <task_id>
++```
++
++E rode os testes relacionados:
++
++```bash
++uv run pytest tests/unit/memory/cli/test_tasks_cmd.py -q
++uv run ruff check src/memory/cli/tasks_cmd.py tests/unit/memory/cli/test_tasks_cmd.py
++```
++
++### Se o patch falhar
++
++Se `git apply --check` falhar, provavelmente o repositório mudou nos mesmos arquivos. Nesse caso:
++
++1. leia `exports/patches/tasks-show-command.README.md`;
++2. abra `exports/patches/tasks-show-command.patch`;
++3. reaplique manualmente a ideia do patch nos arquivos atuais;
++4. rode os testes;
++5. gere um novo patch atualizado.
++
++Para gerar novamente o patch depois de ajustar:
++
++```bash
++git diff -- src/memory/cli/tasks_cmd.py src/memory/__main__.py tests/unit/memory/cli/test_tasks_cmd.py REFERENCE.md .pi/skills/mm-tasks/SKILL.md .claude/skills/mm:tasks/SKILL.md docs/manual-mirror-completo.md > exports/patches/tasks-show-command.patch
++```
++
++---
++
++## 21. Boas práticas
++
++[Voltar ao índice](#índice)
++
++### Para jornadas
++
++- Use slugs curtos e em minúsculas: `mirror-aprendizado`, `psicologia`, `pmo-ti-jca`.
++- Use uma jornada por frente importante.
++- Coloque comandos, decisões e próximos passos no `journey_path`.
++- Use memórias para aprendizados e decisões que devem sobreviver ao tempo.
++
++### Para atualizações de journey path
++
++Antes de atualizar:
++
++```bash
++uv run python -m memory journey mirror-aprendizado
++```
++
++Depois atualize com o conteúdo completo:
++
++```bash
++uv run python -m memory journey update mirror-aprendizado - <<'EOF'
++[conteúdo antigo]
++
++[conteúdo novo]
++EOF
++```
++
++### Para arquivos de projeto
++
++Arquivos de projeto são os documentos e artefatos mantidos dentro do repositório ou pasta operacional de um projeto: `README.md`, `docs/next-steps.md`, `docs/decisions.md`, `docs/architecture.md`, guias de setup, planos técnicos, checklists de validação e equivalentes. Eles não são a memória estratégica do Mirror; são a documentação acionável que permite continuar a execução prática sem depender do histórico da conversa.
++
++Atualize arquivos de projeto quando a informação orientar execução técnica futura: próximos passos técnicos, setup, arquitetura, decisões implementáveis, instruções de execução, pendências de código, validações, testes, comandos, integrações ou documentação necessária para continuidade prática. Antes de registrar algo, verifique se já existe um arquivo apropriado, como `README.md`, `docs/next-steps.md`, `docs/decisions.md`, `docs/architecture.md` ou equivalente. Não crie documentação genérica desnecessária quando o projeto já tiver estrutura própria.
++
++A diferença prática é esta:
++
++- a jornada guarda intenção, decisões, direção estratégica, contexto de retomada, critérios de sucesso, mudanças importantes de rumo e acordos operacionais;
++- os arquivos do projeto guardam detalhes técnicos acionáveis: como executar, validar, implementar, configurar, integrar e continuar o trabalho.
++
++Exemplos de informações que vão na jornada:
++
++- por que a frente existe e qual resultado importa;
++- decisões estratégicas e mudanças relevantes de direção;
++- critérios de sucesso e acordos operacionais;
++- contexto sintético para retomada em sessões futuras;
++- aprendizados ou padrões que devem permanecer na memória da jornada.
++
++Exemplos de informações que vão em arquivos do projeto:
++
++- comandos de instalação, teste, build, deploy ou validação;
++- detalhes de arquitetura, integrações, APIs e configuração;
++- próximos passos técnicos e pendências de código;
++- decisões implementáveis que afetam arquivos, módulos ou runtime;
++- documentação necessária para outro agente ou pessoa continuar a execução.
++
++Quando uma informação for importante tanto para memória estratégica quanto para execução técnica, registre nos dois lugares: na jornada, em forma sintética e contextual; no arquivo do projeto, em forma operacional e acionável. Se houver um documento vivo da jornada, como um Markdown associado, atualize-o quando a informação fizer parte do manual ou processo de uso do Mirror, não apenas quando for uma nota temporária do projeto.
++
++### Para tarefas
++
++- Crie tarefas com jornada associada sempre que possível.
++- Use `doing`, `block` e `done` para manter estado claro.
++- Importe checkboxes do `journey_path` quando fizer sentido.
++
++### Para segurança
++
++- Faça backups regularmente.
++- Não edite o banco SQLite diretamente sem necessidade.
++- Prefira comandos UV ou `MemoryClient`.
++- Lembre que `.env` contém chaves privadas.
++
++---
++
++## 22. Referências internas
++
++[Voltar ao índice](#índice)
++
++Documentos úteis no repositório:
++
++```text
++README.md
++REFERENCE.md
++docs/getting-started.md
++docs/architecture.md
++docs/api.md
++docs/product/extensions/index.md
++docs/process/development-guide.md
++```
++
++---
++
++## 23. Resumo rápido
++
++[Voltar ao índice](#índice)
++
++Comandos mais usados:
++
++```bash
++uv run python -m memory journeys
++uv run python -m memory journey <slug>
++uv run python -m memory journey create <slug> --name "Nome" --description "Descrição"
++uv run python -m memory journey update <slug> - <<'EOF'
++Conteúdo
++EOF
++uv run python -m memory memories --journey <slug>
++uv run python -m memory conversations --journey <slug>
++uv run python -m memory conversation-logger attach --conversation <conversation_id> --journey <slug>
++uv run python -m memory conversation-logger attach-latest-pi --journey <slug>
++uv run python -m memory tasks list --journey <slug>
++uv run python -m memory journal --journey <slug> "Texto"
++uv run python -m memory backup
++```
++
++O Mirror funciona melhor quando cada tema importante vira uma jornada, cada aprendizado importante vira memória e cada plano prático fica claro no `journey_path`.
+diff --git a/docs/process/troubleshooting.md b/docs/process/troubleshooting.md
+index 3983728..53bcc00 100644
+--- a/docs/process/troubleshooting.md
++++ b/docs/process/troubleshooting.md
+@@ -131,6 +131,17 @@ The output reports how many orphaned sessions were ingested. The most recent
+ incident backfilled 15 sessions accumulated over roughly a month, with no
+ data loss.
+ 
++If the recovered conversation exists but is not associated with the intended
++journey, attach it after the fact. Find the conversation ID with
++`uv run python -m memory conversations` or `/mm-conversations`; the ID may be
++complete or an unambiguous prefix.
++
++```bash
++uv run python -m memory conversation-logger attach --conversation 3fd487ca --journey plan-pmo-corp
++uv run python -m memory conversation-logger attach-latest-pi --journey plan-pmo-corp
++uv run python -m memory conversations --journey plan-pmo-corp
++```
++
+ ### Prevention
+ 
+ Three avenues are worth considering:
+diff --git a/docs/product/specs/runtime-interface/index.md b/docs/product/specs/runtime-interface/index.md
+index dd80fe2..9268ee0 100644
+--- a/docs/product/specs/runtime-interface/index.md
++++ b/docs/product/specs/runtime-interface/index.md
+@@ -371,10 +371,18 @@ uv run python -m memory conversation-logger log-user <session_id> <prompt> --int
+ uv run python -m memory conversation-logger log-assistant <session_id> <content> --interface <name>
+ uv run python -m memory conversation-logger session-end          # reads JSON from stdin
+ uv run python -m memory conversation-logger session-end-pi <id>  # explicit session id, deferred extraction
++uv run python -m memory conversation-logger attach --conversation <conversation_id> --journey <journey_slug> [--persona <p>]
++uv run python -m memory conversation-logger attach-latest-pi --journey <journey_slug> [--persona <p>]
+ uv run python -m memory mirror load --context-only --query <q> [--persona <p>] [--journey <j>] [--org] [--session-id <id>]
+ uv run python -m memory backup --silent
+ ```
+ 
++`attach` repairs an existing conversation by explicit ID or unambiguous ID
++prefix. `attach-latest-pi` is a convenience helper for the most recent Pi
++session. Use them when the database has the conversation but the journey/persona
++metadata needs to be attached after the fact; validate with
++`uv run python -m memory conversations --journey <journey_slug>`.
++
+ ---
+ 
+ ## Runtime Adapter Patterns
+-- 
+2.53.0
+

@@ -27,13 +27,16 @@ Show the user the available commands (same on Pi and Gemini CLI):
 |---------|-------------|
 | `/mm-journeys` | Lists journeys with status and current stage |
 | `/mm-journey [slug]` | Shows detailed status for one or all journeys |
+| `/mm-journey create [slug]` | Interactively creates a journey |
+| `* /mm-journey update <slug> "content"` | Updates a journey's content |
 
-## Memories & Journal
+## Memories, Identity & Journal
 
 | Command | What it does |
 |---------|-------------|
 | `/mm-memories` | Lists recorded memories |
 | | `--type TYPE` · `--layer LAYER` · `--journey ID` · `--search "text"` · `--limit N` |
+| `* /mm-identity` | Reads and updates identity directly in the database |
 | `/mm-journal "text"` | Records a personal journal entry |
 | | `--journey ID` |
 
@@ -55,6 +58,13 @@ Show the user the available commands (same on Pi and Gemini CLI):
 | `/mm-week` | Shows the current week view |
 | `/mm-week plan "text"` | Ingests a weekly plan |
 
+## Memory Cultivation
+
+| Command | What it does |
+|---------|-------------|
+| `* /mm-consolidate` | Scans memories for recurring patterns and proposes consolidation |
+| `* /mm-shadow` | Surfaces and promotes shadow-layer observations |
+
 ## Conversations & Logging
 
 | Command | What it does |
@@ -65,10 +75,19 @@ Show the user the available commands (same on Pi and Gemini CLI):
 | `/mm-new` | Starts a new conversation |
 | `/mm-mute` | Toggles conversation logging |
 
+## Consultation
+
+| Command | What it does |
+|---------|-------------|
+| `* /mm-consult` | Asks other LLMs through OpenRouter with Mirror identity context |
+
 ## System
 
 | Command | What it does |
 |---------|-------------|
 | `/mm-backup` | Backs up the memory database |
 | `/mm-seed` | Seeds identity files from the active user home into the database |
+| `* /mm-welcome` | Shows the state-aware welcome card |
 | `/mm-help` | Shows this list |
+
+`*` Added locally by Ricardo; not yet validated in the upstream Mirror repository.

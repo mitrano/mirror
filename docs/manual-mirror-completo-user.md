@@ -66,6 +66,9 @@ Este manual apresenta o Mirror Mind de forma progressiva: primeiro os conceitos,
   - [17.1 Listar identidades](#171-listar-identidades)
   - [17.2 Ler uma identidade específica](#172-ler-uma-identidade-específica)
   - [17.3 Editar identidade](#173-editar-identidade)
+  - [17.4 Como o Mirror aprende quem é você](#174-como-o-mirror-aprende-quem-é-você)
+  - [17.5 Como fornecer melhor a sua identidade](#175-como-fornecer-melhor-a-sua-identidade)
+  - [17.6 Como checar o que o Mirror já sabe](#176-como-checar-o-que-o-mirror-já-sabe)
 - [18. Personas](#18-personas)
   - [18.1 O que é uma persona](#181-o-que-é-uma-persona)
   - [18.2 Quando uma persona é ativada](#182-quando-uma-persona-é-ativada)
@@ -200,6 +203,25 @@ A identidade é organizada em camadas:
 | `shadow` | tensões, pontos cegos e padrões recorrentes |
 | `journey` | identidade de uma jornada |
 | `journey_path` | documento vivo de acompanhamento da jornada |
+
+O Mirror não descobre quem você é de uma vez. Ele forma uma imagem por camadas: algumas informações são ditas explicitamente por você, outras aparecem nas conversas, e outras são consolidadas ao longo do tempo como padrões, decisões e recorrências.
+
+A identidade pode guardar, por exemplo:
+
+- visão de mundo;
+- valores e princípios;
+- vontade, direção e ambições;
+- modo de decidir;
+- estilo de comunicação;
+- forma de trabalhar;
+- padrões emocionais;
+- medos, tensões e contradições recorrentes;
+- estética pessoal e maneira de estar no mundo;
+- relações importantes;
+- critérios para uma vida bem vivida;
+- como o Mirror deve falar, confrontar, lembrar e apoiar você.
+
+A regra prática é: o Mirror aprende melhor quando você não fornece apenas fatos sobre a sua vida, mas também mostra como você interpreta, escolhe, sente, prioriza e dá sentido ao que vive.
 
 ### 6.2 Memória
 
@@ -958,6 +980,131 @@ uv run python -m memory identity edit user identity
 
 > **Atenção:** editar identidade altera o comportamento futuro do Mirror. Faça isso com cuidado.
 
+### 17.4 Como o Mirror aprende quem é você
+
+O Mirror aprende por acúmulo, correção e consolidação. Ele não deve fingir que conhece você antes de ter material suficiente. Quando o perfil ainda está incompleto, a conduta correta é perguntar, admitir limite e evitar suposições.
+
+Os principais canais de aprendizado são:
+
+1. **Identidade** — guarda verdades relativamente estáveis: visão de mundo, valores, princípios, tom, postura, estilo de decisão, modo de trabalhar, presença pessoal e critérios de vida.
+2. **Conversas** — funcionam como material bruto. Nelas aparecem decisões, conflitos, desejos, projetos, pessoas importantes, linguagem natural, prioridades e padrões de interpretação.
+3. **Memórias** — preservam sínteses reutilizáveis: aprendizados, decisões, ideias, compromissos, tensões, padrões e reflexões.
+4. **Diário** — registra material íntimo e contextual que não aparece em tarefas: sentimentos, ambivalências, desejos, vergonha, fé, vontade, dúvidas e contradições.
+5. **Jornadas** — mostram onde sua vida ou seu trabalho está se movendo. Elas guardam continuidade por frente, projeto ou tema importante.
+6. **Shadow** — registra tensões, pontos cegos e padrões recorrentes menos explícitos. Não é uma camada de defeitos; é uma camada para enxergar material psíquico e comportamental com cuidado.
+
+Diferença prática:
+
+- conversa é material bruto;
+- memória é síntese preservada;
+- identidade orienta comportamento futuro;
+- jornada organiza continuidade;
+- shadow guarda tensões recorrentes e pontos cegos.
+
+### 17.5 Como fornecer melhor a sua identidade
+
+Use quatro formas principais.
+
+#### 1. Declarações diretas
+
+Quando quiser que algo seja lembrado, fale explicitamente:
+
+```text
+Memorize isto sobre mim:
+- Eu valorizo...
+- Eu não suporto...
+- Eu quero construir...
+- Eu tenho medo de...
+- Eu tendo a reagir assim quando...
+- Eu quero que você me lembre disso quando eu esquecer...
+```
+
+#### 2. Retratos longos
+
+Textos longos ajudam o Mirror a formar contexto profundo. Bons temas:
+
+```text
+Quem sou eu hoje.
+Como eu penso.
+O que eu quero da vida.
+O que eu acredito.
+Como eu trabalho.
+Como eu amo.
+Como eu lido com conflito.
+Como eu tomo decisões.
+Como eu quero envelhecer.
+O que eu quero preservar em mim.
+O que eu quero transformar.
+Como quero que o Mirror fale comigo.
+O que quero que o Mirror confronte em mim.
+```
+
+#### 3. Situações concretas
+
+A identidade real aparece em situação, especialmente quando há escolha, custo ou conflito. Em vez de registrar apenas um valor abstrato, descreva episódios concretos:
+
+```text
+Quando aconteceu X, eu senti Y, pensei Z e decidi W.
+```
+
+Isso ajuda o Mirror a entender como seus valores se encarnam no mundo material.
+
+#### 4. Correção ativa
+
+Quando o Mirror errar sua imagem, corrija explicitamente:
+
+```text
+Não, isso não parece comigo. Eu não penso assim. O mais correto seria...
+```
+
+Ou:
+
+```text
+Você acertou uma parte, mas faltou isto...
+```
+
+Essa correção é uma das formas mais fortes de aprendizado, porque ajusta diretamente a representação que o Mirror tem de você.
+
+### 17.6 Como checar o que o Mirror já sabe
+
+Use estes comandos para auditar identidade, memórias, conversas e jornadas:
+
+```bash
+uv run python -m memory identity list
+uv run python -m memory identity get user identity
+uv run python -m memory memories
+uv run python -m memory memories --search "Ricardo"
+uv run python -m memory conversations
+uv run python -m memory journeys
+```
+
+No Pi, use os atalhos:
+
+```text
+/mm-identity
+/mm-memories
+/mm-conversations
+/mm-journeys
+/mm-journey mirror-aprendizado
+```
+
+Uma boa prática é construir um dossiê vivo do usuário com seções como:
+
+1. Quem sou eu.
+2. O que eu quero.
+3. O que eu acredito.
+4. Meus valores e princípios.
+5. Meu jeito de pensar.
+6. Meu jeito de trabalhar.
+7. Meu jeito de me relacionar.
+8. Meus padrões emocionais.
+9. Minhas tensões recorrentes.
+10. O que quero que o Mirror preserve em mim.
+11. O que quero que o Mirror confronte em mim.
+12. Como o Mirror deve soar quando fala comigo.
+
+A frase guia é: o Mirror aprende melhor quando você não dá apenas informações sobre sua vida, mas também mostra como dá sentido à própria vida.
+
 ---
 
 ## 18. Personas
@@ -1372,6 +1519,144 @@ Nesta instalação, existe uma área para patches em:
 
 ```text
 exports/patches/
+```
+
+#### Fluxo genérico para aplicar qualquer patch
+
+Use este fluxo para qualquer arquivo `.patch` dentro de `exports/patches/`.
+Antes de aplicar, trabalhe em uma árvore limpa ou salve suas mudanças locais com
+commit/stash, para conseguir desfazer com segurança se houver conflito.
+
+##### 1. Listar patches disponíveis
+
+```bash
+find exports/patches -maxdepth 1 -type f -name '*.patch' | sort
+```
+
+Se existir um arquivo `.README.md` com o mesmo tema do patch, leia antes de
+aplicar. Exemplo:
+
+```bash
+less exports/patches/tasks-show-command.README.md
+```
+
+##### 2. Escolher o patch
+
+```bash
+PATCH="exports/patches/NOME-DO-PATCH.patch"
+```
+
+Exemplos reais:
+
+```bash
+PATCH="exports/patches/tasks-show-command.patch"
+PATCH="exports/patches/0001-Document-helpers-for-attaching-conversations-to-jour.patch"
+```
+
+##### 3. Identificar o tipo de patch
+
+Existem dois formatos comuns:
+
+1. **Patch simples de diff**, geralmente gerado com `git diff` e aplicado com
+   `git apply`.
+2. **Patch de commit**, geralmente gerado com `git format-patch` e aplicado com
+   `git am` para preservar mensagem, autor e metadados do commit.
+
+Para inspecionar rapidamente:
+
+```bash
+head -20 "$PATCH"
+```
+
+Se o arquivo começar com linhas como `From <hash> ...`, `From:`, `Date:` e
+`Subject:`, provavelmente é um patch de commit. Se começar direto com
+`diff --git`, normalmente é um patch simples de diff.
+
+##### 4. Testar compatibilidade antes de aplicar
+
+```bash
+git apply --check "$PATCH"
+```
+
+Se não houver saída, o patch é compatível com a árvore atual. Se houver erro,
+não aplique automaticamente: leia o erro, confira quais arquivos mudaram e veja
+a seção “Se o patch falhar”.
+
+##### 5. Aplicar o patch
+
+Para patch simples de diff:
+
+```bash
+git apply "$PATCH"
+```
+
+Para patch de commit, preferencial quando o patch veio de `git format-patch`:
+
+```bash
+git am "$PATCH"
+```
+
+Se você não quiser preservar o commit de um patch `format-patch`, também pode
+aplicar apenas as alterações com:
+
+```bash
+git apply "$PATCH"
+```
+
+##### 6. Validar depois de aplicar
+
+```bash
+git status --short
+git diff --stat
+```
+
+Depois rode as validações específicas do patch. Se o patch alterar código
+Python, normalmente rode testes e lint relacionados, por exemplo:
+
+```bash
+uv run pytest <caminho-dos-testes> -q
+uv run ruff check <arquivos-alterados>
+```
+
+Se o patch alterar apenas documentação Markdown, uma checagem simples costuma
+ser suficiente:
+
+```bash
+git diff --check
+```
+
+##### 7. Aplicar todos os patches de uma pasta, quando fizer sentido
+
+Só faça isso quando você souber que todos os patches são desejados e compatíveis
+entre si. Primeiro teste todos:
+
+```bash
+for PATCH in exports/patches/*.patch; do
+  echo "Checking $PATCH"
+  git apply --check "$PATCH" || exit 1
+done
+```
+
+Depois aplique um por vez, escolhendo `git apply` ou `git am` conforme o tipo de
+cada patch. Evite aplicar tudo automaticamente se houver mistura de patches de
+diff e patches de commit.
+
+##### 8. Se o patch falhar
+
+Se `git apply --check "$PATCH"` falhar, provavelmente o repositório mudou nos
+mesmos arquivos. Nesse caso:
+
+1. leia qualquer `.README.md` associado ao patch;
+2. abra o arquivo `.patch` e entenda quais arquivos/trechos ele altera;
+3. reaplique manualmente a intenção do patch nos arquivos atuais;
+4. rode testes, lint ou checagens de documentação conforme o tipo da mudança;
+5. gere um novo patch atualizado se quiser preservar a reaplicação futura.
+
+Se `git am "$PATCH"` falhar no meio da aplicação, use uma das opções abaixo:
+
+```bash
+git am --abort      # cancela a aplicação do patch de commit
+git am --continue   # continua depois de resolver conflitos manualmente
 ```
 
 #### Patch do comando tasks show

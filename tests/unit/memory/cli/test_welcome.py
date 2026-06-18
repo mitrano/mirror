@@ -79,9 +79,9 @@ def test_welcome_has_three_visible_lines_and_blank_before_invitation(tmp_path, c
     lines = out.splitlines()
     assert lines[0] == "◇ Mirror · alisson-vale"
     # Stats line is always present, even for an empty database.
-    assert "journeys" in lines[1]
+    assert "jornadas" in lines[1]
     assert lines[2] == ""
-    assert lines[3] == "→ Where shall we begin?"
+    assert lines[3] == "→ Estou pronto. O que você quer fazer agora?"
 
 
 def test_welcome_ends_with_invitation(tmp_path, capsys):
@@ -92,7 +92,7 @@ def test_welcome_ends_with_invitation(tmp_path, capsys):
     main(["--mirror-home", str(tmp_path / ".mirror" / "alisson-vale")])
 
     out = capsys.readouterr().out
-    assert out.rstrip().endswith("→ Where shall we begin?")
+    assert out.rstrip().endswith("→ Estou pronto. O que você quer fazer agora?")
 
 
 # ---------- stats content -----------------------------------------------
@@ -106,12 +106,12 @@ def test_welcome_renders_zeroes_on_fresh_database(tmp_path, capsys):
     main(["--mirror-home", str(tmp_path / ".mirror" / "alisson-vale")])
 
     out = capsys.readouterr().out
-    stats = next(line for line in out.splitlines() if "journeys" in line)
-    assert "0 journeys" in stats
+    stats = next(line for line in out.splitlines() if "jornadas" in line)
+    assert "0 jornadas" in stats
     assert "0 personas" in stats
-    assert "0 memories" in stats
-    assert "0 conversations" in stats
-    assert "since today" in stats
+    assert "0 memórias" in stats
+    assert "0 conversas" in stats
+    assert "desde hoje" in stats
 
 
 def test_welcome_counts_active_journeys_and_skips_paused(tmp_path, capsys):
@@ -125,8 +125,8 @@ def test_welcome_counts_active_journeys_and_skips_paused(tmp_path, capsys):
     main(["--mirror-home", home])
 
     out = capsys.readouterr().out
-    stats = next(line for line in out.splitlines() if "journeys" in line)
-    assert "2 journeys" in stats
+    stats = next(line for line in out.splitlines() if "jornadas" in line)
+    assert "2 jornadas" in stats
 
 
 def test_welcome_counts_personas(tmp_path, capsys):
@@ -164,8 +164,8 @@ def test_welcome_counts_memories(mocker, tmp_path, capsys):
     main(["--mirror-home", home])
 
     out = capsys.readouterr().out
-    stats = next(line for line in out.splitlines() if "memories" in line)
-    assert "4 memories" in stats
+    stats = next(line for line in out.splitlines() if "memórias" in line)
+    assert "4 memórias" in stats
 
 
 def test_welcome_counts_conversations_and_renders_since_month(tmp_path, capsys):
@@ -180,9 +180,9 @@ def test_welcome_counts_conversations_and_renders_since_month(tmp_path, capsys):
     main(["--mirror-home", home])
 
     out = capsys.readouterr().out
-    stats = next(line for line in out.splitlines() if "conversations" in line)
-    assert "3 conversations" in stats
-    assert "since Dec 2024" in stats
+    stats = next(line for line in out.splitlines() if "conversas" in line)
+    assert "3 conversas" in stats
+    assert "desde dez 2024" in stats
 
 
 def test_welcome_uses_thousands_separator_above_a_thousand(mocker, tmp_path, capsys):
@@ -209,8 +209,8 @@ def test_welcome_uses_thousands_separator_above_a_thousand(mocker, tmp_path, cap
     main(["--mirror-home", home])
 
     out = capsys.readouterr().out
-    stats = next(line for line in out.splitlines() if "memories" in line)
-    assert "1,247 memories" in stats
+    stats = next(line for line in out.splitlines() if "memórias" in line)
+    assert "1.247 memórias" in stats
 
 
 # ---------- order and shape --------------------------------------------
@@ -226,13 +226,13 @@ def test_welcome_stats_line_order_is_stable(tmp_path, capsys):
     main(["--mirror-home", home])
 
     out = capsys.readouterr().out
-    stats = next(line for line in out.splitlines() if "journeys" in line)
-    # Order: journeys · personas · memories · conversations · since ...
-    idx_j = stats.index("journeys")
+    stats = next(line for line in out.splitlines() if "jornadas" in line)
+    # Ordem: jornadas · personas · memórias · conversas · desde ...
+    idx_j = stats.index("jornadas")
     idx_p = stats.index("personas")
-    idx_m = stats.index("memories")
-    idx_c = stats.index("conversations")
-    idx_s = stats.index("since")
+    idx_m = stats.index("memórias")
+    idx_c = stats.index("conversas")
+    idx_s = stats.index("desde")
     assert idx_j < idx_p < idx_m < idx_c < idx_s
 
 
@@ -245,16 +245,16 @@ def test_welcome_uses_middot_separator(tmp_path, capsys):
     main(["--mirror-home", home])
 
     out = capsys.readouterr().out
-    stats = next(line for line in out.splitlines() if "journeys" in line)
+    stats = next(line for line in out.splitlines() if "jornadas" in line)
     assert " · " in stats
 
 
 @pytest.mark.parametrize(
     "month_iso, expected",
     [
-        ("2024-01-01T00:00:00+00:00", "since Jan 2024"),
-        ("2025-05-15T12:00:00+00:00", "since May 2025"),
-        ("2026-11-30T23:59:59+00:00", "since Nov 2026"),
+        ("2024-01-01T00:00:00+00:00", "desde jan 2024"),
+        ("2025-05-15T12:00:00+00:00", "desde mai 2025"),
+        ("2026-11-30T23:59:59+00:00", "desde nov 2026"),
     ],
 )
 def test_welcome_since_label_formats_month_year(tmp_path, capsys, month_iso, expected):
@@ -267,5 +267,5 @@ def test_welcome_since_label_formats_month_year(tmp_path, capsys, month_iso, exp
     main(["--mirror-home", home])
 
     out = capsys.readouterr().out
-    stats = next(line for line in out.splitlines() if "journeys" in line)
+    stats = next(line for line in out.splitlines() if "jornadas" in line)
     assert expected in stats

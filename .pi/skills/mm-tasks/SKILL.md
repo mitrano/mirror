@@ -12,12 +12,13 @@ When receiving `/mm-tasks [subcommand] [args]`:
 uv run python -m memory tasks [subcommand] [args]
 ```
 
-Subcommands: `list` (default), `add`, `done`, `doing`, `block`, `delete`, `import`, `sync`, `sync-config`
+Subcommands: `list` (default), `add`, `show`, `done`, `doing`, `block`, `delete`, `import`, `sync`, `sync-config`
 
 **Examples:**
 ```bash
 uv run python -m memory tasks --journey mirror
 uv run python -m memory tasks add "Write plan doc" --journey mirror
+uv run python -m memory tasks show <task-id>
 uv run python -m memory tasks done <task-id>
 ```
 

@@ -26,13 +26,13 @@ Commands:
   mirror               Mirror skill commands
                        Usage: python -m memory mirror <load|deactivate|log|journeys> [args]
   conversation-logger  Conversation logging commands
-                       Usage: python -m memory conversation-logger <status|mute|unmute|switch|...>
+                       Usage: python -m memory conversation-logger <status|mute|unmute|switch|attach-latest-pi|...>
   backup               Create a zipped backup of the memory database
                        Usage: python -m memory backup [--silent]
   journal              Record a journal entry
                        Usage: python -m memory journal [--journey SLUG] [--mirror-home PATH] <text>
-  journey              Inspect or update a journey
-                       Usage: python -m memory journey [status [SLUG]] | update <slug> <content> | set-path <slug> <path> [--mirror-home PATH]
+  journey              Inspect, create, or update a journey
+                       Usage: python -m memory journey [status [SLUG]] | create [slug] [--name NAME] [--description TEXT] [--briefing TEXT] [--context TEXT] | update <slug> <content> | set-path <slug> <path> [--mirror-home PATH]
   build                Builder Mode DB context loader
                        Usage: python -m memory build load <slug>
   memories             List memories with filters
@@ -42,7 +42,7 @@ Commands:
   recall               Load messages from a previous conversation
                        Usage: python -m memory recall <conversation_id> [--limit N] [--mirror-home PATH]
   tasks                Task management
-                       Usage: python -m memory tasks [--mirror-home PATH] [list|add|done|doing|block|import|sync|delete] [args]
+                       Usage: python -m memory tasks [--mirror-home PATH] [list|add|show|done|doing|block|import|sync|delete] [args]
   week                 Weekly planning
                        Usage: python -m memory week [--mirror-home PATH] [view|plan <text>|save]
   journeys             List journeys with status, stage, and description

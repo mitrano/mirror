@@ -1,8 +1,10 @@
 """Task management CLI command."""
 
 import argparse
+import json
 
 from memory import MemoryClient
+from memory.models import Task
 
 STATUS_ICONS = {
     "todo": "○",
@@ -10,6 +12,73 @@ STATUS_ICONS = {
     "done": "●",
     "blocked": "✖",
 }
+
+
+def _resolve_task(mem: MemoryClient, task_id: str) -> Task | None:
+    task = mem.store.get_task(task_id)
+    if task:
+        return task
+
+    all_tasks = mem.store.get_all_tasks()
+    matches = [t for t in all_tasks if t.id.startswith(task_id)]
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        print(f"❌ Ambiguous ID '{task_id}'. Matches:")
+        for match in matches:
+            print(f"  - `{match.id}` {match.title}")
+        return None
+
+    print(f"❌ Task '{task_id}' not found.")
+    return None
+
+
+def _format_optional(label: str, value: str | None) -> str:
+    return f"{label}: {value if value else '(not set)'}"
+
+
+def _format_metadata(metadata: str | None) -> str:
+    if not metadata:
+        return "(not set)"
+    try:
+        parsed = json.loads(metadata)
+    except json.JSONDecodeError:
+        return metadata
+    return json.dumps(parsed, indent=2, ensure_ascii=False)
+
+
+def cmd_show(mem: MemoryClient, args: argparse.Namespace) -> None:
+    task = _resolve_task(mem, args.task_id)
+    if not task:
+        return
+
+    icon = STATUS_ICONS.get(task.status, "?")
+    print("📋 Tarefa")
+    print()
+    print(f"Objetivo: {task.title}")
+    print()
+    print("Identificação:")
+    print(f"- ID: `{task.id}`")
+    print(f"- Jornada: `{task.journey}`" if task.journey else "- Jornada: (not set)")
+    print(f"- Status: {icon} {task.status}")
+    print(f"- Origem: {task.source}")
+    print()
+    print("Planejamento:")
+    print(f"- {_format_optional('Etapa', task.stage)}")
+    print(f"- {_format_optional('Prazo', task.due_date)}")
+    print(f"- {_format_optional('Horário agendado', task.scheduled_at)}")
+    print(f"- {_format_optional('Dica de horário', task.time_hint)}")
+    print()
+    print("Datas:")
+    print(f"- Criada em: {task.created_at}")
+    print(f"- Atualizada em: {task.updated_at}")
+    print(f"- {_format_optional('Concluída em', task.completed_at)}")
+    print()
+    print("Contexto:")
+    print(task.context or "(not set)")
+    print()
+    print("Metadados:")
+    print(_format_metadata(task.metadata))
 
 
 def cmd_list(mem: MemoryClient, args: argparse.Namespace) -> None:
@@ -189,6 +258,9 @@ def main(argv: list[str] | None = None) -> None:
     p_add.add_argument("--due", help="Due date (YYYY-MM-DD)")
     p_add.add_argument("--stage", help="Stage/cycle")
 
+    p_show = subparsers.add_parser("show")
+    p_show.add_argument("task_id", help="Task ID or unique ID prefix")
+
     p_done = subparsers.add_parser("done")
     p_done.add_argument("task_id", help="Task ID")
 
@@ -218,6 +290,8 @@ def main(argv: list[str] | None = None) -> None:
 
     if args.command == "add":
         cmd_add(mem, args)
+    elif args.command == "show":
+        cmd_show(mem, args)
     elif args.command == "done":
         cmd_status_change(mem, args, "done")
     elif args.command == "doing":

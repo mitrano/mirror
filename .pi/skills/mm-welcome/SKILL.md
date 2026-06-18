@@ -18,7 +18,7 @@ or conversation, and a closing invitation. Useful when `quietStartup: true`
 hides the boot welcome, when the user wants a fresh snapshot mid-session,
 or when a new runtime starts and the welcome was missed.
 
-If the command prints nothing, tell the user: "Nothing to surface right now."
+If the command prints nothing, tell the user: "Nada para mostrar agora."
 Otherwise, do not add commentary — the welcome speaks for itself.
 
 See `docs/product/specs/welcome/index.md` for the composition rules.

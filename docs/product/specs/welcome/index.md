@@ -25,8 +25,9 @@ single block. One source, four interfaces, one voice.
    to call in any state.
 4. **Local and cheap.** Welcome composition is pure SQLite reads. No LLM, no
    network, no embeddings. Must run in well under 100 ms on a warm database.
-5. **First person.** The mirror speaks as the user. The closing invitation is
-   not "How can I help you?" — it is `Where shall we begin?`.
+5. **Portuguese by default.** The lightweight welcome text renders in pt-BR.
+   The closing invitation is not "How can I help you?" — it is
+   `Estou pronto. O que você quer fazer agora?`.
 
 ---
 
@@ -36,16 +37,16 @@ The welcome is **two lines** plus a closing invitation:
 
 ```
 ◇ Mirror · <user>
-<N> journeys · <N> personas · <N> memories · <N> conversations · since <Month YYYY>
+<N> jornadas · <N> personas · <N> memórias · <N> conversas · desde <mês YYYY>
 
-→ Where shall we begin?
+→ Estou pronto. O que você quer fazer agora?
 ```
 
 | Line | When it appears | Source |
 |------|-----------------|--------|
 | Header (`◇ Mirror · <user>`) | Always, if a Mirror home is resolvable | `resolve_mirror_home().name` |
 | Stats | Always, when header renders | counts from the database |
-| Invitation (`→ Where shall we begin?`) | Always, when header renders | constant |
+| Convite (`→ Estou pronto. O que você quer fazer agora?`) | Always, when header renders | constant |
 
 If the header cannot be resolved (no `MIRROR_HOME`, no `MIRROR_USER`), the
 welcome is empty. There is no other path to empty output — a fresh database
@@ -73,15 +74,15 @@ The stats line shows five values, always in this order, always separated by
 
 | Value | Computation |
 |-------|-------------|
-| `<N> journeys` | Active journeys: identity rows with `layer='journey'` whose content declares `Status: active`. Same source as `list_active_journeys()`. |
+| `<N> jornadas` | Active journeys: identity rows with `layer='journey'` whose content declares `Status: active`. Same source as `list_active_journeys()`. |
 | `<N> personas` | Identity rows with `layer='persona'`. |
-| `<N> memories` | `COUNT(*) FROM memories`. |
-| `<N> conversations` | `COUNT(*) FROM conversations`. |
-| `since <Month YYYY>` | `MIN(started_at) FROM conversations`, formatted as `since <abbrev-month> <year>`. When there are no conversations, render `since today`. |
+| `<N> memórias` | `COUNT(*) FROM memories`. |
+| `<N> conversas` | `COUNT(*) FROM conversations`. |
+| `desde <mês YYYY>` | `MIN(started_at) FROM conversations`, formatted as `desde <mês-abreviado> <ano>`. When there are no conversations, render `desde hoje`. |
 
-Counts above 1000 use a thousands separator (`1,247 memories`). Counts
-below that render bare (`5 journeys`). Values of zero render literally
-(`0 memories`) — a fresh mirror should look new, not pretend not to be.
+Counts above 1000 use a pt-BR thousands separator (`1.247 memórias`). Counts
+below that render bare (`5 jornadas`). Values of zero render literally
+(`0 memórias`) — a fresh mirror should look new, not pretend not to be.
 
 ---
 
