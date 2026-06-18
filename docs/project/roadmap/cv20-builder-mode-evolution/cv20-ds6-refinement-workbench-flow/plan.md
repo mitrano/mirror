@@ -140,6 +140,30 @@ work field. Showing CV10 while recommending CV20.DS6.US1 creates trust drift.
 
 Candidate target: `CV20.DS6.US1 Builder Home Work Fields`.
 
+### CR: Ariad marked surfaces can be summarized instead of rendered
+
+Status: candidate.
+
+Context: during the pull of `CV20.DS6.US1`, the command returned marked Ariad
+surfaces for `DELIVERY_STORY_IDENTIFIED` and `PREPARE_FIELD_READING`, but the
+assistant summarized them instead of rendering them visibly before commentary.
+
+Requested change: Builder-facing instructions and/or runtime surface handling
+should require marked Ariad surfaces to be rendered as product surfaces before
+interpretation or summary.
+
+Why it matters: Ariad surfaces are Navigator-facing product output, not command
+logs. If they disappear into summaries, the Navigator loses checkpoint evidence
+and the method becomes less inspectable.
+
+Implementation reminder: harden this in two places. First, update the `/mm-build`
+skill contract with an explicit operational rule requiring visible rendering of
+marked Ariad surfaces before commentary. Second, consider a runtime helper that
+detects `<<<ARIAD:...>>>` blocks and makes required surface rendering harder to
+skip.
+
+Candidate target: `CV20.DS6.US1 Builder Home Work Fields`.
+
 ## Risks
 
 - Builder Home can become too broad if it tries to solve all navigation at once.
