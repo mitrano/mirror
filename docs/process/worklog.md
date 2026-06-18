@@ -12,6 +12,12 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-06-17 — CV20.DS6.US2 Compose A Refinement Story completed
+
+Completed the first Navigator-facing Refinement composition slice. Builder now supports creating Refinement Stories, capturing Change Requests, attaching CRs to RSs, and rendering `CHANGE_REQUEST_CAPTURED` and `REFINEMENT_STORY_OVERVIEW` Ariad surfaces without pulling an RS or starting CR lifecycle work. `/mm-build` guidance now routes natural-language capture/composition prompts to the Workbench commands and preserves marked surface rendering.
+
+Validation: focused storage, builder, and CLI tests passed; ruff, format check, mypy, and diff checks passed. Navigator validation through Mirror/Builder natural language on `sandbox-pet-store` created an RS, captured a CR into it, showed the RS overview, and confirmed Builder Home durable counts increased without lifecycle execution.
+
 ### 2026-06-17 — CV20.DS6.TS1 Workbench Storage Model completed
 
 Completed the durable storage substrate for Ariad Refinement Work. Mirror now creates dedicated Builder Workbench tables for Refinement Stories, Change Requests, and refinement cursors, exposes them through `BuilderWorkbenchStore` on the main `Store` facade, and provides Builder-domain helpers for snapshots and basic RS/CR creation/association. Builder Home now reports Workbench storage as implemented with durable RS/CR counts while preserving the no-execution activation boundary.
