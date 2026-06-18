@@ -2,7 +2,7 @@
 
 ## Status
 
-Blocked
+Passed
 
 ## Automated Checks
 
@@ -18,13 +18,13 @@ Checks status: passed
 
 Decision: required
 
-Evidence: Manual Navigator validation route prepared; awaiting Navigator acceptance. Navigator feedback found two issues: the next refinement move truncated `Model` to `Mode`, and field labels needed icons. Both were corrected. Driver smoke verified `uv run python -m memory build load sandbox-pet-store` renders `🟪 Delivery field`, `🧰 Refinement field`, and wraps `next refinement move: implement Workbench Storage Model before durable RS/CR work` without truncation.
+Evidence: Navigator validated through sandbox-pet-store Builder activation. BUILDER_HOME, ROADMAP_SNAPSHOT, and PULL_CANDIDATES rendered in order; Builder Home showed Delivery and Refinement fields, workbench storage not implemented yet, seed CR count, and no lifecycle execution.
 
 ## Navigator Validation
 
-Route: Run: uv run python -m memory build load <ariad journey with no active item>. Expected: BUILDER_HOME, ROADMAP_SNAPSHOT, and PULL_CANDIDATES surfaces render in order; Builder Home shows Delivery field, Refinement field, workbench storage not implemented yet, seed CR count when present, and no lifecycle work is executed.
+Route: Run: uv run python -m memory build load sandbox-pet-store
 
-Navigator accepted: no
+Navigator accepted: yes
 
 Expected observation: Builder activation orients around Builder Home work fields with Delivery and Refinement visible.
 
@@ -34,4 +34,4 @@ Fail condition: Activation remains Delivery-only, hides Refinement, shows irrele
 
 ## Missing Evidence
 
-- Navigator validation has not been accepted
+- none

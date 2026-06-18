@@ -12,6 +12,12 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-06-17 — CV20.DS6.US1 Builder Home Work Fields completed
+
+Completed the first Refinement Workbench slice. Ariad-adopted Builder activation now renders a `BUILDER_HOME` surface before roadmap and pull-candidate surfaces when a journey has no active item. The home surface shows the current Delivery field, a nascent Refinement field, honest Workbench storage status, seed Change Request count, available moves, and the no-execution activation boundary. The Pi Builder skill contract was tightened so marked Ariad surfaces are rendered before commentary.
+
+Validation: focused Builder unit/CLI tests, ruff, format check, mypy, and diff checks passed. Navigator validation with `sandbox-pet-store` confirmed `BUILDER_HOME`, `ROADMAP_SNAPSHOT`, and `PULL_CANDIDATES` render in order with Delivery and Refinement visible and no lifecycle work executed.
+
 ### 2026-06-17 — CV20 Refinement Workbench path planned
 
 Added CV20.DS6 Refinement Workbench And Flow as the next Builder Mode Evolution story after Delivery Story Level Lifecycle. The roadmap now positions Refinement Work before release/push governance, with Workbench, Refinement Stories, Change Requests, CR cycles, and RS-level review/coherence/close as the planned runtime shape. Existing planned CV20 delivery stories were renumbered so Release And Push Policies moves to DS7, Debt Ledger And Refactor Loop to DS8, Method Preferences And Overrides to DS9, and Builder Documentation And Migration to DS10.
