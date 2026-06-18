@@ -1,38 +1,15 @@
-[< Parent](../index.md)
+# Plan — CV20.DS6.TS1
 
-# CV20.DS6.TS1 — Workbench Storage Model
-
-**Status:** 🟡 Planned
-**Type:** Technical Story
-
----
-
-## Outcome
+## Objective
 
 Implement durable Workbench storage substrate for Refinement Stories, Change Requests, and refinement cursor state using dedicated SQLite tables and a focused storage API, without adding Navigator-facing Refinement flow commands yet.
-
-## Story Statement
-
-In order to support the delivery capability,
-As an engineering team/system component,
-I want to Workbench Storage Model,
-So that the expected technical outcome is available.
-
-## Acceptance Behavior
-
-```text
-Given the starting state needed for Workbench Storage Model
-When the Navigator exercises Workbench Storage Model
-Then the planned observable behavior is visible
-And out-of-scope sibling roadmap items remain untouched
-```
 
 ## Scope
 
 - Deliver Workbench Storage Model as an observable slice.
 - Keep the implementation narrow enough to validate at the Plan-defined checkpoint.
 
-## Out Of Scope
+## Non-Goals
 
 - Do not implement sibling roadmap item: Builder Documentation And Migration.
 - Do not implement sibling roadmap item: Refinement Flow Runtime.
@@ -46,14 +23,39 @@ And out-of-scope sibling roadmap items remain untouched
 - Do not implement sibling roadmap item: Debt Ledger And Refactor Loop.
 - Do not implement sibling roadmap item: Method Preferences And Overrides.
 
-## Validation
+## Acceptance Behavior
+
+```text
+Given the starting state needed for Workbench Storage Model
+When the Navigator exercises Workbench Storage Model
+Then the planned observable behavior is visible
+And out-of-scope sibling roadmap items remain untouched
+```
+
+## Validation Route
 
 - Run automated tests that cover the planned behavior.
 - Provide a Navigator-visible route with expected observation, pass condition, and fail condition.
 
----
+E2E decision: required unless Navigator explicitly accepts a narrower fixture-level validation route
 
-## Artifacts
+## Implementation Contract
 
-- [Plan](plan.md)
-- [Test Guide](test-guide.md)
+- Use TDD or characterization tests for behavior changes when testable.
+- Keep changes scoped to `CV20.DS6.TS1`.
+- Use uv run for Python commands and tests.
+- Do not use git add .; commit only story-scoped files.
+- Use descriptive English commit messages explaining why.
+
+## Stop Conditions
+
+- scope_change_detected
+- plan_rule_conflict
+- failing_required_check_without_clear_fix
+- navigator_decision_needed
+
+## Approval Gate
+
+- active checkpoint: `after_plan`
+- pending confirmation: `navigator_approval`
+- implementation remains blocked until Navigator approval.
