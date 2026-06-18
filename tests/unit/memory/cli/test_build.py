@@ -231,6 +231,9 @@ def test_mm_build_skill_requires_marked_ariad_surfaces_to_render_verbatim():
     assert "verbatim before" in skill
     assert "<<<ARIAD:BUILDER_HOME>>>" in skill
     assert "stdout order" in skill
+    assert "CHANGE_REQUEST_CAPTURED" in skill
+    assert "refinement-story create" in skill
+    assert "capture this as a CR" in skill
 
 
 def test_build_plan_item_renders_checkpoint_and_updates_cursor(mocker, tmp_path, capsys):
@@ -1637,3 +1640,110 @@ def test_build_load_allows_production_clone_when_override_passed(mocker, tmp_pat
 
     err = capsys.readouterr().err
     assert "Production clone override" in err
+
+
+def test_refinement_story_create_command_renders_overview_without_setting_cursor(
+    mocker, tmp_path, capsys
+):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    build.cmd_refinement_story_create(
+        journey="sandbox-pet-store",
+        title="RS-001 — Sandbox checkout refinements",
+        source="dogfood",
+    )
+
+    out = capsys.readouterr().out
+    stories = mem.store.list_refinement_stories("sandbox-pet-store")
+    assert len(stories) == 1
+    assert stories[0].title == "RS-001 — Sandbox checkout refinements"
+    assert "<<<ARIAD:REFINEMENT_STORY_OVERVIEW>>>" in out
+    assert "refinement_story_id=" in out
+    assert mem.store.get_refinement_cursor("sandbox-pet-store") is None
+
+
+def test_change_request_capture_command_renders_surface_and_preserves_delivery_cursor(
+    mocker, tmp_path, capsys
+):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    story = mem.store.create_refinement_story(
+        journey="sandbox-pet-store",
+        title="RS-001 — Sandbox checkout refinements",
+    )
+    set_delivery_cursor(
+        mem.store,
+        journey="sandbox-pet-store",
+        method="ariad",
+        active_item="CV2.DS1",
+        last_delivery_event="prepare",
+    )
+
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    build.cmd_change_request_capture(
+        journey="sandbox-pet-store",
+        refinement_story_id=story.id,
+        title="Clarify checkout state",
+        body="Docs disagree about whether CV2.DS1 is in progress.",
+        source="dogfood",
+    )
+
+    out = capsys.readouterr().out
+    change_requests = mem.store.list_change_requests(
+        "sandbox-pet-store", refinement_story_id=story.id
+    )
+    assert len(change_requests) == 1
+    assert change_requests[0].title == "Clarify checkout state"
+    assert "<<<ARIAD:CHANGE_REQUEST_CAPTURED>>>" in out
+    assert story.id in out
+    assert "change_request_id=" in out
+    assert mem.store.get_refinement_cursor("sandbox-pet-store") is None
+    delivery_cursor = get_delivery_cursor(mem.store, "sandbox-pet-store")
+    assert delivery_cursor is not None
+    assert delivery_cursor.active_item == "CV2.DS1"
+
+
+def test_change_request_attach_and_overview_commands_render_ordered_overview(
+    mocker, tmp_path, capsys
+):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    story = mem.store.create_refinement_story(
+        journey="sandbox-pet-store",
+        title="RS-001 — Sandbox checkout refinements",
+    )
+    change_request = mem.store.create_change_request(
+        journey="sandbox-pet-store",
+        title="Clarify checkout state",
+        body="Docs disagree about CV2.DS1.",
+    )
+
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    build.cmd_change_request_attach(
+        journey="sandbox-pet-store",
+        change_request_id=change_request.id,
+        refinement_story_id=story.id,
+    )
+    build.cmd_refinement_story_overview(
+        journey="sandbox-pet-store",
+        refinement_story_id=story.id,
+    )
+
+    out = capsys.readouterr().out
+    attached = mem.store.get_change_request(change_request.id)
+    assert attached is not None
+    assert attached.refinement_story_id == story.id
+    assert out.count("<<<ARIAD:REFINEMENT_STORY_OVERVIEW>>>") == 2
+    assert "Clarify checkout state" in out
+    assert "pull RS later (not implemented in this story)" in out

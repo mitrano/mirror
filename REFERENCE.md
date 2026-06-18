@@ -266,6 +266,19 @@ Failures print a recovery block with the backup path and previous commit when re
 
 If the full status gate crashes before update planning, `runtime update` automatically falls back to updater self-repair. The repair lane uses a minimal safety gate: clean git tree, configured upstream, optional fetch, optional database backup when the Mirror home and database are available, fast-forward only code update, and migrations skipped. It then asks the user to rerun `runtime update` with the repaired updater. The same lane can be invoked explicitly with `runtime update --repair-updater`. Older production clones whose updater is blocked before they receive the latest recovery behavior may need this explicit repair lane once.
 
+### Builder Workbench composition
+
+Ariad-adopted Builder journeys can compose Refinement Work without pulling it into active lifecycle execution:
+
+```bash
+uv run python -m memory build refinement-story create --journey <slug> --title "<title>" [--description "<description>"]
+uv run python -m memory build change-request capture --journey <slug> --title "<title>" --body "<body>" [--refinement-story-id <rs-id>]
+uv run python -m memory build change-request attach --journey <slug> --change-request-id <cr-id> --refinement-story-id <rs-id>
+uv run python -m memory build refinement-story overview --journey <slug> --refinement-story-id <rs-id>
+```
+
+These commands render Ariad Workbench surfaces such as `CHANGE_REQUEST_CAPTURED` and `REFINEMENT_STORY_OVERVIEW`. They capture or organize Refinement Stories and Change Requests only; they do not pull an RS, start a CR lifecycle, mutate Delivery cursor state, implement files, commit, push, or release.
+
 ### Clone role
 
 Each Mirror Mind clone declares its role through a `.mirror-clone-role` file at the repository root. Valid values are `production` and `dev`. The file is local to each clone and ignored by git. When the file is missing, unreadable, or contains an unknown value, the role defaults to `production`.

@@ -313,6 +313,35 @@ runtime-inspection option unless the surface itself recommends it. For an Ariad
 journey with no active item, ask only whether the Navigator wants to pull the
 recommended candidate or inspect the roadmap further after the verbatim blocks.
 
+## Compose Refinement Work
+
+When the Navigator uses natural language such as "capture this as a CR", "create
+a CR", "register this refinement", "add this to the Workbench", or "this should
+be a refinement", treat it as Refinement Work capture rather than roadmap
+Delivery Work. Ask only for missing essentials: CR title/body and whether to
+attach it to an existing Refinement Story or keep it unassigned. Do not invent
+missing title/body/RS target.
+
+When the Navigator asks to "create an RS", "compose a refinement story", "group
+these CRs", or "show me that refinement story", route to the Builder Workbench
+commands:
+
+```bash
+uv run python -m memory build refinement-story create --journey <slug> --title "<title>" [--description "<description>"]
+uv run python -m memory build change-request capture --journey <slug> --title "<title>" --body "<body>" [--refinement-story-id <rs-id>]
+uv run python -m memory build change-request attach --journey <slug> --change-request-id <cr-id> --refinement-story-id <rs-id>
+uv run python -m memory build refinement-story overview --journey <slug> --refinement-story-id <rs-id>
+```
+
+Render `CHANGE_REQUEST_CAPTURED` and `REFINEMENT_STORY_OVERVIEW` Ariad surfaces
+verbatim before commentary. Composition captures or organizes work only: it must
+not pull a Refinement Story, start a CR lifecycle, mutate Delivery cursor state,
+change roadmap status, implement files, commit, push, or release.
+
+If the Navigator's language implies immediate fixing, distinguish capture from
+execution: capture the CR only when requested, or explain that pulling and
+executing Refinement Work is a later lifecycle step.
+
 ## Prepare Ariad Templates
 
 When the user asks to prepare Ariad templates or make the adopted journey

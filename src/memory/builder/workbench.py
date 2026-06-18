@@ -9,6 +9,12 @@ from memory.storage.store import Store
 
 
 @dataclass(frozen=True)
+class RefinementStoryOverview:
+    story: RefinementStoryRecord
+    change_requests: tuple[ChangeRequestRecord, ...]
+
+
+@dataclass(frozen=True)
 class WorkbenchSnapshot:
     storage_state: str
     active_refinement_story: RefinementStoryRecord | None
@@ -70,6 +76,24 @@ def attach_change_request_to_story(
 ) -> ChangeRequestRecord:
     """Associate an existing Change Request to a Refinement Story."""
     return store.attach_change_request_to_story(change_request_id, refinement_story_id)
+
+
+def get_refinement_story_overview(
+    store: Store, *, journey: str, refinement_story_id: str
+) -> RefinementStoryOverview:
+    """Return one Refinement Story with its ordered Change Requests."""
+    story = store.get_refinement_story(refinement_story_id)
+    if story is None:
+        raise ValueError("refinement_story_id does not exist")
+    if story.journey != journey:
+        raise ValueError("refinement_story_id belongs to a different journey")
+    return RefinementStoryOverview(
+        story=story,
+        change_requests=store.list_change_requests(
+            journey,
+            refinement_story_id=refinement_story_id,
+        ),
+    )
 
 
 def get_workbench_snapshot(store: Store, journey: str) -> WorkbenchSnapshot:
