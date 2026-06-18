@@ -2,7 +2,7 @@
 
 ## Status
 
-Blocked
+Passed
 
 ## Automated Checks
 
@@ -18,13 +18,13 @@ Checks status: passed
 
 Decision: required
 
-Evidence: Direct CLI smoke created RS-002 in sandbox-pet-store, captured a CR into it, pulled the RS, rendered REFINEMENT_STORY_PULLED, and Builder Home showed the active RS with active CR none and no lifecycle execution. Natural-language Navigator validation is still required.
+Evidence: Navigator validated through natural-language Mirror/Builder interaction on sandbox-pet-store after resetting the sandbox Workbench state. Sequence: activated Builder Mode; created a pet-store-contextual refinement story for checkout documentation consistency; captured a CR about CV2.DS1 remaining a candidate until explicitly pulled; pulled that refinement story; reloaded Builder Mode. Observed REFINEMENT_STORY_OVERVIEW, CHANGE_REQUEST_CAPTURED, REFINEMENT_STORY_PULLED, and Builder Home with active RS, stored RSs 1, stored CRs 1, active CR none, and Delivery candidate not pulled.
 
 ## Navigator Validation
 
-Route: Natural language in Mirror Builder Mode: /mm-build sandbox-pet-store; Create a refinement story for validating RS pull; Capture a CR in that RS: the RS should become active without starting a CR cycle; Pull that refinement story; Load sandbox-pet-store Builder Mode. Expected surfaces: REFINEMENT_STORY_OVERVIEW, CHANGE_REQUEST_CAPTURED, REFINEMENT_STORY_PULLED, then BUILDER_HOME with active RS and active CR none.
+Route: Natural language: Ative a jornada sandbox pet store; Create a refinement story for checkout documentation consistency in the sandbox pet store; Capture a CR in that refinement story: the sandbox pet store docs should consistently describe CV2.DS1 as a candidate checkout story until the Navigator explicitly pulls it; Pull that refinement story; Load sandbox-pet-store Builder Mode.
 
-Navigator accepted: no
+Navigator accepted: yes
 
 Expected observation: Navigator can pull a composed Refinement Story through conversation, with Builder rendering REFINEMENT_STORY_PULLED and later activation showing active RS without selecting a CR.
 
@@ -34,4 +34,4 @@ Fail condition: Driver requires CLI-only pull, cannot resolve or ask for RS targ
 
 ## Missing Evidence
 
-- Navigator validation has not been accepted
+- none
