@@ -2,7 +2,7 @@
 
 # CV20.DS6.US3 — Pull A Refinement Story
 
-**Status:** 🟡 Planned
+**Status:** ✅ Done
 **Type:** User Story
 
 ---
@@ -54,3 +54,7 @@ And out-of-scope sibling roadmap items remain untouched
 
 - [Plan](plan.md)
 - [Test Guide](test-guide.md)
+- [Validation](validation.md)
+- [Debt Review](review.md)
+- [Coherence](coherence.md)
+- [Done](done.md)
