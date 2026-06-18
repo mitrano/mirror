@@ -12,6 +12,12 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-06-17 — CV20.DS6.US3 Pull A Refinement Story completed
+
+Completed the Refinement Work entry slice. Builder can now pull a composed Refinement Story into active Refinement Work, render `REFINEMENT_STORY_PULLED`, persist active RS cursor state with active CR left empty, and show the active RS on later Builder Home activation. The sandbox reset helper now clears Workbench RS/CR/cursor state for clean dogfooding runs.
+
+Validation: focused storage, builder, and CLI tests passed; ruff, format check, mypy, and diff checks passed. Navigator validation through Mirror/Builder natural language on `sandbox-pet-store` created a contextual RS and CR, pulled the RS, and confirmed Builder Home showed active RS while leaving active CR empty and Delivery work unpulled.
+
 ### 2026-06-17 — CV20.DS6.US2 Compose A Refinement Story completed
 
 Completed the first Navigator-facing Refinement composition slice. Builder now supports creating Refinement Stories, capturing Change Requests, attaching CRs to RSs, and rendering `CHANGE_REQUEST_CAPTURED` and `REFINEMENT_STORY_OVERVIEW` Ariad surfaces without pulling an RS or starting CR lifecycle work. `/mm-build` guidance now routes natural-language capture/composition prompts to the Workbench commands and preserves marked surface rendering.
