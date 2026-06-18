@@ -25,6 +25,25 @@ As Navigator, I can ask Builder to capture refinement work while dogfooding, and
 
 ## Product Behavior
 
+The primary product experience is conversational Builder Mode between Driver and Navigator. CLI commands are the deterministic runtime substrate, not the user-facing ideal.
+
+Expected natural-language flows:
+
+1. Navigator asks to capture a refinement, e.g. "capture this as a CR", "registre isso como refinamento", or "add a CR about the plan overwrite issue".
+2. Driver identifies this as Refinement Work, not Delivery Work, and asks only for missing essentials if needed: CR title/body and whether to attach it to an existing RS or keep it unassigned.
+3. Navigator asks to create or compose a Refinement Story, e.g. "create an RS for Builder lifecycle polish" or "compose a refinement story with these CRs".
+4. Driver creates the RS, captures/attaches CRs, and renders the marked Ariad surfaces verbatim before commentary.
+5. Driver explains the boundary in plain language: the work was captured/composed only; no RS was pulled and no CR lifecycle work started.
+6. Navigator can ask "show me the RS" / "what CRs are in this refinement story?" and Driver renders the overview surface.
+
+Natural-language routing expectations:
+
+- Phrases like "capture this", "create a CR", "register this refinement", "add this to the workbench", or "this should be a refinement" route to CR capture.
+- Phrases like "create an RS", "compose a refinement story", or "group these CRs" route to RS creation/composition.
+- If the Navigator's request implies immediate fixing, Driver should distinguish capture from execution and ask whether to only capture the CR or switch into the appropriate lifecycle once Refinement pull exists.
+- If there is no obvious RS target, Driver may keep the CR unassigned or ask whether to create a new RS.
+- Driver must not silently promote a CR to Delivery Work; promotion requires explicit Navigator choice or a clear policy trigger.
+
 Add CLI/runtime commands that can be routed by `/mm-build` and used directly:
 
 1. Create a Refinement Story.
@@ -126,6 +145,7 @@ Show:
 - Add Builder-domain overview helper if needed.
 - Add Workbench surface renderer(s).
 - Update `/mm-build` skill guidance so natural-language requests for capturing refinement can route to the new commands and render Ariad surfaces verbatim.
+- Add conversational contract examples to `/mm-build` so the Driver knows how to translate Navigator language into create/capture/attach/overview commands without skipping confirmation when required.
 - Add focused tests for:
   - creating an RS
   - capturing an unassigned CR
@@ -147,10 +167,11 @@ Show:
 
 ## Acceptance Criteria
 
-- Navigator can create a durable RS from CLI/runtime.
-- Navigator can capture a durable CR without an RS.
-- Navigator can capture a durable CR directly into an RS.
-- Navigator can attach an existing CR to an RS.
+- Navigator can create a durable RS from CLI/runtime and through natural-language Builder interaction.
+- Navigator can capture a durable CR without an RS through CLI/runtime and natural language.
+- Navigator can capture a durable CR directly into an RS through CLI/runtime and natural language.
+- Navigator can attach an existing CR to an RS through CLI/runtime and natural language.
+- Driver asks for missing title/body/RS target information instead of guessing when the conversational request is under-specified.
 - Builder renders `CHANGE_REQUEST_CAPTURED` after CR capture.
 - Builder renders `REFINEMENT_STORY_OVERVIEW` for an RS with ordered CRs.
 - Builder Home reflects updated durable RS/CR counts after composition.
@@ -168,13 +189,28 @@ uv run mypy src/memory/storage src/memory/builder src/memory/cli/build.py
 git diff --check
 ```
 
-Manual/Navigator validation:
+Manual/Navigator validation should include both direct CLI and natural-language Builder routes.
+
+Direct CLI route:
 
 ```bash
 uv run python -m memory build refinement-story create --journey sandbox-pet-store --title "RS-001 — Sandbox checkout refinements"
 uv run python -m memory build change-request capture --journey sandbox-pet-store --refinement-story-id <rs-id> --title "Clarify checkout state" --body "The sandbox docs disagree about whether CV2.DS1 is in progress or not."
 uv run python -m memory build refinement-story overview --journey sandbox-pet-store --refinement-story-id <rs-id>
 uv run python -m memory build load sandbox-pet-store
+```
+
+Natural-language route in Builder Mode:
+
+```text
+Navigator: Create a refinement story for sandbox checkout polish.
+Driver: creates the RS through the runtime command and renders the overview surface.
+
+Navigator: Capture a CR in that RS: the sandbox docs disagree about whether CV2.DS1 is in progress.
+Driver: captures the CR through the runtime command, renders CHANGE_REQUEST_CAPTURED, then renders or offers the RS overview.
+
+Navigator: Show me that refinement story.
+Driver: renders REFINEMENT_STORY_OVERVIEW.
 ```
 
 Expected observation:
