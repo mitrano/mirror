@@ -274,9 +274,10 @@ uv run python -m memory build refinement-story create --journey <slug> --title "
 uv run python -m memory build change-request capture --journey <slug> --title "<title>" --body "<body>" [--refinement-story-id <rs-id>]
 uv run python -m memory build change-request attach --journey <slug> --change-request-id <cr-id> --refinement-story-id <rs-id>
 uv run python -m memory build refinement-story overview --journey <slug> --refinement-story-id <rs-id>
+uv run python -m memory build refinement-story pull --journey <slug> --refinement-story-id <rs-id>
 ```
 
-These commands render Ariad Workbench surfaces such as `CHANGE_REQUEST_CAPTURED` and `REFINEMENT_STORY_OVERVIEW`. They capture or organize Refinement Stories and Change Requests only; they do not pull an RS, start a CR lifecycle, mutate Delivery cursor state, implement files, commit, push, or release.
+These commands render Ariad Workbench surfaces such as `CHANGE_REQUEST_CAPTURED`, `REFINEMENT_STORY_OVERVIEW`, and `REFINEMENT_STORY_PULLED`. Composition commands capture or organize Refinement Stories and Change Requests only. Pulling an RS selects active Refinement Work only; it does not start a CR lifecycle, mutate Delivery cursor state, implement files, commit, push, or release.
 
 ### Clone role
 

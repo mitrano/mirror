@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from memory.models import _now
 from memory.storage.builder_workbench import ChangeRequestRecord, RefinementStoryRecord
 from memory.storage.store import Store
 
@@ -76,6 +77,44 @@ def attach_change_request_to_story(
 ) -> ChangeRequestRecord:
     """Associate an existing Change Request to a Refinement Story."""
     return store.attach_change_request_to_story(change_request_id, refinement_story_id)
+
+
+def pull_refinement_story(
+    store: Store, *, journey: str, refinement_story_id: str
+) -> RefinementStoryOverview:
+    """Pull a Refinement Story into active Refinement Work without selecting a CR."""
+    overview = get_refinement_story_overview(
+        store,
+        journey=journey,
+        refinement_story_id=refinement_story_id,
+    )
+    if overview.story.status != "active":
+        store.update_refinement_story_status(overview.story.id, "active", pulled_at=_now())
+    store.set_refinement_cursor(
+        journey=journey,
+        active_refinement_story_id=overview.story.id,
+        active_change_request_id=None,
+        last_refinement_event="refinement_story_pulled",
+    )
+    return get_refinement_story_overview(
+        store,
+        journey=journey,
+        refinement_story_id=refinement_story_id,
+    )
+
+
+def get_active_refinement_story_overview(
+    store: Store, journey: str
+) -> RefinementStoryOverview | None:
+    """Return the active Refinement Story overview for a journey, if any."""
+    cursor = store.get_refinement_cursor(journey)
+    if cursor is None or cursor.active_refinement_story_id is None:
+        return None
+    return get_refinement_story_overview(
+        store,
+        journey=journey,
+        refinement_story_id=cursor.active_refinement_story_id,
+    )
 
 
 def get_refinement_story_overview(

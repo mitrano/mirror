@@ -133,6 +133,32 @@ class BuilderWorkbenchStore(ConnectionBacked):
         rows = self.conn.execute(sql, params).fetchall()
         return tuple(_story_from_row(row) for row in rows)
 
+    def update_refinement_story_status(
+        self,
+        story_id: str,
+        status: str,
+        *,
+        pulled_at: str | None = None,
+        closed_at: str | None = None,
+    ) -> RefinementStoryRecord:
+        story_id = _normalize_required(story_id, "story_id")
+        status = _normalize_status(status, REFINEMENT_STORY_STATUSES, "status")
+        existing = self.get_refinement_story(story_id)
+        if existing is None:
+            raise ValueError("story_id does not exist")
+        now = _now()
+        self.conn.execute(
+            """UPDATE builder_refinement_stories
+               SET status = ?, updated_at = ?, pulled_at = COALESCE(?, pulled_at),
+                   closed_at = COALESCE(?, closed_at)
+               WHERE id = ?""",
+            (status, now, _normalize_optional(pulled_at), _normalize_optional(closed_at), story_id),
+        )
+        self.conn.commit()
+        updated = self.get_refinement_story(story_id)
+        assert updated is not None
+        return updated
+
     def create_change_request(
         self,
         *,

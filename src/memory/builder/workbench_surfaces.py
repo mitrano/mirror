@@ -57,6 +57,53 @@ def render_change_request_captured_surface(
     return wrap_ariad_surface("change_request_captured", "\n".join(lines) + "\n")
 
 
+def render_refinement_story_pulled_surface(
+    *,
+    journey: str,
+    overview: RefinementStoryOverview,
+) -> str:
+    """Render a Navigator-facing surface for pulled Refinement Stories."""
+    lines = [
+        "Refinement",
+        render_lifecycle_ribbon("pull"),
+        "",
+        "╭────────────────────────────────────────────────────────╮",
+        "│        🧰■  REFINEMENT STORY PULLED                    │",
+        "│                                                        │",
+        _card_text("journey"),
+        _card_text(journey),
+        "│                                                        │",
+        _card_text("refinement story"),
+        _card_text(overview.story.id),
+        *_card_wrapped(overview.story.title),
+        "│                                                        │",
+        _card_text("status"),
+        _card_text(overview.story.status),
+        "│                                                        │",
+        _card_text("active refinement cursor"),
+        _card_text(f"active RS: {overview.story.id}"),
+        _card_text("active CR: none"),
+        "│                                                        │",
+        _card_text("change requests"),
+        _card_text(str(len(overview.change_requests))),
+    ]
+    lines.extend(_render_change_requests(overview.change_requests))
+    lines.extend(
+        [
+            "│                                                        │",
+            _card_text("next refinement move"),
+            *_card_wrapped("select or confirm first CR later (not implemented in this story)"),
+            "│                                                        │",
+            _card_text("boundary"),
+            *_card_wrapped(
+                "Refinement Story was pulled into active Refinement Work; no CR lifecycle work was executed and no Delivery Work was pulled or executed."
+            ),
+            "╰────────────────────────────────────────────────────────╯",
+        ]
+    )
+    return wrap_ariad_surface("refinement_story_pulled", "\n".join(lines) + "\n")
+
+
 def render_refinement_story_overview_surface(
     *,
     journey: str,

@@ -232,8 +232,11 @@ def test_mm_build_skill_requires_marked_ariad_surfaces_to_render_verbatim():
     assert "<<<ARIAD:BUILDER_HOME>>>" in skill
     assert "stdout order" in skill
     assert "CHANGE_REQUEST_CAPTURED" in skill
+    assert "REFINEMENT_STORY_PULLED" in skill
     assert "refinement-story create" in skill
+    assert "refinement-story pull" in skill
     assert "capture this as a CR" in skill
+    assert "pull that refinement story" in skill
 
 
 def test_build_plan_item_renders_checkpoint_and_updates_cursor(mocker, tmp_path, capsys):
@@ -1747,3 +1750,103 @@ def test_change_request_attach_and_overview_commands_render_ordered_overview(
     assert out.count("<<<ARIAD:REFINEMENT_STORY_OVERVIEW>>>") == 2
     assert "Clarify checkout state" in out
     assert "pull RS later (not implemented in this story)" in out
+
+
+def test_refinement_story_pull_command_sets_cursor_and_preserves_delivery_cursor(
+    mocker, tmp_path, capsys
+):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    story = mem.store.create_refinement_story(
+        journey="sandbox-pet-store",
+        title="RS-002 — Sandbox refinement pull validation",
+    )
+    mem.store.create_change_request(
+        journey="sandbox-pet-store",
+        refinement_story_id=story.id,
+        title="Validate RS pull",
+        body="The RS should become active without starting a CR cycle.",
+    )
+    set_delivery_cursor(
+        mem.store,
+        journey="sandbox-pet-store",
+        method="ariad",
+        active_item="CV2.DS1",
+        last_delivery_event="prepare",
+    )
+
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    build.cmd_refinement_story_pull(
+        journey="sandbox-pet-store",
+        refinement_story_id=story.id,
+    )
+
+    out = capsys.readouterr().out
+    cursor = mem.store.get_refinement_cursor("sandbox-pet-store")
+    assert cursor is not None
+    assert cursor.active_refinement_story_id == story.id
+    assert cursor.active_change_request_id is None
+    assert cursor.last_refinement_event == "refinement_story_pulled"
+    delivery_cursor = get_delivery_cursor(mem.store, "sandbox-pet-store")
+    assert delivery_cursor is not None
+    assert delivery_cursor.active_item == "CV2.DS1"
+    assert "<<<ARIAD:REFINEMENT_STORY_PULLED>>>" in out
+    assert "active CR: none" in out
+    assert "Validate RS pull" in out
+
+
+def test_builder_home_shows_active_refinement_story_after_pull(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    project_path = tmp_path / "project"
+    roadmap = project_path / "docs/project/roadmap/index.md"
+    roadmap.parent.mkdir(parents=True)
+    roadmap.write_text(
+        """# Roadmap
+
+| Code | Delivery Story | Outcome | Status |
+|------|----------------|---------|--------|
+| [CV2](cv2/index.md) | Checkout Flow | Checkout Flow | 🟡 Planned |
+| [CV2.DS1](cv2/ds1/index.md) | Checkout entry | Checkout entry | 🟡 Planned |
+""",
+        encoding="utf-8",
+    )
+    mem.journeys.set_project_path("sandbox-pet-store", str(project_path))
+    set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
+    set_delivery_cursor(
+        mem.store,
+        journey="sandbox-pet-store",
+        method="ariad",
+        last_delivery_event="template_preparation",
+    )
+    story = mem.store.create_refinement_story(
+        journey="sandbox-pet-store",
+        title="RS-002 — Sandbox refinement pull validation",
+    )
+    mem.store.set_refinement_cursor(
+        journey="sandbox-pet-store",
+        active_refinement_story_id=story.id,
+        active_change_request_id=None,
+        last_refinement_event="refinement_story_pulled",
+    )
+
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+    mocker.patch("memory.cli.build.switch_conversation")
+    mocker.patch("memory.cli.build._persist_global_sticky_defaults")
+    mocker.patch("memory.cli.build._is_mirror_mind_checkout", return_value=False)
+    mocker.patch.object(mem, "load_mirror_context", return_value="context")
+    mocker.patch.object(mem, "search", return_value=[])
+
+    build.cmd_load("sandbox-pet-store")
+
+    out = capsys.readouterr().out
+    assert "BUILDER HOME" in out
+    assert f"active RS: {story.id} — RS-002" in out
+    assert "next refinement move: continue active Refinement" in out
+    assert "continue active Refinement Story" in out
+    assert "No item was pulled" in out

@@ -95,7 +95,7 @@ def render_builder_home_surface(
         ),
         "│                                                        │",
         _card_text("🧰 Refinement field"),
-        _card_text(f"active RS: {refinement.active_refinement_story or 'none'}"),
+        *_card_wrapped(f"active RS: {refinement.active_refinement_story or 'none'}"),
         _card_text(f"workbench storage: {refinement.storage_state}"),
         _card_text(f"stored RSs: {refinement.refinement_story_count}"),
         _card_text(f"stored CRs: {refinement.change_request_count}"),
@@ -127,7 +127,9 @@ def _available_refinement_moves(refinement: RefinementFieldSnapshot) -> tuple[st
         "inspect roadmap further",
         "review seed Change Requests",
     ]
-    if refinement.storage_state == "implemented":
+    if refinement.active_refinement_story:
+        moves.append("continue active Refinement Story")
+    elif refinement.storage_state == "implemented":
         moves.append("compose or capture Refinement Work when requested")
     else:
         moves.append("implement Workbench Storage Model before durable RS/CR work")
@@ -159,12 +161,18 @@ def _refinement_snapshot(
         )
     return RefinementFieldSnapshot(
         active_refinement_story=(
-            workbench.active_refinement_story.title if workbench.active_refinement_story else None
+            f"{workbench.active_refinement_story.id} — {workbench.active_refinement_story.title}"
+            if workbench.active_refinement_story
+            else None
         ),
         storage_state=workbench.storage_state,
         seed_change_requests=seed_count,
         seed_change_request_source=seed_source,
-        next_move="compose or capture Refinement Work when requested",
+        next_move=(
+            "continue active Refinement Story"
+            if workbench.active_refinement_story
+            else "compose or capture Refinement Work when requested"
+        ),
         refinement_story_count=workbench.refinement_story_count,
         change_request_count=workbench.change_request_count,
         unassigned_change_request_count=workbench.unassigned_change_request_count,

@@ -82,10 +82,12 @@ from memory.builder.workbench import (
     capture_change_request,
     create_refinement_story,
     get_refinement_story_overview,
+    pull_refinement_story,
 )
 from memory.builder.workbench_surfaces import (
     render_change_request_captured_surface,
     render_refinement_story_overview_surface,
+    render_refinement_story_pulled_surface,
 )
 from memory.cli.conversation_logger import switch_conversation
 from memory.cli.runtime import inspect_clone_role
@@ -1512,6 +1514,28 @@ def cmd_change_request_attach(
     print(render_refinement_story_overview_surface(journey=resolved_journey, overview=overview))
 
 
+def cmd_refinement_story_pull(
+    *,
+    journey: str | None = None,
+    session_id: str | None = None,
+    refinement_story_id: str,
+) -> None:
+    mem = MemoryClient()
+    resolved_journey = _resolve_workbench_journey(
+        mem, journey=journey, session_id=session_id, action="pull refinement story"
+    )
+    try:
+        overview = pull_refinement_story(
+            mem.store,
+            journey=resolved_journey,
+            refinement_story_id=refinement_story_id,
+        )
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    print(render_refinement_story_pulled_surface(journey=resolved_journey, overview=overview))
+
+
 def cmd_refinement_story_overview(
     *,
     journey: str | None = None,
@@ -2007,6 +2031,12 @@ def main(argv: list[str] | None = None) -> None:
     p_rs_overview.add_argument("--journey", default=None, help="Journey slug")
     p_rs_overview.add_argument("--session-id", default=None, help="Runtime session id")
     p_rs_overview.add_argument("--refinement-story-id", required=True, help="Refinement Story id")
+    p_rs_pull = refinement_story_sub.add_parser(
+        "pull", help="Pull a Refinement Story into active Refinement Work"
+    )
+    p_rs_pull.add_argument("--journey", default=None, help="Journey slug")
+    p_rs_pull.add_argument("--session-id", default=None, help="Runtime session id")
+    p_rs_pull.add_argument("--refinement-story-id", required=True, help="Refinement Story id")
 
     p_change_request = sub.add_parser(
         "change-request",
@@ -2213,6 +2243,12 @@ def main(argv: list[str] | None = None) -> None:
             )
         elif args.refinement_story_action == "overview":
             cmd_refinement_story_overview(
+                journey=args.journey,
+                session_id=args.session_id,
+                refinement_story_id=args.refinement_story_id,
+            )
+        elif args.refinement_story_action == "pull":
+            cmd_refinement_story_pull(
                 journey=args.journey,
                 session_id=args.session_id,
                 refinement_story_id=args.refinement_story_id,

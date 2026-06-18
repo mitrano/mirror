@@ -333,14 +333,26 @@ uv run python -m memory build change-request attach --journey <slug> --change-re
 uv run python -m memory build refinement-story overview --journey <slug> --refinement-story-id <rs-id>
 ```
 
-Render `CHANGE_REQUEST_CAPTURED` and `REFINEMENT_STORY_OVERVIEW` Ariad surfaces
-verbatim before commentary. Composition captures or organizes work only: it must
-not pull a Refinement Story, start a CR lifecycle, mutate Delivery cursor state,
-change roadmap status, implement files, commit, push, or release.
+When the Navigator asks to "pull that refinement story", "start working on
+RS-001", "enter refinement work for ...", or "pull the RS we just created", route
+to:
 
-If the Navigator's language implies immediate fixing, distinguish capture from
-execution: capture the CR only when requested, or explain that pulling and
-executing Refinement Work is a later lifecycle step.
+```bash
+uv run python -m memory build refinement-story pull --journey <slug> --refinement-story-id <rs-id>
+```
+
+Use the recent RS context only when it is unambiguous. If "pull" could mean a
+Delivery candidate or a Workbench Refinement Story, ask which field/item to pull.
+
+Render `CHANGE_REQUEST_CAPTURED`, `REFINEMENT_STORY_OVERVIEW`, and
+`REFINEMENT_STORY_PULLED` Ariad surfaces verbatim before commentary.
+Composition captures or organizes work only. Pulling an RS selects active
+Refinement Work only: it must not start a CR lifecycle, mutate Delivery cursor
+state, change roadmap status, implement files, commit, push, or release.
+
+If the Navigator's language implies immediate fixing, distinguish capture/pull
+from execution: capture or pull only when requested, and explain that executing a
+CR is a later lifecycle step.
 
 ## Prepare Ariad Templates
 

@@ -4,12 +4,15 @@ from memory.builder.workbench import (
     attach_change_request_to_story,
     capture_change_request,
     create_refinement_story,
+    get_active_refinement_story_overview,
     get_refinement_story_overview,
     get_workbench_snapshot,
+    pull_refinement_story,
 )
 from memory.builder.workbench_surfaces import (
     render_change_request_captured_surface,
     render_refinement_story_overview_surface,
+    render_refinement_story_pulled_surface,
 )
 
 
@@ -59,6 +62,49 @@ def test_workbench_snapshot_reports_counts_and_active_records(store):
     assert snapshot.change_request_count == 2
     assert snapshot.unassigned_change_request_count == 1
     assert unassigned.refinement_story_id is None
+
+
+def test_pull_refinement_story_sets_cursor_without_active_cr(store):
+    story = create_refinement_story(store, journey="mirror", title="Builder lifecycle refinement")
+    capture_change_request(
+        store,
+        journey="mirror",
+        title="Plan safety",
+        body="Preserve human-authored plan details.",
+        refinement_story_id=story.id,
+    )
+
+    overview = pull_refinement_story(store, journey="mirror", refinement_story_id=story.id)
+
+    cursor = store.get_refinement_cursor("mirror")
+    assert cursor is not None
+    assert cursor.active_refinement_story_id == story.id
+    assert cursor.active_change_request_id is None
+    assert cursor.last_refinement_event == "refinement_story_pulled"
+    assert overview.story.status == "active"
+    active = get_active_refinement_story_overview(store, "mirror")
+    assert active == overview
+
+
+def test_refinement_story_pulled_surface_names_cursor_and_boundary(store):
+    story = create_refinement_story(store, journey="mirror", title="Builder lifecycle refinement")
+    capture_change_request(
+        store,
+        journey="mirror",
+        title="Plan safety",
+        body="Preserve human-authored plan details.",
+        refinement_story_id=story.id,
+    )
+    overview = pull_refinement_story(store, journey="mirror", refinement_story_id=story.id)
+
+    rendered = render_refinement_story_pulled_surface(journey="mirror", overview=overview)
+
+    assert "<<<ARIAD:REFINEMENT_STORY_PULLED>>>" in rendered
+    assert "Builder lifecycle refinement" in rendered
+    assert "active CR: none" in rendered
+    assert "Plan safety" in rendered
+    assert "no CR lifecycle work was executed" in rendered
+    assert "Delivery Work was pulled or executed" in rendered
 
 
 def test_refinement_story_overview_renders_ordered_cr_surface(store):
