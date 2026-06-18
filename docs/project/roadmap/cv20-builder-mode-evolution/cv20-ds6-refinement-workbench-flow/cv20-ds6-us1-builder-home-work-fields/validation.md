@@ -18,7 +18,7 @@ Checks status: passed
 
 Decision: required
 
-Evidence: Manual Navigator validation route prepared; awaiting Navigator acceptance.
+Evidence: Manual Navigator validation route prepared; awaiting Navigator acceptance. Navigator feedback found two issues: the next refinement move truncated `Model` to `Mode`, and field labels needed icons. Both were corrected. Driver smoke verified `uv run python -m memory build load sandbox-pet-store` renders `🟪 Delivery field`, `🧰 Refinement field`, and wraps `next refinement move: implement Workbench Storage Model before durable RS/CR work` without truncation.
 
 ## Navigator Validation
 

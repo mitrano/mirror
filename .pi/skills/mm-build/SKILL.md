@@ -308,9 +308,10 @@ is invalid unless the visible reply also contains every complete matching
 begin/end block in stdout order.
 
 After rendering these surfaces, do not ask a generic question such as "inspeção
-runtime, planejamento de Delivery, ou exploração?". For an Ariad journey with no
-active item, ask whether the Navigator wants to pull the recommended candidate or
-inspect the roadmap further only after the verbatim blocks.
+runtime, planejamento de Delivery, ou exploração?" and do not add a third
+runtime-inspection option unless the surface itself recommends it. For an Ariad
+journey with no active item, ask only whether the Navigator wants to pull the
+recommended candidate or inspect the roadmap further after the verbatim blocks.
 
 ## Prepare Ariad Templates
 

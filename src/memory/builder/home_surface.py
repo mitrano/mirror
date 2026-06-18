@@ -79,14 +79,14 @@ def render_builder_home_surface(
         _card_text("method"),
         _card_text(method),
         "│                                                        │",
-        _card_text("Delivery field"),
+        _card_text("🟪 Delivery field"),
         *_card_wrapped(
             f"recommended pull: {_format_recommended(recommended)}"
             if recommended
             else "recommended pull: none"
         ),
         "│                                                        │",
-        _card_text("Refinement field"),
+        _card_text("🧰 Refinement field"),
         _card_text(f"active RS: {refinement.active_refinement_story or 'none'}"),
         _card_text(f"workbench storage: {refinement.storage_state}"),
         _card_text(f"seed CRs: {refinement.seed_change_requests}"),
@@ -95,7 +95,7 @@ def render_builder_home_surface(
         lines.extend(_card_wrapped(f"seed source: {refinement.seed_change_request_source}"))
     lines.extend(
         [
-            _card_text(f"next refinement move: {refinement.next_move}"),
+            *_card_wrapped(f"next refinement move: {refinement.next_move}"),
             "│                                                        │",
             _card_text("available moves"),
             *_card_prefixed(

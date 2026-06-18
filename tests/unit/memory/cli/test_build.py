@@ -136,10 +136,12 @@ Candidate Delivery Stories:
 
     out = capsys.readouterr().out
     assert "BUILDER HOME" in out
-    assert "Delivery field" in out
-    assert "Refinement field" in out
+    assert "🟪 Delivery field" in out
+    assert "🧰 Refinement field" in out
     assert "workbench storage: not implemented yet" in out
     assert "seed CRs: 2" in out
+    assert "next refinement move: implement Workbench Storage" in out
+    assert "Model before durable RS/CR work" in out
     assert "pull recommended Delivery item" in out
     assert "ROADMAP SNAPSHOT" in out
     assert "Ariad: ◉ Pull | ○ Prepare | ○ Expand | ○ Plan" in out
