@@ -18,19 +18,19 @@ Checks status: passed
 
 Decision: required
 
-Evidence: Manual smoke used sandbox-pet-store: created an RS, captured a CR into it, rendered REFINEMENT_STORY_OVERVIEW and CHANGE_REQUEST_CAPTURED surfaces, then Builder Home showed stored RSs 1 and stored CRs 1 without lifecycle execution.
+Evidence: Manual smoke used sandbox-pet-store through direct CLI and Navigator-accepted natural-language Mirror/Builder interaction. Natural-language sequence: activated Builder Mode; requested creation of a refinement story; requested CR capture in that story; requested overview; reloaded Builder Mode. Observed REFINEMENT_STORY_OVERVIEW, CHANGE_REQUEST_CAPTURED, updated overview with one CR, and Builder Home durable counts increasing to stored RSs 2 and stored CRs 2. No RS was pulled and no CR lifecycle or Delivery work was executed.
 
 ## Navigator Validation
 
-Route: Run refinement-story create, change-request capture, refinement-story overview, then build load for sandbox-pet-store.
+Route: Natural language in Mirror Builder Mode: `/mm-build sandbox-pet-store`; `Create a refinement story for sandbox checkout refinements`; `Capture a CR in that refinement story: the sandbox docs disagree about whether CV2.DS1 is in progress or not`; `Show me that refinement story`; `Load sandbox-pet-store Builder Mode`. Direct CLI route also passed: refinement-story create, change-request capture, refinement-story overview, then build load for sandbox-pet-store.
 
 Navigator accepted: yes
 
-Expected observation: Navigator can compose a Refinement Story and capture a Change Request through Builder Workbench commands, with marked Ariad surfaces visible and no RS pulled.
+Expected observation: Navigator can compose a Refinement Story and capture a Change Request through conversation, with the Driver routing to runtime commands and rendering marked Ariad surfaces before commentary.
 
-Pass condition: RS and CR persist, overview lists the CR, Builder Home counts increase, and Delivery/Refinement lifecycle cursors are not advanced.
+Pass condition: Natural-language prompts create durable RS/CR records, surfaces render visibly, overview lists the CR, Builder Home counts increase, and no lifecycle work starts.
 
-Fail condition: Commands only work as hidden storage mutations, surfaces are missing/summarized, Builder Home counts do not change, or composition starts lifecycle execution.
+Fail condition: Driver requires direct CLI-only use, invents missing details unsafely, hides or summarizes surfaces, fails to persist RS/CR records, or starts RS/CR/Delivery lifecycle execution.
 
 ## Missing Evidence
 
