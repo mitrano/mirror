@@ -164,6 +164,18 @@ skip.
 
 Candidate target: `CV20.DS6.US1 Builder Home Work Fields`.
 
+### CR: Builder should show roadmap position after Delivery Work Done
+
+Status: candidate.
+
+Context: after closing `CV20.DS6.US1`, the Navigator asked where we are in the roadmap. The answer required a separate journey/roadmap inspection, even though Done is the exact moment when orientation and next movement become most valuable.
+
+Requested change: after a Delivery Work story reaches Done, Builder should render a roadmap-position surface that shows the current CV/DS/story position, completed item, remaining sibling items, upcoming delivery stories, and the recommended next pull. The surface should be visible before commentary, similar in spirit to Builder Home, and should preserve the Done boundary by not pulling or executing any next item automatically.
+
+Why it matters: Done should not leave the Navigator in a blank operational space. A situated roadmap surface turns closure into orientation, makes progress legible, and helps choose the next movement without requiring a separate status request.
+
+Candidate target: a later DS6 Refinement Story once Workbench storage exists, or promotion to Delivery Work if the surface becomes part of the formal Delivery lifecycle contract.
+
 ## Risks
 
 - Builder Home can become too broad if it tries to solve all navigation at once.
