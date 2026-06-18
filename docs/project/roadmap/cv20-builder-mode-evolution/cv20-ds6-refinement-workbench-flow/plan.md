@@ -176,6 +176,20 @@ Why it matters: Done should not leave the Navigator in a blank operational space
 
 Candidate target: a later DS6 Refinement Story once Workbench storage exists, or promotion to Delivery Work if the surface becomes part of the formal Delivery lifecycle contract.
 
+### CR: Ariad plan command can overwrite detailed human-authored plan content
+
+Status: candidate.
+
+Context: during `CV20.DS6.TS1`, a detailed plan with persistence and storage/API strategy was written to `plan.md`, then the Ariad `plan-item` command regenerated the plan artifact and replaced it with a generic checkpoint-shaped plan. The Navigator noticed the missing persistence and API strategy. This kind of overwrite has happened more than once and creates trust drift because carefully authored plan content can be silently lost.
+
+Requested change: harden plan artifact creation so runtime plan checkpoint commands do not overwrite an existing non-empty `plan.md` without explicit merge/replace confirmation. If a plan already exists, the command should preserve it, append checkpoint metadata elsewhere, or render a `PLAN_ARTIFACT_CONFLICT` surface requiring Navigator choice. The behavior should distinguish between creating a missing plan file and updating lifecycle cursor/checkpoint state.
+
+Why it matters: Plan is the contract for implementation. Losing details during checkpoint rendering weakens approval, increases rework, and can hide important design decisions such as persistence strategy or API boundaries.
+
+Implementation reminder: add regression coverage around `plan-item` when `plan.md` already contains human-authored content. The expected behavior should preserve the existing content unless an explicit replace flag or Navigator-approved overwrite path is used.
+
+Candidate target: a later DS6 Refinement Story once Workbench storage exists, or promotion to Delivery Work if plan artifact safety becomes a formal Ariad lifecycle contract.
+
 ## Risks
 
 - Builder Home can become too broad if it tries to solve all navigation at once.
