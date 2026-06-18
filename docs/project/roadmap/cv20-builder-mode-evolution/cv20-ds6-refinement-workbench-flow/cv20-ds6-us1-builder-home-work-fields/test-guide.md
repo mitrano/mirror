@@ -62,4 +62,17 @@ Then Builder uses the base Builder Mode transition without Ariad Builder Home su
 
 ## Validation Evidence
 
-Pending implementation and validation.
+Implementation checks run:
+
+```bash
+uv run pytest tests/unit/memory/builder/test_pull_candidates.py tests/unit/memory/cli/test_build.py -q
+uv run ruff check src/memory/builder src/memory/cli/build.py tests/unit/memory/builder tests/unit/memory/cli/test_build.py
+uv run ruff format --check src/memory/builder src/memory/cli/build.py tests/unit/memory/builder tests/unit/memory/cli/test_build.py
+uv run mypy src/memory/builder src/memory/cli/build.py
+git diff --check
+```
+
+Result: passed after formatting `src/memory/builder/home_surface.py`.
+
+Manual validation remains pending Navigator inspection of Builder activation or
+fixture-equivalent output.

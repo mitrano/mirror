@@ -31,6 +31,7 @@ from memory.builder.flow_unit import (
     render_navigator_flow_unit_report,
     set_navigator_flow_unit,
 )
+from memory.builder.home_surface import inspect_refinement_field, render_builder_home_surface
 from memory.builder.lifecycle import (
     BuilderLifecycleItem,
     approve_plan_checkpoint,
@@ -250,6 +251,14 @@ def _print_builder_entry_surface(
             project_root,
             journey=slug,
             method=adopted_method,
+        )
+        print(
+            render_builder_home_surface(
+                journey=slug,
+                method=adopted_method,
+                candidates_report=candidates_report,
+                refinement=inspect_refinement_field(project_root),
+            )
         )
         print(
             render_roadmap_snapshot_report(

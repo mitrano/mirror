@@ -99,6 +99,23 @@ Candidate Delivery Stories:
 """,
         encoding="utf-8",
     )
+    ds6_plan = (
+        project_path
+        / "docs/project/roadmap/cv20-builder-mode-evolution/"
+        / "cv20-ds6-refinement-workbench-flow/plan.md"
+    )
+    ds6_plan.parent.mkdir(parents=True)
+    ds6_plan.write_text(
+        """# Plan
+
+## Seed Change Requests
+
+### CR: Roadmap Snapshot focuses CV10 instead of active Builder work
+
+### CR: Ariad marked surfaces can be summarized instead of rendered
+""",
+        encoding="utf-8",
+    )
     mem.journeys.set_project_path("sandbox-pet-store", str(project_path))
     set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
     set_delivery_cursor(
@@ -118,6 +135,12 @@ Candidate Delivery Stories:
     build.cmd_load("sandbox-pet-store")
 
     out = capsys.readouterr().out
+    assert "BUILDER HOME" in out
+    assert "Delivery field" in out
+    assert "Refinement field" in out
+    assert "workbench storage: not implemented yet" in out
+    assert "seed CRs: 2" in out
+    assert "pull recommended Delivery item" in out
     assert "ROADMAP SNAPSHOT" in out
     assert "Ariad: ◉ Pull | ○ Prepare | ○ Expand | ○ Plan" in out
     assert "🟪[CV2]  Checkout Flow" in out
@@ -161,6 +184,7 @@ def test_build_load_renders_resume_surface_when_adopted_journey_has_active_item(
 
     out = capsys.readouterr().out
     assert "BUILDER RESUME" in out
+    assert "BUILDER HOME" not in out
     assert "│ active item                                            │" in out
     assert "CV2.DS1" in out
     assert "prepare_active_item" in out
@@ -191,6 +215,15 @@ def test_build_load_preserves_base_behavior_for_non_ariad_journey(mocker, tmp_pa
     assert "ROADMAP SNAPSHOT" not in out
     assert "Ariad Pull Candidates" not in out
     assert "BUILDER RESUME" not in out
+
+
+def test_mm_build_skill_requires_marked_ariad_surfaces_to_render_verbatim():
+    skill = Path(".pi/skills/mm-build/SKILL.md").read_text(encoding="utf-8")
+
+    assert "every marked block" in skill
+    assert "verbatim before" in skill
+    assert "<<<ARIAD:BUILDER_HOME>>>" in skill
+    assert "stdout order" in skill
 
 
 def test_build_plan_item_renders_checkpoint_and_updates_cursor(mocker, tmp_path, capsys):

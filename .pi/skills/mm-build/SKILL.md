@@ -258,10 +258,13 @@ Ariad runtime commands emit deterministic surfaces wrapped as:
 
 For any command output that contains one or more Ariad surface blocks, the final
 assistant response must return **every marked block** from stdout verbatim before
-any commentary. Do not summarize, translate, reorder, trim, rewrap, re-indent,
+any commentary. This is a hard rendering requirement, not optional tool-output
+evidence. Do not summarize, translate, reorder, trim, rewrap, re-indent,
 reformat, or mix prose inside a wrapped surface. Do not replace a surface with a
 conversational summary, even when the user phrase is short (for example,
-`validated`, `approved`, `ok`, or `continue`).
+`validated`, `approved`, `ok`, or `continue`). If you catch yourself summarizing
+a marked Ariad surface, stop and re-render the complete marked block before any
+interpretation.
 
 If multiple Ariad surface blocks are emitted, return all of them in the same
 order. After the complete surface block(s), add a conversational interpretation
@@ -288,6 +291,7 @@ Next step:
 
 For Ariad-adopted journeys with no active item, `build load` can emit:
 
+- `■ Builder Home`
 - `ROADMAP SNAPSHOT`
 - `■ Ariad Pull Candidates`
 
@@ -298,9 +302,10 @@ For Ariad-adopted journeys with an active item or pending confirmation,
 
 These surfaces are mandatory activation output. The final response to the user
 must include the wrapped Ariad surface blocks verbatim from the command output.
-If the command output contains `<<<ARIAD:ROADMAP_SNAPSHOT>>>`,
-the response is invalid unless the visible reply also contains the complete
-matching begin/end block and the complete `PULL_CANDIDATES` block.
+If the command output contains `<<<ARIAD:BUILDER_HOME>>>`,
+`<<<ARIAD:ROADMAP_SNAPSHOT>>>`, or `<<<ARIAD:PULL_CANDIDATES>>>`, the response
+is invalid unless the visible reply also contains every complete matching
+begin/end block in stdout order.
 
 After rendering these surfaces, do not ask a generic question such as "inspeção
 runtime, planejamento de Delivery, ou exploração?". For an Ariad journey with no
