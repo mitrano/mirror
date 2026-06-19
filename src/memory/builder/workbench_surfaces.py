@@ -185,6 +185,9 @@ def render_refinement_flow_event_surface(event: RefinementFlowEvent) -> str:
     lines.extend(
         [
             "│                                                        │",
+            _card_text("current CR phase"),
+            _card_text(_current_phase(event)),
+            "│                                                        │",
             _card_text("status transition"),
             *_card_wrapped(f"{event.previous_status or 'none'} → {event.new_status or 'none'}"),
             "│                                                        │",
@@ -193,6 +196,12 @@ def render_refinement_flow_event_surface(event: RefinementFlowEvent) -> str:
                 f"active RS: {event.refinement_story.id if event.event != 'refinement_story_closed' else 'none'}"
             ),
             _card_text(f"active CR: {event.active_change_request_id or 'none'}"),
+            "│                                                        │",
+            _card_text("implementation files changed"),
+            _card_text("no"),
+            "│                                                        │",
+            _card_text("next conversational move"),
+            *_card_wrapped(_next_conversational_move(event)),
         ]
     )
     if event.detail:
@@ -224,6 +233,34 @@ def render_refinement_flow_event_surface(event: RefinementFlowEvent) -> str:
         ]
     )
     return wrap_ariad_surface("refinement_flow_event", "\n".join(lines) + "\n")
+
+
+def _current_phase(event: RefinementFlowEvent) -> str:
+    return {
+        "change_request_selected": "selected",
+        "change_request_confirmed": "confirmed",
+        "change_request_planned": "planned",
+        "change_request_implemented": "implemented evidence recorded",
+        "change_request_validated": "validated",
+        "change_request_done": "done note recorded",
+        "refinement_story_reviewed": "RS review",
+        "refinement_story_coherent": "RS coherence",
+        "refinement_story_closed": "RS closed",
+    }.get(event.event, event.new_status or "unknown")
+
+
+def _next_conversational_move(event: RefinementFlowEvent) -> str:
+    return {
+        "change_request_selected": "confirm this CR before planning it",
+        "change_request_confirmed": "record a short plan for this CR",
+        "change_request_planned": "implement this CR only with explicit Navigator authorization",
+        "change_request_implemented": "validate this CR with concrete evidence",
+        "change_request_validated": "record the done note for this CR",
+        "change_request_done": "select another CR or review the Refinement Story",
+        "refinement_story_reviewed": "check coherence for the Refinement Story",
+        "refinement_story_coherent": "close the Refinement Story or add follow-up CRs",
+        "refinement_story_closed": "return to Builder Home or pull another work item",
+    }.get(event.event, "choose the next Refinement movement")
 
 
 def _render_change_requests(change_requests: tuple[ChangeRequestRecord, ...]) -> list[str]:

@@ -238,6 +238,8 @@ def test_mm_build_skill_requires_marked_ariad_surfaces_to_render_verbatim():
     assert "refinement-story pull" in skill
     assert "change-request select" in skill
     assert "refinement-story close" in skill
+    assert "Do not skip" in skill
+    assert "implement this CR" in skill
     assert "capture this as a CR" in skill
     assert "pull that refinement story" in skill
 

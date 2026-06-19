@@ -375,9 +375,13 @@ uv run python -m memory build refinement-story coherence --journey <slug> --refi
 uv run python -m memory build refinement-story close --journey <slug> --refinement-story-id <rs-id> --summary "<close summary>"
 ```
 
-Render `REFINEMENT_FLOW_EVENT` surfaces verbatim before commentary. Review and
-Coherence must not mutate files directly; required changes discovered there must
-become CRs or future work.
+Render `REFINEMENT_FLOW_EVENT` surfaces verbatim before commentary. Do not skip
+CR phases: if a CR has not been selected, confirmed, and planned, do not jump to
+implementation. The implementation step requires explicit Navigator language
+such as "implement this CR" and should be represented by the runtime transition
+only after the actual implementation/evidence exists. Review and Coherence must
+not mutate files directly; required changes discovered there must become CRs or
+future work.
 
 ## Prepare Ariad Templates
 

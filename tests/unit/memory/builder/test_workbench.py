@@ -20,6 +20,7 @@ from memory.builder.workbench import (
 )
 from memory.builder.workbench_surfaces import (
     render_change_request_captured_surface,
+    render_refinement_flow_event_surface,
     render_refinement_story_overview_surface,
     render_refinement_story_pulled_surface,
 )
@@ -146,6 +147,13 @@ def test_change_request_flow_transitions_in_order_and_clears_active_cr(store):
     assert implemented.new_status == "implemented"
     assert validated.new_status == "validated"
     assert done.new_status == "done"
+    rendered = render_refinement_flow_event_surface(planned)
+    assert "current CR phase" in rendered
+    assert "planned" in rendered
+    assert "implementation files changed" in rendered
+    assert "no" in rendered
+    assert "next conversational move" in rendered
+    assert "implement this CR only with explicit Navigator" in rendered
     cursor = store.get_refinement_cursor("mirror")
     assert cursor is not None
     assert cursor.active_change_request_id is None
