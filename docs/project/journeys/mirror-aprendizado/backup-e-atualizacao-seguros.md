@@ -13,8 +13,9 @@ Este plano assume a situação atual observada no repositório:
 Branch local: main
 Remote: origin -> https://github.com/mirror-mind-ai/mirror
 Estado atual observado: main ahead 28, behind 319
-HEAD atual observado: e14ae94 Document Ricardo's authorial voice for versioned review
+HEAD observado na revisão do plano: cdf0f5a Refine safe Mirror backup plan
 Commits locais recentes relevantes:
+- cdf0f5a Refine safe Mirror backup plan
 - e14ae94 Document Ricardo's authorial voice for versioned review
 - 82c079e Document safe Mirror update plan
 - 98153cd Preserve local Mirror learning and CLI updates
@@ -456,15 +457,15 @@ Vantagem: simples e independente de permissões no GitHub.
 Antes de executar o `reset --hard`, confirmar:
 
 ```text
-[ ] HEAD atual foi conferido com git log --oneline --decorate -n 5.
-[ ] Commits locais recentes relevantes existem: e14ae94, 82c079e e 98153cd.
-[ ] Branch minhas-alteracoes-mirror foi criada apontando para o HEAD atual.
-[ ] git branch --contains HEAD mostra a branch de backup.
-[ ] git branch --contains e14ae94, 82c079e e 98153cd mostra a branch de backup.
+[x] HEAD atual foi conferido com git log --oneline --decorate -n 5.
+[x] Commits locais recentes relevantes existem: cdf0f5a, e14ae94, 82c079e e 98153cd.
+[x] Branch minhas-alteracoes-mirror foi criada apontando para o HEAD atual disponível no momento da primeira proteção.
+[x] git branch --contains HEAD mostra a branch de backup.
+[x] git branch --contains cdf0f5a, e14ae94, 82c079e e 98153cd mostra a branch de backup.
 [ ] Bundle Git foi criado fora do repositório e verificado.
-[ ] Banco SQLite foi salvo por backup oficial ou manual.
-[ ] Backup completo da pasta foi criado fora do repositório.
-[ ] Estado Git foi registrado em /home/ricardoalvares/backups/mirror/update-audit/.
+[x] Banco SQLite foi salvo por backup oficial.
+[x] Backup completo da pasta foi criado fora do repositório.
+[x] Estado Git foi registrado em /home/ricardoalvares/backups/mirror/update-audit/.
 [ ] Ricardo autorizou explicitamente iniciar a atualização.
 ```
 
@@ -481,6 +482,27 @@ Antes de executar o `reset --hard`, confirmar:
 [ ] Novo estado funcional foi commitado em branch própria, se houver mudanças.
 ```
 
+## Registro de execução do backup
+
+Execução iniciada após autorização de Ricardo para avançar com o processo de backup, sem executar a atualização da `main`.
+
+Itens concluídos:
+
+```text
+[x] Revisão do plano commitada em cdf0f5a Refine safe Mirror backup plan.
+[x] Branch local de proteção criada: minhas-alteracoes-mirror.
+[x] Banco de memória salvo pelo comando oficial uv run python -m memory backup.
+    Arquivo gerado: /home/ricardoalvares/.mirror-minds/ricardo/backups/memory_20260619_182822.zip
+[x] Auditoria Git pré-update salva em: /home/ricardoalvares/backups/mirror/update-audit/2026-06-18/
+[x] Backup completo da pasta salvo em: /home/ricardoalvares/backups/mirror/full/mirror-backup-completo-2026-06-18.tar.gz
+    Tamanho observado: 36M
+[ ] Bundle Git externo criado e verificado.
+[ ] Branch minhas-alteracoes-mirror atualizada após o commit deste registro de execução.
+[ ] Atualização da main para origin/main executada.
+```
+
+Observação: o backup oficial do banco gerou arquivo com timestamp `20260619_182822`, conforme relógio do ambiente no momento da execução.
+
 ## Comando proibido até os backups estarem prontos
 
 Não executar antes da autorização explícita:
@@ -491,4 +513,4 @@ git reset --hard origin/main
 
 ## Estado desta documentação
 
-Este arquivo é apenas o plano. Nenhuma etapa de atualização foi executada ao criar este documento.
+Este arquivo deixou de ser apenas um plano e passou a registrar a execução parcial do backup. Até este ponto, foram executadas etapas de proteção e backup. Nenhuma etapa de atualização da `main` para `origin/main` foi executada.
