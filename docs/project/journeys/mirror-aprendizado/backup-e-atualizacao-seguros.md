@@ -462,7 +462,7 @@ Antes de executar o `reset --hard`, confirmar:
 [x] Branch minhas-alteracoes-mirror foi criada apontando para o HEAD atual disponível no momento da primeira proteção.
 [x] git branch --contains HEAD mostra a branch de backup.
 [x] git branch --contains cdf0f5a, e14ae94, 82c079e e 98153cd mostra a branch de backup.
-[ ] Bundle Git foi criado fora do repositório e verificado.
+[x] Bundle Git foi criado fora do repositório e verificado.
 [x] Banco SQLite foi salvo por backup oficial.
 [x] Backup completo da pasta foi criado fora do repositório.
 [x] Estado Git foi registrado em /home/ricardoalvares/backups/mirror/update-audit/.
@@ -496,8 +496,10 @@ Itens concluídos:
 [x] Auditoria Git pré-update salva em: /home/ricardoalvares/backups/mirror/update-audit/2026-06-18/
 [x] Backup completo da pasta salvo em: /home/ricardoalvares/backups/mirror/full/mirror-backup-completo-2026-06-18.tar.gz
     Tamanho observado: 36M
-[ ] Bundle Git externo criado e verificado.
-[ ] Branch minhas-alteracoes-mirror atualizada após o commit deste registro de execução.
+[x] Bundle Git externo criado e verificado.
+    Arquivo gerado: /home/ricardoalvares/backups/mirror/git/mirror-minhas-alteracoes-2026-06-18.bundle
+    Tamanho observado: 11M
+[x] Branch minhas-alteracoes-mirror atualizada para proteger o estado local após o registro de execução.
 [ ] Atualização da main para origin/main executada.
 ```
 
