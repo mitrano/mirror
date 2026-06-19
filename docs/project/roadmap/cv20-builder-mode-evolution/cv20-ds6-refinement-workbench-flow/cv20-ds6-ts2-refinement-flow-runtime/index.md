@@ -1,22 +1,56 @@
-[< CV20.DS6](../index.md)
+[< Parent](../index.md)
 
 # CV20.DS6.TS2 — Refinement Flow Runtime
 
-**Type:** Technical Story  
 **Status:** 🟡 Planned
+**Type:** Technical Story
 
-## Story
-
-In order to execute Refinement Work consistently, as the Builder runtime, I want
-state transitions for RS-level flow and CR-level cycles so that invalid moves are
-blocked and active refinement can resume safely.
+---
 
 ## Outcome
 
-Runtime supports RS pull, CR selection, CR confirmation, CR plan, CR validation,
-CR done note, RS review, RS coherence, and RS close as explicit stateful steps.
+Add stateful Refinement runtime transitions for selecting CRs, traversing CR lifecycle states, and recording RS review/coherence/close without mutating files or Delivery Work.
 
-## Notes
+## Story Statement
 
-Review and Coherence must not mutate files directly. Required changes discovered
-there must return to CR cycles or future work.
+In order to support the delivery capability,
+As an engineering team/system component,
+I want to Refinement Flow Runtime,
+So that the expected technical outcome is available.
+
+## Acceptance Behavior
+
+```text
+Given the starting state needed for Refinement Flow Runtime
+When the Navigator exercises Refinement Flow Runtime
+Then the planned observable behavior is visible
+And out-of-scope sibling roadmap items remain untouched
+```
+
+## Scope
+
+- Deliver Refinement Flow Runtime as an observable slice.
+- Keep the implementation narrow enough to validate at the Plan-defined checkpoint.
+
+## Out Of Scope
+
+- Do not implement sibling roadmap item: Builder Documentation And Migration.
+- Do not implement sibling roadmap item: Traverse Change Request Cycles.
+- Do not implement sibling roadmap item: Close A Refinement Story.
+- Do not implement sibling roadmap item: Refinement Workbench And Flow.
+- Do not implement sibling roadmap item: Define Delivery Story Release Intent.
+- Do not implement sibling roadmap item: Release And Push Policies.
+- Do not implement sibling roadmap item: Debt Ledger And Refactor Loop.
+- Do not implement sibling roadmap item: Method Preferences And Overrides.
+
+## Validation
+
+- Run automated tests that cover the planned behavior.
+- Provide a Navigator-visible route with expected observation, pass condition, and fail condition.
+
+---
+
+## Artifacts
+
+- [Plan](plan.md)
+- [Test Guide](test-guide.md)
