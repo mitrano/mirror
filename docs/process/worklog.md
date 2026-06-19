@@ -12,6 +12,12 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-06-17 — CV20.DS6.TS2 Refinement Flow Runtime completed
+
+Completed the runtime substrate for active Refinement Work. Builder now supports stateful CR transitions from select through done note, RS review/coherence/close transitions, `REFINEMENT_FLOW_EVENT` surfaces, active CR visibility in Builder Home, and natural-language routing guidance for Refinement flow commands. Review and Coherence remain non-mutating; required changes must become CRs or future work.
+
+Validation: focused storage, builder, and CLI tests passed; ruff, format check, mypy, and diff checks passed. Sandbox validation reset `sandbox-pet-store`, traversed a full runtime CR/RS flow, rendered nine `REFINEMENT_FLOW_EVENT` surfaces, and confirmed Builder Home returned to active RS/CR none while Delivery remained unpulled.
+
 ### 2026-06-17 — CV20.DS6.US3 Pull A Refinement Story completed
 
 Completed the Refinement Work entry slice. Builder can now pull a composed Refinement Story into active Refinement Work, render `REFINEMENT_STORY_PULLED`, persist active RS cursor state with active CR left empty, and show the active RS on later Builder Home activation. The sandbox reset helper now clears Workbench RS/CR/cursor state for clean dogfooding runs.
