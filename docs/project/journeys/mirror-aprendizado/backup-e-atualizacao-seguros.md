@@ -466,7 +466,7 @@ Antes de executar o `reset --hard`, confirmar:
 [x] Banco SQLite foi salvo por backup oficial.
 [x] Backup completo da pasta foi criado fora do repositório.
 [x] Estado Git foi registrado em /home/ricardoalvares/backups/mirror/update-audit/.
-[ ] Ricardo autorizou explicitamente iniciar a atualização.
+[x] Ricardo autorizou explicitamente iniciar a atualização.
 ```
 
 ## Checklist depois de atualizar
@@ -503,11 +503,13 @@ Itens concluídos:
 [ ] Atualização da main para origin/main executada.
 ```
 
+Autorização posterior recebida de Ricardo: atualizar a `main` para `origin/main`.
+
 Observação: o backup oficial do banco gerou arquivo com timestamp `20260619_182822`, conforme relógio do ambiente no momento da execução.
 
 ## Comando proibido até os backups estarem prontos
 
-Não executar antes da autorização explícita:
+Autorização explícita recebida antes da execução. Este comando só deve ser executado depois de confirmar que a branch de proteção e o bundle seguem válidos:
 
 ```bash
 git reset --hard origin/main
@@ -515,4 +517,4 @@ git reset --hard origin/main
 
 ## Estado desta documentação
 
-Este arquivo deixou de ser apenas um plano e passou a registrar a execução parcial do backup. Até este ponto, foram executadas etapas de proteção e backup. Nenhuma etapa de atualização da `main` para `origin/main` foi executada.
+Este arquivo deixou de ser apenas um plano e passou a registrar a execução parcial do backup. Até este ponto, foram executadas etapas de proteção e backup. A autorização para atualizar a `main` para `origin/main` foi recebida depois da conclusão dos backups.
