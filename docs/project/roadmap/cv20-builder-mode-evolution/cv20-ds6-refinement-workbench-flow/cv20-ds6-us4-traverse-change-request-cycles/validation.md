@@ -2,7 +2,7 @@
 
 ## Status
 
-Blocked
+Passed
 
 ## Automated Checks
 
@@ -18,13 +18,13 @@ Checks status: passed
 
 Decision: required
 
-Evidence: Direct sandbox smoke reset sandbox-pet-store, created a pet-store contextual RS and CR, pulled the RS, traversed select/confirm/plan/mark-implemented/validate/done, and confirmed six REFINEMENT_FLOW_EVENT surfaces included current CR phase and next conversational move fields. Natural-language Navigator validation remains required.
+Evidence: Navigator validated US4 through natural-language Mirror/Builder interaction on sandbox-pet-store. The CR traversal route worked: create RS, capture CR, pull RS, select CR, confirm CR, plan CR, explicitly implement/record implementation evidence, validate CR, and mark CR done. Surfaces rendered at each step and no Delivery Work was pulled.
 
 ## Navigator Validation
 
 Route: Natural language in Mirror Builder Mode: Ative a jornada sandbox pet store; Create a refinement story for checkout candidate language; Capture a CR in that RS: checkout docs should describe CV2.DS1 as a candidate until pulled; Pull that refinement story; Select the CR; Confirm the CR; Plan the CR: align the docs language without changing runtime behavior; Implement this CR; Validate this CR: inspect docs and Builder Home; Mark this CR done: documentation language is consistent and no Delivery work was pulled.
 
-Navigator accepted: no
+Navigator accepted: yes
 
 Expected observation: Navigator can traverse one CR through the full lightweight Refinement cycle using natural language, with visible phase/evidence/next-move surfaces and no Delivery Work execution.
 
@@ -34,4 +34,4 @@ Fail condition: Driver jumps to implementation, hides surfaces, omits phase/next
 
 ## Missing Evidence
 
-- Navigator validation has not been accepted
+- none
