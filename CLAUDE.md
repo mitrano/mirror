@@ -77,6 +77,17 @@ hierarchical rendering without flattening or reformatting it.
 **Commits:** use descriptive English commit messages. Explain the WHY, not just
 what was done. Prefer small commits with clear review boundaries.
 
+**Ricardo's personal artifacts and fork policy:** prefer saving Ricardo's
+journey artifacts, documents, analyses, exports, plans, and personal materials
+outside the Mirror runtime repository, under `/home/ricardoalvares/repos/`
+(prefer `/home/ricardoalvares/repos/jornadas/` or a dedicated project folder).
+Only write inside `/home/ricardoalvares/repos/mirror/` when the file is needed
+for Mirror's runtime, skills, tests, technical docs, or repository-level
+operation. When committing changes in the Mirror repository, push Ricardo's
+work to his fork remote `ricardo` (`https://github.com/mitrano/mirror.git`),
+not to the official `origin` remote. Never commit or push tokens, credentials,
+SQLite databases, memory backups, `.local/` secrets, or other sensitive files.
+
 ### Ego-Persona Model
 
 The mirror has one voice: the ego. Personas are specialized lenses activated by
