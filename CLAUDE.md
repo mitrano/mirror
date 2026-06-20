@@ -82,12 +82,16 @@ journey artifacts, documents, analyses, exports, plans, and personal materials
 outside the Mirror runtime repository, directly under `/home/ricardoalvares/repos/`
 as a dedicated project/journey folder. Do not use a generic
 `/home/ricardoalvares/repos/jornadas/` container unless Ricardo explicitly asks
-for it. Only write inside `/home/ricardoalvares/repos/mirror/` when the file is
-needed for Mirror's runtime, skills, tests, technical docs, or repository-level
-operation. When committing changes in the Mirror repository, push Ricardo's
-work to his fork remote `ricardo` (`https://github.com/mitrano/mirror.git`),
-not to the official `origin` remote. Never commit or push tokens, credentials,
-SQLite databases, memory backups, `.local/` secrets, or other sensitive files.
+for it. Ricardo's structural personal identity documents live in
+`/home/ricardoalvares/repos/ricardo-personality/`; the authorial voice source is
+`identity/ricardo-authorial-voice.md` and must be kept synchronized with Mirror's
+global identity record `knowledge/ricardo-authorial-voice` when changed. Only
+write inside `/home/ricardoalvares/repos/mirror/` when the file is needed for
+Mirror's runtime, skills, tests, technical docs, or repository-level operation.
+When committing changes in the Mirror repository, push Ricardo's work to his fork
+remote `ricardo` (`https://github.com/mitrano/mirror.git`), not to the official
+`origin` remote. Never commit or push tokens, credentials, SQLite databases,
+memory backups, `.local/` secrets, or other sensitive files.
 
 ### Ego-Persona Model
 
