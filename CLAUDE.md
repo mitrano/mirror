@@ -79,10 +79,11 @@ what was done. Prefer small commits with clear review boundaries.
 
 **Ricardo's personal artifacts and fork policy:** prefer saving Ricardo's
 journey artifacts, documents, analyses, exports, plans, and personal materials
-outside the Mirror runtime repository, under `/home/ricardoalvares/repos/`
-(prefer `/home/ricardoalvares/repos/jornadas/` or a dedicated project folder).
-Only write inside `/home/ricardoalvares/repos/mirror/` when the file is needed
-for Mirror's runtime, skills, tests, technical docs, or repository-level
+outside the Mirror runtime repository, directly under `/home/ricardoalvares/repos/`
+as a dedicated project/journey folder. Do not use a generic
+`/home/ricardoalvares/repos/jornadas/` container unless Ricardo explicitly asks
+for it. Only write inside `/home/ricardoalvares/repos/mirror/` when the file is
+needed for Mirror's runtime, skills, tests, technical docs, or repository-level
 operation. When committing changes in the Mirror repository, push Ricardo's
 work to his fork remote `ricardo` (`https://github.com/mitrano/mirror.git`),
 not to the official `origin` remote. Never commit or push tokens, credentials,
