@@ -12,6 +12,12 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-06-17 — CV20.DS6.US4 Traverse Change Request Cycles completed
+
+Completed the Navigator-facing CR traversal slice on top of the Refinement flow runtime. `REFINEMENT_FLOW_EVENT` surfaces now expose current CR phase, file-mutation boundary, and next conversational move; `/mm-build` guidance now enforces explicit phase order and implementation authorization for CR work.
+
+Validation: focused Builder and CLI tests passed; ruff, format check, mypy, and diff checks passed. Navigator validation through Mirror/Builder natural language on `sandbox-pet-store` traversed a CR through select, confirm, plan, explicit implementation evidence, validation evidence, and done note, with visible Ariad surfaces and no Delivery Work pulled.
+
 ### 2026-06-17 — CV20.DS6.TS2 Refinement Flow Runtime completed
 
 Completed the runtime substrate for active Refinement Work. Builder now supports stateful CR transitions from select through done note, RS review/coherence/close transitions, `REFINEMENT_FLOW_EVENT` surfaces, active CR visibility in Builder Home, and natural-language routing guidance for Refinement flow commands. Review and Coherence remain non-mutating; required changes must become CRs or future work.

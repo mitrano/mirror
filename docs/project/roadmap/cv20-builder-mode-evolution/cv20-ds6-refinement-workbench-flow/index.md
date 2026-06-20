@@ -29,7 +29,7 @@ based on the Ariad branch `ariad-refinement-workbench` at commit `2447705`.
 | [CV20.DS6.US2](cv20-ds6-us2-compose-refinement-story/index.md) | Compose A Refinement Story | User Story | Navigator can create an RS and add CRs to it during use, receiving visible Change Request Captured and Refinement Story Overview surfaces | ✅ Done |
 | [CV20.DS6.US3](cv20-ds6-us3-pull-refinement-story/index.md) | Pull A Refinement Story | User Story | Navigator can pull an RS from the Workbench and Builder resumes into Refinement Work instead of Delivery Work | ✅ Done |
 | [CV20.DS6.TS2](cv20-ds6-ts2-refinement-flow-runtime/index.md) | Refinement Flow Runtime | Technical Story | Runtime supports RS-level flow and CR-level cycles, from RS pull through CR done notes and RS review, coherence, and close | ✅ Done |
-| [CV20.DS6.US4](cv20-ds6-us4-traverse-change-request-cycles/index.md) | Traverse Change Request Cycles | User Story | Navigator can work through one CR at a time with confirmation, short plan, implementation, validation evidence, and done note | 🟡 Planned |
+| [CV20.DS6.US4](cv20-ds6-us4-traverse-change-request-cycles/index.md) | Traverse Change Request Cycles | User Story | Navigator can work through one CR at a time with confirmation, short plan, implementation, validation evidence, and done note | ✅ Done |
 | [CV20.DS6.US5](cv20-ds6-us5-close-refinement-story/index.md) | Close A Refinement Story | User Story | Navigator can review the RS as a whole, record debt or follow-up without mutating during review, run coherence, and close the RS with CR outcomes preserved | 🟡 Planned |
 
 ---
