@@ -12,6 +12,12 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-06-17 — CV20.DS6.US5 Close A Refinement Story completed
+
+Completed the RS-level closure slice for Ariad Refinement Work. Builder now guards RS review/coherence/close against the wrong active story or an active CR, refuses to close an RS with unfinished CRs, records RS close surfaces with explicit closure record, clears active Refinement cursor state after close, and preserves CR outcome notes.
+
+Validation: focused Builder and CLI tests passed; ruff, format check, mypy, and diff checks passed. Navigator validation through Mirror/Builder natural language on `sandbox-pet-store` created an RS/CR, traversed the CR to done, reviewed and coherence-checked the RS, closed it, and confirmed Builder Home no longer showed active Refinement Work while Delivery remained unpulled.
+
 ### 2026-06-17 — CV20.DS6.US4 Traverse Change Request Cycles completed
 
 Completed the Navigator-facing CR traversal slice on top of the Refinement flow runtime. `REFINEMENT_FLOW_EVENT` surfaces now expose current CR phase, file-mutation boundary, and next conversational move; `/mm-build` guidance now enforces explicit phase order and implementation authorization for CR work.
