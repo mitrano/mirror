@@ -12,6 +12,12 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-06-17 — CV20.DS6 Refinement Workbench And Flow completed
+
+Closed the aggregate Refinement Workbench And Flow delivery story. Builder now supports Ariad Refinement Work as a first-class field outside roadmap Delivery: Builder Home shows Delivery and Refinement fields, Workbench storage persists Refinement Stories and Change Requests, Navigator can compose and pull an RS, traverse CR cycles, review/coherence-check/close an RS, and reset sandbox Workbench state.
+
+Validation: all DS6 child stories completed with focused automated checks and Navigator validation on `sandbox-pet-store`. Aggregate DS validation, debt review, coherence, and done artifacts were recorded. Push and release remain separate hard gates.
+
 ### 2026-06-17 — CV20.DS6.US5 Close A Refinement Story completed
 
 Completed the RS-level closure slice for Ariad Refinement Work. Builder now guards RS review/coherence/close against the wrong active story or an active CR, refuses to close an RS with unfinished CRs, records RS close surfaces with explicit closure record, clears active Refinement cursor state after close, and preserves CR outcome notes.

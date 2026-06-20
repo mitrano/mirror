@@ -181,12 +181,12 @@ received one CI-stabilization commit for a path-wrapping assertion. GitHub
 Actions passed on `main` after that fix. The `v0.28.0` tag and `stable` point at
 the release commit before the test-only stabilization commit.
 
-**Next Builder work:** Continue with `CV20.DS6 — Refinement Workbench And Flow`.
-That work should make Ariad Refinement visible inside Builder through Workbench,
-Refinement Stories, Change Requests, and a two-level refinement flow. Release and
-push governance moves to `CV20.DS7 — Release And Push Policies`; do not assume
-push/release permission from ordinary Done, and keep release and stable promotion
-as separate Navigator-authorized hard gates.
+**Current Builder work:** `CV20.DS6 — Refinement Workbench And Flow` is complete.
+Builder now exposes Ariad Refinement through Builder Home, durable Workbench
+Refinement Stories and Change Requests, RS pull, CR cycles, and RS-level
+review/coherence/close. The next planned Builder slice is `CV20.DS7 — Release
+And Push Policies`; do not assume push/release permission from ordinary Done, and
+keep release and stable promotion as separate Navigator-authorized hard gates.
 
 ---
 

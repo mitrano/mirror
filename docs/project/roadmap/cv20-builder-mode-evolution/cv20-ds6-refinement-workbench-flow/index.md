@@ -2,7 +2,7 @@
 
 # CV20.DS6 — Refinement Workbench And Flow
 
-**Status:** 🟡 Planned
+**Status:** ✅ Done
 
 ---
 
@@ -70,3 +70,12 @@ outcomes preserved.
 
 The first dogfooding target after DS6 is `RS-001 — Builder lifecycle end-to-end
 refinement`, which should live in the Workbench rather than the roadmap.
+
+## Artifacts
+
+- [Plan](plan.md)
+- [Test Guide](test-guide.md)
+- [Validation](validation.md)
+- [Debt Review](review.md)
+- [Coherence](coherence.md)
+- [Done](done.md)
