@@ -67,7 +67,7 @@ Show the user the available commands (same on Pi and Gemini CLI):
 
 | Command | What it does |
 |---------|-------------|
-| `/mm-transcribe <file>` | Transcribes local audio/video through Ricardo's TranscritorWPP bridge |
+| `/mm-transcribe <file>` | Transcribes local audio/video through the clean Mirror Transcriber project |
 
 ## System
 
