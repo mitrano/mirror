@@ -63,6 +63,12 @@ Show the user the available commands (same on Pi and Gemini CLI):
 | `/mm-discard` | Discards the current conversation from the database before quitting |
 | `/mm-mute` | Toggles conversation logging |
 
+## Utilities
+
+| Command | What it does |
+|---------|-------------|
+| `/mm-transcribe <file>` | Transcribes local audio/video through Ricardo's TranscritorWPP bridge |
+
 ## System
 
 | Command | What it does |
