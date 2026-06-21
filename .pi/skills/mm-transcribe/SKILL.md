@@ -49,7 +49,9 @@ Format support:
 Diarization:
 
 - Use `--diarize` when Ricardo needs speaker identification.
+- Gemini uses prompt-based speaker separation.
 - Groq is skipped when diarization is requested because it does not provide real diarization.
+- Local Whisper uses `pyannote.audio` for real diarization when the `diarization` extra is installed and `HF_TOKEN`/`HUGGINGFACE_TOKEN` is configured.
 - Use `--no-diarize` for simpler/faster transcription.
 
 ## Operating Protocol
