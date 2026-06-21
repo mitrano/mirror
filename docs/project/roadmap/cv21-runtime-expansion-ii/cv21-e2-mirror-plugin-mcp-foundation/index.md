@@ -39,9 +39,9 @@ not a forced migration (CV21 non-goal).
 - A canonical Claude-format plugin directory with a validating
   `.claude-plugin/plugin.json` manifest (version synced to `pyproject.toml`).
 - The Claude-tuned skill set bundled into the plugin, generated from
-  `.claude/skills/` with a drift guard. The Claude skill set is at 21 today; the
-  four Pi-only skills (`discard`, `explore`, `soul`, `update`) are brought to
-  Claude parity in a dedicated story (S1b).
+  `.claude/skills/` with a drift guard. S1b brought the four formerly Pi-only
+  skills (`discard`, `explore`, `soul`, `update`) to Claude parity, so the plugin
+  now carries all 25 skills.
 - The four lifecycle hooks (`SessionStart`, `UserPromptSubmit` inject + log,
   `Stop` end+backup) carried by the plugin and portable to plugin-relative paths.
 - The Mirror MCP server exposing the command surface + on-demand identity context.
@@ -57,7 +57,7 @@ not a forced migration (CV21 non-goal).
 | Code | Story | Type | Outcome | Status |
 |------|-------|------|---------|--------|
 | [CV21.E2.S1](cv21-e2-s1-claude-plugin-conversion/index.md) | Claude plugin conversion | Implementation | The 21 Claude-tuned skills + lifecycle hooks become a canonical Claude plugin (generated from `.claude/skills/`, drift-guarded) that passes `claude plugin validate`; isolated load smoke test | ✅ Done |
-| CV21.E2.S1b | Claude skill parity | Implementation | The four Pi-only skills (`discard`, `explore`, `soul`, `update`) are authored as Claude-tuned skills so the plugin reaches full 25-skill parity | 🟡 Planned |
+| [CV21.E2.S1b](cv21-e2-s1b-claude-skill-parity/index.md) | Claude skill parity | Implementation | The four Pi-only skills (`discard`, `explore`, `soul`, `update`) are authored as Claude-tuned skills so the plugin reaches full 25-skill parity | ✅ Done |
 | CV21.E2.S2 | Mirror MCP server | Implementation | `python -m memory mcp` serves the command surface + on-demand identity context; validates as an `mcpServers` entry; isolated smoke test | 🟡 Planned |
 | CV21.E2.S3 | Plugin status line | Implementation | The plugin `statusLine` renders Mirror's compact status line on Claude | 🟡 Planned · may fold into S1 if trivial |
 | CV21.E2.S4 | Reference-runtime smoke test | Integration | End-to-end isolated smoke test proving the full package (plugin + hooks + MCP) loads and runs equivalently to standalone `.claude/` | 🟡 Planned |

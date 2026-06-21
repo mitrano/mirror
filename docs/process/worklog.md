@@ -12,6 +12,14 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-06-21 — CV21.E2.S1b Claude skill parity completed
+
+Authored Claude-tuned versions of the four formerly Pi-only skills (`discard`, `explore`, `soul`, `update`) into `.claude/skills/`, bringing the canonical plugin to full 25-skill parity with the Pi runtime. Applied the established `.pi`→`.claude` tuning derived from existing skill pairs: `mm:` invocation tokens, Claude-only usage blocks, English-only copy (translating Pi's Portuguese triggers), and Claude runtime semantics — `mm:discard` uses `--interface claude_code` (the dispatch is interface-parameterized), and `mm:soul` notes that session ids are hook-owned rather than passing a Pi `--session-id`. Mode-skill contract surfaces (required-surface rendering, Explorer/Soul → Builder boundaries) carried over unchanged. Regenerating the plugin picked the four up automatically (no hardcoded count).
+
+Also hardened `scripts/smoke_claude_plugin.sh`: the S1 production-DB checksum guard false-failed when a live Mirror session wrote to its own production DB during the test window. The guard now asserts that the run's unique session id and message never appear in any production DB — a stronger, non-flaky isolation proof (verified leak-free and stable across repeated runs).
+
+Validation: 11 plugin tests (drift guard + skill-set parity now at 25), `claude plugin validate` passed, English-only content confirmed, and the smoke test passed leak-free across three consecutive runs. Standalone `.claude/` now also carries 25 skills, closing its own gap.
+
 ### 2026-06-21 — CV21.E2.S1 Claude plugin conversion completed
 
 Converted Mirror's standalone Claude integration into the canonical Claude-format plugin at `plugins/mirror-mind/` — the package CV21 propagates to the other runtimes. A new generator (`src/memory/plugins/claude.py`, driven by `scripts/build_claude_plugin.py`) materializes the manifest and the 21 Claude-tuned skills from `.claude/skills/` (the runtime-correct source — a diff proved the `.pi` and `.claude` skill bodies are independently tuned, not token-variants), normalizing two skills' lowercase `skill.md` to `SKILL.md`. Four plugin-relative hooks (`${CLAUDE_PLUGIN_ROOT}`, installed-`memory` contract) reproduce the SessionStart/UserPromptSubmit/SessionEnd lifecycle. A drift-guard test fails CI if the committed plugin diverges from `.claude/skills/`.

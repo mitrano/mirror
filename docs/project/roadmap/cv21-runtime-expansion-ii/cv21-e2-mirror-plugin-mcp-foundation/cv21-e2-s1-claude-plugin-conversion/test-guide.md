@@ -67,19 +67,22 @@ it importable (`PYTHONPATH=src`) to stand in for the installed-package condition
 
 The script:
 
-1. Snapshots every `~/.mirror-minds/*/memory.db` checksum before running.
-2. Fully sandboxes the runtime (`DB_PATH`, `MEMORY_DIR`, `DB_BACKUP_PATH` under a
+1. Fully sandboxes the runtime (`DB_PATH`, `MEMORY_DIR`, `DB_BACKUP_PATH` under a
    temp dir) and puts the project venv interpreter first on PATH so the plugin's
    bare `python3 -m memory` resolves (installed-package stand-in).
-3. Runs `claude plugin validate` when `claude` is present.
-4. Fires the three lifecycle hooks (`session-start`, `log-user-prompt`,
-   `log-session-end`) with representative payloads.
-5. Asserts the user message was logged to the isolated DB with
+2. Runs `claude plugin validate` when `claude` is present.
+3. Fires the three lifecycle hooks (`session-start`, `log-user-prompt`,
+   `log-session-end`) with a UNIQUE per-run payload.
+4. Asserts the user message was logged to the isolated DB with
    `interface='claude_code'`.
-6. Re-checks the production DB checksum(s) and asserts they are unchanged.
+5. Asserts that unique test data never appears in any production DB.
 
-Expected result: the script exits `0` and prints `✅ Smoke test PASSED`, with the
-production database(s) reported unchanged.
+The isolation guard checks for the absence of the run's unique session id and
+message in production rather than a whole-file checksum, so it stays correct even
+when a live Mirror session is writing to its own production DB concurrently.
+
+Expected result: the script exits `0` and prints `✅ Smoke test PASSED`, reporting
+no smoke data leaked into production.
 
 Scope note: the automated smoke proves manifest validity, hook firing, and DB
 isolation — the deterministic, CI-appropriate guarantees. **Live skill discovery

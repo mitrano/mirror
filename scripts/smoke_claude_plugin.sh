@@ -26,13 +26,12 @@ fail() {
   exit 1
 }
 
-# --- production DB guard: snapshot checksums before ------------------------
+# --- production DB guard: enumerate live databases -------------------------
+# Isolation is proven by asserting the smoke's UNIQUE test data never appears in
+# any production DB. This is robust against ambient writes from a concurrently
+# running Mirror session, which a whole-file checksum would misread as a leak.
 shopt -s nullglob
 PROD_DBS=("$HOME"/.mirror-minds/*/memory.db)
-declare -a PROD_BEFORE=()
-for db in "${PROD_DBS[@]}"; do
-  PROD_BEFORE+=("$(shasum -a 256 "$db")")
-done
 
 # --- isolated sandbox ------------------------------------------------------
 SANDBOX="$(mktemp -d)"
@@ -67,7 +66,7 @@ echo "✓ session-start hook fired"
 
 # --- 2. UserPromptSubmit (logging) hook ------------------------------------
 SESSION_ID="smoke-claude-plugin-$$"
-PROMPT="Hello from the Claude plugin smoke test"
+PROMPT="Claude plugin smoke test — $SESSION_ID"
 printf '{"session_id":"%s","prompt":"%s"}' "$SESSION_ID" "$PROMPT" \
   | bash "$HOOKS_DIR/log-user-prompt.sh" || fail "log-user-prompt hook exited non-zero"
 echo "✓ log-user-prompt hook fired"
@@ -88,13 +87,13 @@ echo "Interface label: $INTERFACE"
 [ "$CONTENT" = "$PROMPT" ] || fail "user message not logged to isolated DB"
 [ "$INTERFACE" = "claude_code" ] || fail "interface label is not claude_code"
 
-# --- 5. production DB guard: checksums unchanged ---------------------------
-i=0
+# --- 5. production DB guard: no smoke data leaked --------------------------
 for db in "${PROD_DBS[@]}"; do
-  after="$(shasum -a 256 "$db")"
-  [ "$after" = "${PROD_BEFORE[$i]}" ] || fail "production DB changed: $db"
-  i=$((i + 1))
+  leaked_msgs="$(sqlite3 "$db" "SELECT count(*) FROM messages WHERE content = '$PROMPT';" 2>/dev/null || echo ERR)"
+  leaked_sess="$(sqlite3 "$db" "SELECT count(*) FROM runtime_sessions WHERE session_id = '$SESSION_ID';" 2>/dev/null || echo ERR)"
+  { [ "$leaked_msgs" = "0" ] && [ "$leaked_sess" = "0" ]; } \
+    || fail "smoke data leaked into production: $db (messages=$leaked_msgs sessions=$leaked_sess)"
 done
-echo "✓ production database(s) unchanged (${#PROD_DBS[@]} checked)"
+echo "✓ no smoke data leaked into production (${#PROD_DBS[@]} db checked)"
 
 echo "✅ Smoke test PASSED"
