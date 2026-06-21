@@ -51,7 +51,8 @@ Diarization:
 - Use `--diarize` when Ricardo needs speaker identification.
 - Gemini uses prompt-based speaker separation.
 - Groq is skipped when diarization is requested because it does not provide real diarization.
-- Local Whisper uses `pyannote.audio` for real diarization when the `diarization` extra is installed and `HF_TOKEN`/`HUGGINGFACE_TOKEN` is configured.
+- Local Whisper uses `pyannote.audio` for real diarization when the `diarization` extra is installed, `HF_TOKEN`/`HUGGINGFACE_TOKEN` is configured, and the pyannote model terms have been accepted on Hugging Face.
+- Before local diarization, use `uv run mirror-transcriber doctor` to verify setup.
 - Use `--no-diarize` for simpler/faster transcription.
 
 ## Operating Protocol
