@@ -11,6 +11,89 @@ resolved.
 
 ## Completed Decisions
 
+### Mirror Mind ports to TypeScript via a database-seam strangler, not a rewrite
+
+**Date:** 2026-06-23
+**Reference:** journey `mirror`, [CV21 converges on a canonical plugin plus MCP server](#cv21-converges-on-a-canonical-plugin-plus-mcp-server-bridged-by-import), [Architecture](../product/architecture.md)
+**Participants:** Vinícius Teles and Alisson Vale
+
+Mirror Mind will be ported from its Python core (`src/memory/`) to TypeScript.
+The motivation is **convergence**, not packaging alone: easier distribution
+through npm, a single language across core and the already-TypeScript runtime
+harnesses, a wider contributor pool, and alignment with the MCP/plugin ecosystem
+that CV21 is already moving toward. The risks and benefits were weighed
+explicitly before committing.
+
+Decision: the port is a **strangler**, never a big-bang rewrite. The valuable
+asset is not the code but the accumulated correctness — the hybrid-search
+ranker, two-pass extraction, MMR dedup, consolidation, and shadow cultivation,
+encoded in the existing test suite. A rewrite would discard the regression net at
+the exact moment it is most needed; the strangler keeps a working Mirror every
+day.
+
+The spine of the approach:
+
+1. **Seam — the database.** The integration point is the SQLite file
+   (`~/.mirror-minds/<user>/memory.db`), not an in-process language bridge. Two
+   cores, one database, one shared schema and FTS5 config. Local-first means the
+   strangler seam already exists on disk: language-neutral, durable, observable.
+2. **Unit — the command.** The strangler unit is the CLI/MCP command, whose
+   contract is observable as `command + args -> stdout`. Progress is a visible
+   burn-down: commands-on-TS / total. The port is done when the Python core has
+   no commands left and can be deleted.
+3. **Front door — Pi.** The first TS surface is a TypeScript front door on Pi,
+   the runtime both authors use daily. On day one it wraps the frozen Python
+   engine (shelling out for everything), and commands are strangled into the TS
+   core behind it. The runtimes never notice which language answers.
+4. **New-work policy — Python freezes now.** The Python core moves to
+   maintenance-only effective immediately. All new feature work lands in TS
+   behind the seam. A strangler only converges when the old system is allowed to
+   shrink; a system that keeps sprinting in the old language never finishes.
+5. **In-flight consequence.** Unfinished CV20 Ariad and CV21 MCP work becomes
+   the *first* TS feature work, built once in the target language rather than
+   twice.
+6. **Team and cadence.** Vinícius owns the engineering of the seam; Alisson owns
+   the Jungian-architecture semantics that must survive the port. The work is
+   part-time with no deadline — a background burn — so the transition state (TS
+   front door over a frozen Python engine) is durable and must be comfortable to
+   live in, with no throwaway intermediate states.
+7. **Sequencing by risk.** Port read-only, deterministic commands first (proving
+   ranker parity), deterministic writes next, and external-API,
+   non-deterministic commands last. For the last bucket, freeze embeddings into
+   the test corpus so the ranker is tested deterministically, and record/replay
+   LLM responses to test orchestration and parsing rather than model output.
+8. **Parity oracle.** The existing Python test suite is converted into a
+   language-agnostic golden-data corpus (inputs -> expected ranked outputs). The
+   corpus is the specification the TS core must satisfy, turning otherwise
+   throwaway tests into the migration's oracle.
+
+Safety discipline: the strangler runs against a **copy** of the real
+`memory.db`, never the live one, until each command proves parity. The
+production database is both the seam and the authors' daily intelligence asset,
+so that is where data-corruption risk concentrates. Read-only commands may run
+live; any write stays with Python until its ported version passes golden tests on
+a copy. Back up first (`mm-backup`).
+
+Consequences:
+
+- The Python core is now maintenance-only; new Builder/Soul/Explorer feature work
+  targets the TS core behind the seam, not `src/memory/`.
+- CV20 and CV21 in-flight work is re-homed to TypeScript rather than being
+  completed in Python.
+- The SQLite schema and FTS5 configuration are effectively frozen and must be
+  treated as a compatibility contract; schema changes require explicit migration
+  discipline so existing user databases keep working.
+- The first two concrete artifacts are this decision record and a **Pi read-only
+  search spike**: a copied `memory.db` -> TS core -> `search` returning ranked
+  results identical to Python on the golden corpus. The spike de-risks the
+  hardest assumption (ranker parity) before broader commitment.
+- A future TS package rename from `memory` to `mirror` can be reconsidered during
+  the port, superseding the historical-namespace decision when intentionally
+  planned.
+- This is a strategic direction record. It does not yet open a CV/Epic/Story; a
+  roadmap structure for the port should be derived from this spine when the spike
+  validates the approach.
+
 ### Builder adds Refinement Work before release/push governance
 
 **Date:** 2026-06-17
