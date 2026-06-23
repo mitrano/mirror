@@ -90,9 +90,9 @@ Consequences:
 - A future TS package rename from `memory` to `mirror` can be reconsidered during
   the port, superseding the historical-namespace decision when intentionally
   planned.
-- This is a strategic direction record. It does not yet open a CV/Epic/Story; a
-  roadmap structure for the port should be derived from this spine when the spike
-  validates the approach.
+- The strategic spine is now realized as [CV22 — TypeScript Core Port](roadmap/cv22-typescript-core-port/index.md),
+  derived from this record after the hybrid-search parity spike (CV22.E1)
+  validated the approach on synthetic and real-DB data.
 
 ### Builder adds Refinement Work before release/push governance
 
