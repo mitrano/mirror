@@ -12,6 +12,12 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-06-25 — v0.29.1 Windows Compatibility Hardening prepared
+
+Prepared the patch release boundary for Windows compatibility hardening after homologating the self-update path on the `lucas-vidal` staging mirror. The release preserves Windows-safe Claude and plugin skill directories, UTF-8 runtime output, explicit backup-gated mojibake repair, extension legacy skill cleanup, and cross-platform path rendering without changing user-facing command names.
+
+Validation: PR #24 was merged after local focused tests, full unit tests, ruff, plugin drift check, focused mypy on touched modules, and GitHub Actions passed. Staging self-update on `~/.mirror-minds/lucas-vidal` using `~/mirror-staging` passed before preparing this release boundary. Stable promotion, tag creation, and push remain separate gates.
+
 ### 2026-06-21 — CV21.E2.S2 Mirror MCP server completed
 
 Built the Mirror MCP server (`python -m memory mcp`) as a zero-dependency, hand-rolled stdio JSON-RPC 2.0 surface (decision D1 Option B), keeping the lean local-first core intact rather than pulling the official SDK's 18-package tree. The server implements the tools-only subset (`initialize`, `notifications/initialized`, `tools/list`, `tools/call`, `ping`) with a pure `handle_message` dispatch wrapped by a thin stdio loop; diagnostics go to stderr so stdout stays a clean protocol channel. Seven read + on-demand-context tools call the `MemoryClient` façade in-process (layer model `mcp → services`): `mirror_context` (side-effect-free identity, deliberately not `skills.mirror.load`), `list_journeys`, `journey_status`, `search_memories`, `list_conversations`, `recall_conversation`, `detect_persona`. Writes are out of scope by design. The plugin generator now declares the server as an `mcpServers` entry in the manifest, so the canonical package carries it.
