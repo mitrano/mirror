@@ -12,6 +12,12 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-06-25 — GitHub Release publication added to release process
+
+Published the GitHub Release for `v0.29.1 — Windows Compatibility Hardening` from the committed release note and marked it as the latest repository release. The release process now explicitly treats GitHub Releases as the public repository-facing publication surface layered on top of the same Git tag that drives the stable updater channel.
+
+Validation: `gh release create v0.29.1 --latest` succeeded and `gh release view v0.29.1` reports the published release URL. Process docs and command reference now include GitHub Release publication after stable promotion and green CI.
+
 ### 2026-06-25 — v0.29.1 Windows Compatibility Hardening prepared
 
 Prepared the patch release boundary for Windows compatibility hardening after homologating the self-update path on the `lucas-vidal` staging mirror. The release preserves Windows-safe Claude and plugin skill directories, UTF-8 runtime output, explicit backup-gated mojibake repair, extension legacy skill cleanup, and cross-platform path rendering without changing user-facing command names.

@@ -241,7 +241,18 @@ uv run python -m memory runtime release-promote --target vX.Y.Z
 uv run python -m memory runtime release-promote --target vX.Y.Z --push
 ```
 
-Promotes a release to the stable channel through a controlled path. The command runs the release doctor first and blocks on failures. Dry-run prints planned stages without creating tags, moving branches, or pushing. Local promotion creates the missing target tag at `HEAD` or reuses an existing tag already at `HEAD`, then creates or fast-forwards the local `stable` branch to `HEAD`. Remote publication happens only with `--push`, which pushes the tag and stable branch to `origin`. The command does not fetch, force-push, rewrite existing tags, bump versions, write release notes, back up, migrate, or update production clones.
+Promotes a release to the stable channel through a controlled path. The command runs the release doctor first and blocks on failures. Dry-run prints planned stages without creating tags, moving branches, or pushing. Local promotion creates the missing target tag at `HEAD` or reuses an existing tag already at `HEAD`, then creates or fast-forwards the local `stable` branch to `HEAD`. Remote publication happens only with `--push`, which pushes the tag and stable branch to `origin`. The command does not fetch, force-push, rewrite existing tags, bump versions, write release notes, create GitHub Releases, back up, migrate, or update production clones.
+
+After `release-promote --push` succeeds and CI is green, publish the matching GitHub Release on the same tag:
+
+```bash
+gh release create vX.Y.Z \
+  --title "vX.Y.Z — Release Title" \
+  --notes-file /tmp/mirror-release-notes.md \
+  --latest
+```
+
+Use `gh release edit vX.Y.Z ... --latest` if the GitHub Release already exists. The notes body should come from `docs/releases/vX.Y.Z.md` with the YAML frontmatter removed.
 
 ### Update execution
 
@@ -305,7 +316,7 @@ Each clone declares its update channel through `.mirror-update-channel`. Valid v
 - `stable` is the user-facing release channel.
 - `main` is the integration/dogfooding channel.
 - A push to `main` is not a release.
-- `stable` advances only through release promotion after versioning, release notes, CI, smoke validation, tagging, and fast-forward.
+- `stable` advances only through release promotion after versioning, release notes, CI, smoke validation, tagging, fast-forward, and GitHub Release publication.
 
 Change a clone to stable releases:
 
