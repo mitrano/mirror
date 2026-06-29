@@ -119,6 +119,11 @@ def _print_builder_banner(slug: str, project_path: str | None = None) -> None:
         print(f"\033[38;5;117m  📁 {project_path}\033[0m", file=sys.stderr)
 
 
+def _builder_persona(mem: MemoryClient, slug: str) -> str:
+    persona = mem.journeys.get_builder_persona(slug)
+    return persona or "engineer"
+
+
 def _extract_query(journey_content: str, slug: str) -> str:
     lines = journey_content.splitlines()
     sections = ["description", "briefing", "context", "descrição", "contexto"]
@@ -195,6 +200,7 @@ def cmd_load(
         sys.exit(1)
 
     project_path = mem.journeys.get_project_path(slug)
+    builder_persona = _builder_persona(mem, slug)
     _check_clone_role_guard(
         ignore_production_role=ignore_production_role,
         project_path=project_path,
@@ -218,7 +224,7 @@ def cmd_load(
             project_path=project_path,
         )
 
-    context = mem.load_mirror_context(persona="engineer", journey=slug)
+    context = mem.load_mirror_context(persona=builder_persona, journey=slug)
     print(context)
 
     query_text = _extract_query(journey_text, slug)
@@ -238,7 +244,7 @@ def cmd_load(
             print(f"\n[{memory.layer}] {memory.title}")
             print(memory.content)
 
-    _persist_global_sticky_defaults(mem, persona="engineer", journey=slug)
+    _persist_global_sticky_defaults(mem, persona=builder_persona, journey=slug)
     resolved_session_id = resolve_operating_session_id(mem.store, session_id)
     activate_mode(
         mem.store,
@@ -246,7 +252,7 @@ def cmd_load(
         journey=slug,
         session_id=resolved_session_id,
     )
-    switch_conversation(session_id=resolved_session_id, persona="engineer", journey=slug)
+    switch_conversation(session_id=resolved_session_id, persona=builder_persona, journey=slug)
 
     if project_path:
         print(f"\nproject_path={project_path}")

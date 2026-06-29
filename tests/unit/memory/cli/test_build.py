@@ -46,6 +46,26 @@ def test_build_load_reads_project_path_from_journey_service(mocker, tmp_path, ca
     inspect.assert_called_once_with(project_path.resolve())
 
 
+def test_build_load_uses_journey_builder_persona_when_configured(mocker, tmp_path):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "timetable", JOURNEY_CONTENT)
+    mem.journeys.update_metadata_fields("timetable", {"builder_persona": "road-manager"})
+
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+    switch = mocker.patch("memory.cli.build.switch_conversation")
+    sticky = mocker.patch("memory.cli.build._persist_global_sticky_defaults")
+    load_context = mocker.patch.object(mem, "load_mirror_context", return_value="context")
+    mocker.patch.object(mem, "search", return_value=[])
+
+    build.cmd_load("timetable")
+
+    load_context.assert_called_once_with(persona="road-manager", journey="timetable")
+    sticky.assert_called_once_with(mem, persona="road-manager", journey="timetable")
+    switch.assert_called_once_with(session_id=None, persona="road-manager", journey="timetable")
+
+
 def test_build_load_refuses_when_journey_project_path_is_production_clone(mocker, tmp_path, capsys):
     mirror_home = tmp_path / ".mirror" / "pati"
     db_path = default_db_path_for_home(mirror_home)

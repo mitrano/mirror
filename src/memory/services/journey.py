@@ -344,6 +344,18 @@ class JourneyService:
         except (json.JSONDecodeError, TypeError):
             return None
 
+    def get_builder_persona(self, journey: str) -> str | None:
+        """Return the preferred Builder Mode persona configured for a journey."""
+        ident = self._get_journey_identity(journey)
+        if not ident or not ident.metadata:
+            return None
+        try:
+            meta = json.loads(ident.metadata)
+            persona = meta.get("builder_persona")
+            return persona if isinstance(persona, str) and persona.strip() else None
+        except (json.JSONDecodeError, TypeError):
+            return None
+
     def set_project_path(self, journey: str, project_path: str) -> str:
         """Configure and return the resolved project path for a journey."""
         ident = self._get_journey_identity(journey)
@@ -416,7 +428,14 @@ class JourneyService:
         ident = self._get_journey_identity(journey)
         if not ident:
             raise ValueError(f"Journey '{journey}' not found.")
-        allowed = {"project_path", "sync_file", "icon", "color", "parent_journey"}
+        allowed = {
+            "project_path",
+            "sync_file",
+            "icon",
+            "color",
+            "parent_journey",
+            "builder_persona",
+        }
         unknown = set(fields) - allowed
         if unknown:
             raise ValueError(f"Unsupported journey metadata field: {sorted(unknown)[0]}")
