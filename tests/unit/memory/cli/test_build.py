@@ -54,6 +54,7 @@ def test_build_load_uses_journey_builder_persona_when_configured(mocker, tmp_pat
     mem.journeys.update_metadata_fields("timetable", {"builder_persona": "road-manager"})
 
     mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+    mocker.patch("memory.cli.build._is_mirror_mind_checkout", return_value=False)
     switch = mocker.patch("memory.cli.build.switch_conversation")
     sticky = mocker.patch("memory.cli.build._persist_global_sticky_defaults")
     load_context = mocker.patch.object(mem, "load_mirror_context", return_value="context")
