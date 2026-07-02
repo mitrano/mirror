@@ -65,6 +65,13 @@ explicit implementation or documentation instruction, such as implement, fix,
 edit, create, run tests, or names a specific story to execute. Context
 activation is not execution consent.
 
+Ariad surface transport invariant: when command output contains marked Ariad
+surface blocks (`<<<ARIAD:...>>>` through `<<<END:...>>>`), preserve every marked
+block verbatim in the assistant response before commentary. Do not summarize,
+translate, reorder, trim, rewrap, re-indent, reformat, or replace marked surfaces
+with prose. This is a general rendering rule for Ariad surfaces, not a
+phase-specific behavior.
+
 **Ambiguity:** if the mode is unclear, ask whether the user wants personal
 reflection or project construction.
 

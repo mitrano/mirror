@@ -39,6 +39,11 @@ def _iso(offset: timedelta) -> str:
     return (datetime.now(timezone.utc) + offset).isoformat()
 
 
+@pytest.fixture(autouse=True)
+def _production_status_line_environment(monkeypatch):
+    monkeypatch.setattr("memory.config.MEMORY_ENV", "production")
+
+
 # ---------- silent states -----------------------------------------------
 
 
@@ -611,6 +616,17 @@ def test_welcome_status_line_healthy_without_cache(tmp_path, capsys):
     main(["--mirror-home", str(tmp_path / ".mirror" / "alisson-vale"), "--status-line"])
 
     assert capsys.readouterr().out.strip() == "◇ alisson-vale · ◌ Mirror Mode · ✓"
+
+
+def test_welcome_status_line_shows_development_environment(monkeypatch, tmp_path, capsys):
+    _mem(tmp_path, user="alisson-vale")
+    monkeypatch.setattr("memory.config.MEMORY_ENV", "development")
+
+    from memory.cli.welcome import main
+
+    main(["--mirror-home", str(tmp_path / ".mirror" / "alisson-vale"), "--status-line"])
+
+    assert capsys.readouterr().out.strip() == "◇ alisson-vale · 🛠 development · ◌ Mirror Mode · ✓"
 
 
 def test_welcome_status_line_includes_active_mode_context(tmp_path, capsys):

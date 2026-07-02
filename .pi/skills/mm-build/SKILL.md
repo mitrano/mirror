@@ -575,11 +575,18 @@ Story plan`, run:
 uv run python -m memory build approve-delivery-story-plan --method ariad
 ```
 
-If the user names a specific journey, pass `--journey <slug>`. Return the
-approved `DELIVERY_STORY_PLAN_CHECKPOINT` surface verbatim. Explain after the
-surface that child work may proceed under the aggregate DS Plan contract, while
-unsafe operations, scope changes, debt decisions, push, release, and final Done
-boundaries remain hard stops.
+If the user names a specific journey, pass `--journey <slug>`. Return every
+emitted Ariad surface verbatim, including `DELIVERY_STORY_PLAN_CHECKPOINT`,
+`ARTIFACTS_MATERIALIZED`, and `IMPLEMENTATION_STARTED` when present.
+
+Plan approval authorizes local implementation under the approved DS Plan. After
+rendering the approval surfaces, do **not** stop to ask for a separate
+implementation command. Immediately begin implementing the approved plan: read
+the generated `plan.md` / `test-guide.md` artifacts and relevant code, edit local
+project files, and run appropriate checks. Still stop before hard gates: unsafe
+operations, scope changes, debt decisions, push, release, deploy, purchase,
+externally irreversible actions, and final Done/history boundaries remain
+explicit Navigator authorization points.
 
 ## Plan Ariad Work
 
@@ -645,19 +652,18 @@ uv run python -m memory build review-delivery-story --method ariad \
   --summary "<DS-level debt review summary>"
 ```
 
-For DS-level coherence requests, run:
-
-```bash
-uv run python -m memory build coherence-delivery-story --method ariad \
-  --summary "<DS-level coherence summary>"
-```
-
-For DS-level Done requests, run:
+For DS-level Done requests after Debt Review and Navigator closure confirmation,
+run:
 
 ```bash
 uv run python -m memory build done-delivery-story --method ariad \
   --summary "<DS-level done/history summary>"
 ```
+
+DS-level Coherence is not a separate lifecycle stage before Done. It is checked
+inside the Done stage after closure/status/roadmap/history materialization, so
+Done is responsible for ensuring docs, roadmap, cursor, artifacts, and next-pull
+readiness remain consistent after closure.
 
 If the user names a specific journey, pass `--journey <slug>`. Return every
 `DELIVERY_STORY_CLOSURE_CHECKPOINT` surface verbatim. Explain after the block
@@ -668,8 +674,8 @@ behavior in that mode.
 
 ## Validate Ariad Work
 
-After implementation is complete and before moving to Debt Review, Coherence, or
-Done, render the Validation checkpoint:
+After implementation is complete and before moving to Debt Review or Done,
+render the Validation checkpoint:
 
 ```bash
 uv run python -m memory build validate-item --method ariad \
@@ -691,12 +697,12 @@ pass `--navigator-accepted`. Providing a route is not the same as acceptance.
 If the user names a specific journey, pass `--journey <slug>`. Render the
 deterministic `VALIDATION_CHECKPOINT` surface. If required evidence is missing or
 Navigator validation has not been accepted, return the surface and stop; do not
-advance to Debt Review, Coherence, Done, commit, push, or release.
+advance to Debt Review, Done, commit, push, or release.
 
 ## Review Ariad Debt
 
-After Validation has passed and before moving to Coherence or Done, render the
-Debt Review checkpoint:
+After Validation has passed and before moving to Done, render the Debt Review
+checkpoint:
 
 ```bash
 uv run python -m memory build review-item --method ariad \
@@ -709,29 +715,15 @@ uv run python -m memory build review-item --method ariad \
 If the user names a specific journey, pass `--journey <slug>`. Render the
 deterministic `DEBT_REVIEW_CHECKPOINT` surface. If the decision is `pending`,
 `defer` without a reason/trigger, or `pay_now`, stop at the debt decision
-checkpoint. `pay_now` must route through a future Refactor loop before Coherence.
-Do not advance to Coherence, Done, commit, push, or release while the debt
-decision is unresolved.
-
-## Check Ariad Coherence
-
-After Debt Review is complete and before Done, render the Coherence checkpoint:
-
-```bash
-uv run python -m memory build coherence-item --method ariad \
-  --process "<process alignment evidence>" \
-  --project "<project/docs/artifacts alignment evidence>" \
-  --product "<product behavior alignment evidence>" \
-  --local-difference "<optional Ariad vs local guide difference>"
-```
-
-If the user names a specific journey, pass `--journey <slug>`. Render the
-deterministic `COHERENCE_CHECKPOINT` surface. If coherence is blocked, return the
-surface and stop; do not advance to Done, commit, push, or release.
+checkpoint. `pay_now` must route through a future Refactor loop before Done.
+Do not advance to Done, commit, push, or release while the debt decision is
+unresolved.
 
 ## Close Ariad Done
 
-After Coherence is complete, render the Done checkpoint:
+After Debt Review is complete and the Navigator confirms there is nothing else
+to do in the story, render the Done checkpoint. Coherence is checked inside Done
+after closure materialization:
 
 ```bash
 uv run python -m memory build done-item --method ariad \

@@ -1,7 +1,6 @@
 from memory import MemoryClient
 from memory.builder.delivery_cursor import get_delivery_cursor, set_delivery_cursor
 from memory.builder.delivery_story_closure import (
-    coherence_delivery_story,
     done_delivery_story,
     render_delivery_story_closure_report,
     review_delivery_story,
@@ -86,12 +85,6 @@ def test_delivery_story_closure_progresses_to_done(tmp_path):
         decision="no_action",
         summary="no debt",
     )
-    coherence_delivery_story(
-        store,
-        journey="sandbox-pet-store",
-        method="ariad",
-        summary="coherent",
-    )
     report = done_delivery_story(
         store,
         journey="sandbox-pet-store",
@@ -110,8 +103,12 @@ def test_delivery_story_closure_progresses_to_done(tmp_path):
         "done:done",
     )
 
+    rendered = render_delivery_story_closure_report(report)
+    assert "✓ Debt Review → ◉ Done" in rendered
+    assert "Coherence check" in rendered
 
-def test_render_delivery_story_closure_report_lists_checkpoint_artifacts(tmp_path):
+
+def test_render_delivery_story_closure_report_omits_artifact_paths(tmp_path):
     _client, store = _store(tmp_path)
     _seed(store)
     artifact = tmp_path / "story" / "validation.md"
@@ -126,13 +123,11 @@ def test_render_delivery_story_closure_report_lists_checkpoint_artifacts(tmp_pat
 
     rendered = render_delivery_story_closure_report(report)
 
-    assert "│ validation artifact                                    │" in rendered
-    assert "validation.md" in rendered
-    assert "│ checkpoint artifacts                                   │" in rendered
-    assert "│ - validation:" in rendered
-    assert "│   (created)" in rendered
-    assert "│ - review:" in rendered
-    assert "│   (pending)" in rendered
+    assert "│ validation artifact                                    │" not in rendered
+    assert "validation.md" not in rendered
+    assert "│ checkpoint artifacts                                   │" not in rendered
+    assert "│ What was validated?                                    │" in rendered
+    assert "│ Evidence summary                                       │" in rendered
 
 
 def test_render_delivery_story_closure_report_lists_child_work_items(tmp_path):
@@ -151,8 +146,9 @@ def test_render_delivery_story_closure_report_lists_child_work_items(tmp_path):
     assert "<<<ARIAD:DELIVERY_STORY_CLOSURE_CHECKPOINT>>>" in rendered
     assert "╭────────────────────────────────────────────────────────╮" in rendered
     assert "DELIVERY STORY VALIDATION" in rendered
-    assert "│ delivery story                                         │" in rendered
-    assert "│ CV2.DS1                                                │" in rendered
-    assert "│ - CV2.DS1.US1" in rendered
-    assert "│ status                                                 │" in rendered
-    assert "│ passed                                                 │" in rendered
+    assert "│ What was validated?                                    │" in rendered
+    assert "🟦[CV2.DS1]" in rendered
+    assert "child work packages" not in rendered
+    assert "│ status                                                 │" not in rendered
+    assert "Navigator accepted validation." in rendered
+    assert "Proceed to DS-level Debt Review." in rendered

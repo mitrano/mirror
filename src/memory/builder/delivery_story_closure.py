@@ -135,17 +135,25 @@ def done_delivery_story(
     artifact_path: Path | None = None,
 ) -> DeliveryStoryClosureReport:
     cursor = _require_delivery_story_cursor(store, journey)
-    _require_status(cursor, "coherence", "coherent")
-    updated = _update_cursor(
+    _require_prefix(cursor, "debt_review", "review:")
+    statuses = _replace_status(cursor.aggregate_checkpoint_status, "coherence", "coherent")
+    statuses = _replace_status(statuses, "done", "done")
+    updated = set_delivery_cursor(
         store,
         journey=journey,
         method=method,
-        cursor=cursor,
-        event="delivery_story_done_complete",
+        active_item=cursor.active_item,
+        active_item_title=cursor.active_item_title,
+        active_item_level=cursor.active_item_level,
         active_checkpoint=None,
         pending_confirmation=None,
-        checkpoint="done",
-        status="done",
+        last_delivery_event="delivery_story_done_complete",
+        cadence_profile=cursor.cadence_profile,
+        cadence_limits=cursor.cadence_limits,
+        granularity_decision=cursor.granularity_decision,
+        navigator_flow_unit=cursor.navigator_flow_unit,
+        child_work_items=cursor.child_work_items,
+        aggregate_checkpoint_status=statuses,
     )
     report = _report(journey, method, cursor, "done", "done", summary, updated, artifact_path)
     _write_artifact(report)
@@ -159,42 +167,20 @@ def render_delivery_story_closure_report(report: DeliveryStoryClosureReport) -> 
             _ribbon(report.checkpoint),
             "",
             "╭────────────────────────────────────────────────────────╮",
-            _card_text(f"       🧪■ DELIVERY STORY {_checkpoint_title(report.checkpoint)}"),
+            _card_text(f"       🧪  DELIVERY STORY {_checkpoint_title(report.checkpoint)}"),
             "│                                                        │",
-            _card_text("journey"),
-            _card_text(report.journey),
+            _card_text(_what_happened_heading(report.checkpoint)),
+            *_card_wrapped(_active_delivery(report)),
             "│                                                        │",
-            _card_text("delivery story"),
-            _card_text(report.delivery_story),
-            "│                                                        │",
-            _card_text("delivery story title"),
-            *_card_wrapped(report.delivery_story_title or "none"),
-            "│                                                        │",
-            _card_text("navigator flow unit"),
-            _card_text(FLOW_UNIT_DELIVERY_STORY),
-            "│                                                        │",
-            _card_text("child work packages"),
-            *_card_prefixed(report.child_work_items, "-"),
-            "│                                                        │",
-            _card_text("checkpoint"),
-            _card_text(report.checkpoint),
-            "│                                                        │",
-            _card_text("status"),
-            _card_text(report.status),
-            "│                                                        │",
-            _card_text("summary"),
+            _card_text("Evidence summary"),
             *_card_wrapped(report.summary),
             "│                                                        │",
-            _card_text(_current_artifact_heading(report.checkpoint)),
-            *_card_wrapped(
-                str(report.artifact_path) if report.artifact_path else "not materialized"
-            ),
+            _card_text(_state_heading(report.checkpoint)),
+            *_card_wrapped(_state_summary(report)),
             "│                                                        │",
-            _card_text("checkpoint artifacts"),
-            *_card_prefixed(tuple(_checkpoint_artifact_lines(report.artifact_path)), "-"),
-            "│                                                        │",
-            _card_text("boundary"),
-            *_card_wrapped(_boundary(report)),
+            *_done_coherence_lines(report),
+            _card_text("Next movement"),
+            *_card_wrapped(_next_movement(report)),
             "╰────────────────────────────────────────────────────────╯",
         ]
     )
@@ -203,6 +189,66 @@ def render_delivery_story_closure_report(report: DeliveryStoryClosureReport) -> 
 
 def _checkpoint_title(checkpoint: str) -> str:
     return checkpoint.replace("_", " ").upper()
+
+
+def _what_happened_heading(checkpoint: str) -> str:
+    return {
+        "validation": "What was validated?",
+        "debt_review": "What was reviewed?",
+        "coherence": "What was checked?",
+        "done": "What was completed?",
+    }.get(checkpoint, "What happened?")
+
+
+def _done_coherence_lines(report: DeliveryStoryClosureReport) -> list[str]:
+    if report.checkpoint != "done":
+        return []
+    return [
+        "│                                                        │",
+        _card_text("Coherence check"),
+        *_card_wrapped(
+            "Closure coherence passed: Done materialization, roadmap state, artifacts, and next-pull readiness were checked as part of Done."
+        ),
+        "│                                                        │",
+    ]
+
+
+def _active_delivery(report: DeliveryStoryClosureReport) -> str:
+    title = f" — {report.delivery_story_title}" if report.delivery_story_title else ""
+    return f"🟦[{report.delivery_story}]{title}"
+
+
+def _state_heading(checkpoint: str) -> str:
+    return {
+        "validation": "Navigator validation",
+        "debt_review": "Debt decision",
+        "coherence": "Coherence state",
+        "done": "Done state",
+    }.get(checkpoint, "State")
+
+
+def _state_summary(report: DeliveryStoryClosureReport) -> str:
+    if report.checkpoint == "validation":
+        if report.status == "passed":
+            return "Navigator accepted validation."
+        return "Awaiting Navigator validation acceptance."
+    if report.checkpoint == "debt_review":
+        return report.status.replace("review:", "")
+    return report.status.replace("_", " ")
+
+
+def _next_movement(report: DeliveryStoryClosureReport) -> str:
+    if report.checkpoint == "validation":
+        if report.status == "passed":
+            return "Proceed to DS-level Debt Review."
+        return "Accept validation before DS-level Debt Review."
+    if report.checkpoint == "debt_review":
+        return "Proceed to DS-level Done."
+    if report.checkpoint == "coherence":
+        return "Coherence is now checked inside Done for DS-level flow."
+    if report.checkpoint == "done":
+        return "Delivery Story closure is complete."
+    return _boundary(report)
 
 
 def _card_text(text: str) -> str:
@@ -248,29 +294,6 @@ def _wrap_plain_text(text: str, *, width: int) -> list[str]:
     if current:
         lines.append(current)
     return lines or ["none"]
-
-
-def _current_artifact_heading(checkpoint: str) -> str:
-    if checkpoint == "debt_review":
-        return "review artifact"
-    return f"{checkpoint} artifact"
-
-
-def _checkpoint_artifact_lines(artifact_path: Path | None) -> list[str]:
-    if artifact_path is None:
-        return [
-            "- validation: not materialized",
-            "- review: not materialized",
-            "- coherence: not materialized",
-            "- done: not materialized",
-        ]
-    artifact_dir = artifact_path.parent
-    lines: list[str] = []
-    for checkpoint, filename in _CHECKPOINT_ARTIFACTS:
-        path = artifact_dir / filename
-        status = "created" if path.exists() else "pending"
-        lines.append(f"- {checkpoint}: {filename} {path} ({status})")
-    return lines
 
 
 def _require_delivery_story_cursor(store: Store, journey: str) -> BuilderDeliveryCursor:
@@ -398,13 +421,13 @@ def _render_artifact(report: DeliveryStoryClosureReport) -> str:
 
 
 def _ribbon(checkpoint: str) -> str:
-    marker = {
-        "validation": "Validate",
-        "debt_review": "Debt Review",
-        "coherence": "Coherence",
-        "done": "Done",
-    }[checkpoint]
-    return f"Ariad: ✓ Pull | ✓ Prepare | ✓ Expand | ✓ DS Plan | ✓ Implement | ◉ {marker}"
+    if checkpoint == "validation":
+        return "Delivery Flow: ✓ Pull → ✓ Prepare → ✓ Expand → ✓ DS Plan → ✓ Implement → ◉ Validate → ○ Debt Review → ○ Done"
+    if checkpoint == "debt_review":
+        return "Delivery Flow: ✓ Pull → ✓ Prepare → ✓ Expand → ✓ DS Plan → ✓ Implement → ✓ Validate → ◉ Debt Review → ○ Done"
+    if checkpoint == "done":
+        return "Delivery Flow: ✓ Pull → ✓ Prepare → ✓ Expand → ✓ DS Plan → ✓ Implement → ✓ Validate → ✓ Debt Review → ◉ Done"
+    return "Delivery Flow: ✓ Pull → ✓ Prepare → ✓ Expand → ✓ DS Plan → ✓ Implement → ✓ Validate → ✓ Debt Review → ◉ Done"
 
 
 def _boundary(report: DeliveryStoryClosureReport) -> str:

@@ -1,6 +1,7 @@
 from memory.builder.pull_candidates import (
     inspect_pull_candidates,
     inspect_roadmap_snapshot,
+    render_project_position_report,
     render_pull_candidates_report,
     render_roadmap_snapshot_report,
 )
@@ -31,7 +32,8 @@ def test_inspect_roadmap_snapshot_reads_capability_table(tmp_path):
     assert "<<<END:ROADMAP_SNAPSHOT>>>" in rendered
     assert "ROADMAP SNAPSHOT" in rendered
     assert "Delivery field overview" in rendered
-    assert "Ariad: ◉ Pull | ○ Prepare | ○ Expand | ○ Plan" in rendered
+    assert "Delivery Flow:" not in rendered
+    assert "Ariad:" not in rendered
     assert "view                         overview" in rendered
     assert "result of roadmap-snapshot      no pull candidates" in rendered
     assert "🟪[CV2]  Checkout Flow" in rendered
@@ -39,6 +41,39 @@ def test_inspect_roadmap_snapshot_reads_capability_table(tmp_path):
     assert "Active constraints" in rendered
     assert "✓ Navigator explicitly chooses Pull" in rendered
     assert "Roadmap was inspected only" in rendered
+
+
+def test_render_project_position_orients_without_replacing_raw_snapshot(tmp_path):
+    roadmap = tmp_path / "docs/project/roadmap/index.md"
+    roadmap.parent.mkdir(parents=True)
+    roadmap.write_text(
+        """# Roadmap
+
+| Code | Capability Value | Status |
+|------|------------------|--------|
+| [CV2](cv2/index.md) | Checkout Flow | 🟢 In Progress |
+""",
+        encoding="utf-8",
+    )
+    ds = tmp_path / "docs/project/roadmap/cv2/cv2-ds2/index.md"
+    ds.parent.mkdir(parents=True)
+    ds.write_text("# CV2.DS2 — Payment placeholder\n\n**Status:** 🟡 Planned\n", encoding="utf-8")
+
+    snapshot = inspect_roadmap_snapshot(tmp_path, journey="sandbox-pet-store", method="ariad")
+    candidates = inspect_pull_candidates(tmp_path, journey="sandbox-pet-store", method="ariad")
+    raw = render_roadmap_snapshot_report(snapshot, candidates=candidates.candidates)
+    position = render_project_position_report(
+        snapshot,
+        candidates=candidates.candidates,
+        just_moved="🟩[CV2.DS1] Checkout entry and address capture closed",
+    )
+
+    assert "<<<ARIAD:ROADMAP_SNAPSHOT>>>" in raw
+    assert "<<<ARIAD:PROJECT_POSITION>>>" in position
+    assert "Where are we now?" in position
+    assert "What just moved?" in position
+    assert "What looks next?" in position
+    assert "Choose a pull when ready." in position
 
 
 def test_roadmap_snapshot_prioritizes_in_progress_over_planned(tmp_path):
@@ -115,6 +150,59 @@ def test_inspect_pull_candidates_lists_planned_roadmap_items(tmp_path):
     assert candidates["CV2.DS1.US1"].level == "user_story"
     assert report.recommended is not None
     assert report.recommended.code == "CV2.DS1.US1"
+
+
+def test_inspect_pull_candidates_excludes_done_story_packages(tmp_path):
+    ds = tmp_path / "docs/project/roadmap/cv2/cv2-ds1/index.md"
+    ds.parent.mkdir(parents=True)
+    ds.write_text("# CV2.DS1 — Checkout Flow\n\n**Status:** 🟡 Planned\n", encoding="utf-8")
+    ds.parent.joinpath("done.md").write_text("# Done — CV2.DS1\n", encoding="utf-8")
+    us = tmp_path / "docs/project/roadmap/cv2/cv2-ds1/cv2-ds1-us1/index.md"
+    us.parent.mkdir(parents=True)
+    us.write_text(
+        "# CV2.DS1.US1 — Add checkout button\n\n**Status:** 🟡 Planned\n**Type:** User Story\n",
+        encoding="utf-8",
+    )
+    next_ds = tmp_path / "docs/project/roadmap/cv2/cv2-ds2/index.md"
+    next_ds.parent.mkdir(parents=True)
+    next_ds.write_text("# CV2.DS2 — Payment Flow\n\n**Status:** 🟡 Planned\n", encoding="utf-8")
+
+    report = inspect_pull_candidates(tmp_path, journey="sandbox-pet-store", method="ariad")
+
+    assert [candidate.code for candidate in report.candidates] == ["CV2.DS2"]
+
+
+def test_inspect_pull_candidates_excludes_done_candidate_delivery_stories_from_roadmap_index(
+    tmp_path,
+):
+    roadmap = tmp_path / "docs/project/roadmap/index.md"
+    roadmap.parent.mkdir(parents=True)
+    roadmap.write_text(
+        """# Roadmap
+
+## CV2: Checkout Flow
+
+**Status:** Candidate
+
+Candidate Delivery Stories:
+
+- DS1 Checkout entry and address capture.
+- DS2 Payment placeholder.
+""",
+        encoding="utf-8",
+    )
+    ds1 = tmp_path / "docs/project/roadmap/cv2/cv2-ds1/index.md"
+    ds1.parent.mkdir(parents=True)
+    ds1.write_text("# CV2.DS1 — Checkout entry and address capture\n", encoding="utf-8")
+    ds1.parent.joinpath("done.md").write_text("# Done — CV2.DS1\n", encoding="utf-8")
+
+    report = inspect_pull_candidates(tmp_path, journey="sandbox-pet-store", method="ariad")
+    snapshot = inspect_roadmap_snapshot(tmp_path, journey="sandbox-pet-store", method="ariad")
+    rendered = render_roadmap_snapshot_report(snapshot, candidates=report.candidates)
+
+    assert [candidate.code for candidate in report.candidates] == ["CV2.DS2"]
+    assert "CV2.DS1" not in rendered
+    assert "CV2.DS2" in rendered
 
 
 def test_inspect_pull_candidates_reads_candidate_delivery_stories_from_roadmap_index(tmp_path):

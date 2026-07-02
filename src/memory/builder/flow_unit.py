@@ -9,7 +9,6 @@ from memory.builder.delivery_cursor import (
     get_delivery_cursor,
     set_delivery_cursor,
 )
-from memory.builder.lifecycle_ribbon import render_lifecycle_ribbon
 from memory.builder.surface_protocol import wrap_ariad_surface
 from memory.storage.store import Store
 
@@ -103,59 +102,135 @@ def inspect_navigator_flow_unit(
     )
 
 
-def render_navigator_flow_unit_report(report: NavigatorFlowUnitReport) -> str:
-    """Render a deterministic Ariad surface for the Navigator flow-unit decision."""
+def render_flow_unit_scope_confirmation_report(report: NavigatorFlowUnitReport) -> str:
+    """Render the next shared-agreement surface after selecting a flow unit."""
+    if report.flow_unit == FLOW_UNIT_DELIVERY_STORY:
+        surface_name = "delivery_story_scope_confirmation"
+        title = "       🧭  DELIVERY STORY SCOPE CONFIRMATION"
+        understanding = _delivery_story_scope_hypothesis(report)
+        scope_label = "Work packages in scope"
+        scope_items = report.cursor.child_work_items
+        prompt = "Before I create the DS Plan, correct or add anything:"
+        questions = ("1. Is this the right scope?",)
+    else:
+        surface_name = "next_story_confirmation"
+        title = "       🧭  NEXT STORY CONFIRMATION"
+        understanding = (
+            "We will continue story by story. The next step is to confirm which child story "
+            "becomes the next Navigator-facing lifecycle unit."
+        )
+        scope_label = "Recommended story"
+        scope_items = _recommended_story_items(report)
+        prompt = "Before I create the Story Plan, correct or add anything:"
+        questions = ("1. Is this the right next story?",)
     body = "\n".join(
         [
             "Delivery",
-            render_lifecycle_ribbon("expand"),
             "",
             "╭────────────────────────────────────────────────────────╮",
-            "│        🧭■  NAVIGATOR FLOW UNIT                        │",
+            _card_text(title),
             "│                                                        │",
-            _card_text("journey"),
-            _card_text(report.journey),
+            _card_text("My understanding"),
+            *_card_wrapped(understanding),
             "│                                                        │",
-            _card_text("method"),
-            _card_text(report.method),
+            _card_text("Active delivery"),
+            *_card_wrapped(_active_delivery(report)),
+            *_scope_item_lines(scope_label, scope_items),
             "│                                                        │",
-            _card_text("active item"),
-            _card_text(report.active_item or "none"),
+            *_card_wrapped(prompt),
+            *[_line for question in questions for _line in _card_wrapped(question)],
             "│                                                        │",
-            _card_text("active item title"),
-            *_card_wrapped(report.active_item_title or "none"),
+            *_card_wrapped("Choose the next move when ready."),
+            "╰────────────────────────────────────────────────────────╯",
+        ]
+    )
+    return wrap_ariad_surface(surface_name, body + "\n")
+
+
+def render_navigator_flow_unit_report(report: NavigatorFlowUnitReport) -> str:
+    """Render a deterministic Ariad surface for the selected Navigator flow unit."""
+    body = "\n".join(
+        [
+            "Delivery",
+            "",
+            "╭────────────────────────────────────────────────────────╮",
+            "│        🧭  FLOW UNIT SELECTED                         │",
             "│                                                        │",
-            _card_text("active item level"),
-            _card_text(report.active_item_level or "none"),
+            _card_text("What changed?"),
+            *_card_wrapped(_flow_unit_change_summary(report.flow_unit)),
             "│                                                        │",
-            _card_text("effective flow unit"),
+            _card_text("Active delivery"),
+            *_card_wrapped(_active_delivery(report)),
+            "│                                                        │",
+            _card_text("Selected flow unit"),
             _card_text(report.flow_unit),
+            *_card_wrapped(_flow_unit_description(report.flow_unit)),
             "│                                                        │",
-            _card_text("source"),
-            _card_text(report.source),
+            _card_text("Next movement"),
+            *_card_wrapped(_flow_unit_next_movement(report.flow_unit)),
             "│                                                        │",
-            _card_text("available choices"),
-            *_card_prefixed(
-                (
-                    "story_by_story: child User/Technical Stories remain Navigator-facing lifecycle units",
-                    "delivery_story: parent Delivery Story becomes the Navigator-facing lifecycle unit while child stories remain traceable Driver work packages",
-                ),
-                "○",
-            ),
-            "│                                                        │",
-            _card_text("default"),
-            *_card_wrapped(
-                "story_by_story preserves current Ariad Builder behavior when no choice is recorded."
-            ),
-            "│                                                        │",
-            _card_text("boundary"),
-            *_card_wrapped(
-                "No Plan, implementation, validation, push, or release work was executed."
-            ),
+            *_card_wrapped("Choose the next move when ready."),
             "╰────────────────────────────────────────────────────────╯",
         ]
     )
     return wrap_ariad_surface("navigator_flow_unit", body + "\n")
+
+
+def _delivery_story_scope_hypothesis(report: NavigatorFlowUnitReport) -> str:
+    title = (report.active_item_title or "").strip()
+    normalized = title.lower()
+    if "checkout" in normalized and "address" in normalized:
+        return (
+            "This Delivery Story should let the customer enter checkout, provide or confirm "
+            "a delivery address, and leave the order ready for the next checkout step."
+        )
+    if title:
+        return f"This Delivery Story should deliver the scope implied by: {title}."
+    return (
+        "I will infer a complete Delivery Story plan from the roadmap and project context; "
+        "correct or add any scope details before I proceed."
+    )
+
+
+def _scope_item_lines(label: str, items: tuple[str, ...]) -> list[str]:
+    if not items:
+        return []
+    return [
+        "│                                                        │",
+        _card_text(label),
+        *_card_prefixed(items, "-"),
+    ]
+
+
+def _recommended_story_items(report: NavigatorFlowUnitReport) -> tuple[str, ...]:
+    if report.cursor.child_work_items:
+        return report.cursor.child_work_items[:1]
+    return ()
+
+
+def _flow_unit_change_summary(flow_unit: str) -> str:
+    if flow_unit == FLOW_UNIT_DELIVERY_STORY:
+        return "Navigator-facing lifecycle will continue at Delivery Story level."
+    return "Navigator-facing lifecycle will continue story by story."
+
+
+def _active_delivery(report: NavigatorFlowUnitReport) -> str:
+    if report.active_item is None:
+        return "none"
+    title = f" — {report.active_item_title}" if report.active_item_title else ""
+    return f"🟦[{report.active_item}]{title}"
+
+
+def _flow_unit_description(flow_unit: str) -> str:
+    if flow_unit == FLOW_UNIT_DELIVERY_STORY:
+        return "the Delivery Story becomes the lifecycle unit; child stories remain traceable work packages"
+    return "child stories get their own Navigator checkpoints"
+
+
+def _flow_unit_next_movement(flow_unit: str) -> str:
+    if flow_unit == FLOW_UNIT_DELIVERY_STORY:
+        return "Plan the Delivery Story as the Navigator-facing unit."
+    return "Confirm the recommended child story, then Plan."
 
 
 def _card_text(text: str) -> str:

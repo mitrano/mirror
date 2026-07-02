@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from memory.builder.lifecycle_ribbon import render_lifecycle_ribbon
 from memory.builder.resume_state import BuilderResumeState
 from memory.builder.roadmap_position import RoadmapPosition
 from memory.builder.surface_protocol import wrap_ariad_surface
+from memory.builder.workbench import WorkbenchSnapshot
 
 
 def render_builder_resume_surface(
@@ -17,7 +17,6 @@ def render_builder_resume_surface(
     cursor = state.cursor
     lines = [
         "Delivery",
-        render_lifecycle_ribbon(_resume_phase(cursor.last_delivery_event if cursor else None)),
         "",
         "╭────────────────────────────────────────────────────────╮",
         "│        ■  BUILDER RESUME                               │",
@@ -61,6 +60,9 @@ def render_builder_resume_surface(
                 cursor.last_delivery_event if cursor and cursor.last_delivery_event else "none"
             ),
             "│                                                        │",
+            _card_text("🧰 Refinement field"),
+            *_refinement_field_lines(state),
+            "│                                                        │",
             _card_text("allowed next actions"),
             *_card_prefixed(state.allowed_next_actions, "-"),
             "│                                                        │",
@@ -70,6 +72,44 @@ def render_builder_resume_surface(
         ]
     )
     return wrap_ariad_surface("builder_resume", "\n".join(lines) + "\n")
+
+
+def _refinement_field_lines(state: BuilderResumeState) -> list[str]:
+    refinement = state.refinement
+    if refinement is None:
+        return [_card_text("active RS: none"), _card_text("active CR: none")]
+    active_rs = (
+        f"{refinement.active_refinement_story.display_code}: {refinement.active_refinement_story.title}"
+        if refinement.active_refinement_story
+        else "none"
+    )
+    active_cr = (
+        f"{refinement.active_change_request.display_code}: {refinement.active_change_request.title}"
+        if refinement.active_change_request
+        else "none"
+    )
+    last_event = _last_refinement_event(state)
+    return [
+        *_card_wrapped(f"active RS: {active_rs}"),
+        *_card_wrapped(f"active CR: {active_cr}"),
+        _card_text(f"last refinement event: {last_event}"),
+        *_card_wrapped(f"next refinement move: {_next_refinement_move(refinement)}"),
+    ]
+
+
+def _last_refinement_event(state: BuilderResumeState) -> str:
+    refinement = state.refinement
+    if refinement is None or refinement.active_refinement_story is None:
+        return "none"
+    return refinement.last_refinement_event or "none"
+
+
+def _next_refinement_move(refinement: WorkbenchSnapshot) -> str:
+    if refinement.active_change_request is not None:
+        return "continue active Change Request"
+    if refinement.active_refinement_story is not None:
+        return "select next Change Request or review Refinement Story"
+    return "none"
 
 
 def _resume_phase(last_delivery_event: str | None) -> str:

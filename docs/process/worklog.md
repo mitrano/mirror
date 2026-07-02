@@ -12,6 +12,12 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-07-02 — v0.29.2 Ariad Builder Flow Refinement prepared
+
+Prepared the patch release boundary for Ariad Builder flow refinement after closing RS001 Refinement Surfaces Improvements and RS003 Ariad Delivery Builder Experience Adjustments. The release adds persisted RS/CR display codes, simplifies Refinement and Delivery surfaces, separates raw `ROADMAP_SNAPSHOT` from narrative `PROJECT_POSITION`, centralizes artifact materialization reporting, folds Delivery Coherence into Done, clarifies validation/debt/Done handoffs, and includes development/test status-line environment orientation.
+
+Validation: focused Builder and CLI build tests passed; ruff and format checks passed; focused mypy on touched Builder/runtime modules passed; `git diff --check` passed. Full-project `uv run mypy src` was compared against a clean HEAD worktree and confirmed to have identical preexisting diagnostics, with no new mypy errors introduced by this release.
+
 ### 2026-06-25 — GitHub Release publication added to release process
 
 Published the GitHub Release for `v0.29.1 — Windows Compatibility Hardening` from the committed release note and marked it as the latest repository release. The release process now explicitly treats GitHub Releases as the public repository-facing publication surface layered on top of the same Git tag that drives the stable updater channel.

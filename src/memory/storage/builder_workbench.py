@@ -28,6 +28,7 @@ CHANGE_REQUEST_STATUSES = frozenset(
 class RefinementStoryRecord:
     id: str
     journey: str
+    display_code: str
     title: str
     description: str | None
     status: str
@@ -44,6 +45,7 @@ class RefinementStoryRecord:
 class ChangeRequestRecord:
     id: str
     journey: str
+    display_code: str
     refinement_story_id: str | None
     title: str
     body: str
@@ -87,16 +89,18 @@ class BuilderWorkbenchStore(ConnectionBacked):
         resolved_position = (
             position if position is not None else self._next_refinement_story_position(journey)
         )
+        display_code = self._next_refinement_story_display_code(journey)
         now = _now()
         story_id = _uuid()
         self.conn.execute(
             """INSERT INTO builder_refinement_stories
-               (id, journey, title, description, status, position, source, provenance,
-                created_at, updated_at, pulled_at, closed_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)""",
+               (id, journey, display_code, title, description, status, position, source,
+                provenance, created_at, updated_at, pulled_at, closed_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)""",
             (
                 story_id,
                 journey,
+                display_code,
                 title,
                 _normalize_optional(description),
                 status,
@@ -189,15 +193,17 @@ class BuilderWorkbenchStore(ConnectionBacked):
             else self._next_change_request_position(journey, normalized_story_id)
         )
         now = _now()
+        display_code = self._next_change_request_display_code(journey)
         change_request_id = _uuid()
         self.conn.execute(
             """INSERT INTO builder_change_requests
-               (id, journey, refinement_story_id, title, body, status, position, source,
-                provenance, outcome_notes, created_at, updated_at, completed_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, NULL)""",
+               (id, journey, display_code, refinement_story_id, title, body, status, position,
+                source, provenance, outcome_notes, created_at, updated_at, completed_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, NULL)""",
             (
                 change_request_id,
                 journey,
+                display_code,
                 normalized_story_id,
                 title,
                 body,
@@ -277,6 +283,14 @@ class BuilderWorkbenchStore(ConnectionBacked):
         updated = self.get_change_request(change_request_id)
         assert updated is not None
         return updated
+
+    def delete_change_request(self, change_request_id: str) -> ChangeRequestRecord:
+        change_request = self.get_change_request(change_request_id)
+        if change_request is None:
+            raise ValueError("change_request_id does not exist")
+        self.conn.execute("DELETE FROM builder_change_requests WHERE id = ?", (change_request.id,))
+        self.conn.commit()
+        return change_request
 
     def attach_change_request_to_story(
         self,
@@ -366,6 +380,22 @@ class BuilderWorkbenchStore(ConnectionBacked):
         ).fetchone()
         return int(row[0])
 
+    def _next_refinement_story_display_code(self, journey: str) -> str:
+        return _next_display_code(
+            self.conn,
+            table="builder_refinement_stories",
+            journey=journey,
+            prefix="RS",
+        )
+
+    def _next_change_request_display_code(self, journey: str) -> str:
+        return _next_display_code(
+            self.conn,
+            table="builder_change_requests",
+            journey=journey,
+            prefix="CR",
+        )
+
     def _next_change_request_position(self, journey: str, story_id: str | None) -> int:
         if story_id is None:
             row = self.conn.execute(
@@ -395,6 +425,20 @@ def _change_request_from_row(row: sqlite3.Row) -> ChangeRequestRecord:
 def _cursor_from_row(row: sqlite3.Row) -> RefinementCursorRecord:
     data = dict(row)
     return RefinementCursorRecord(**data)
+
+
+def _next_display_code(conn: sqlite3.Connection, *, table: str, journey: str, prefix: str) -> str:
+    row = conn.execute(
+        f"SELECT display_code FROM {table} WHERE journey = ? AND display_code LIKE ?",
+        (journey, f"{prefix}%"),
+    ).fetchall()
+    max_number = 0
+    for item in row:
+        code = str(item[0])
+        suffix = code.removeprefix(prefix)
+        if suffix.isdigit():
+            max_number = max(max_number, int(suffix))
+    return f"{prefix}{max_number + 1:03d}"
 
 
 def _normalize_required(value: str, field_name: str) -> str:

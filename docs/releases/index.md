@@ -12,6 +12,7 @@ Future release notes should use the structure defined in [Release Notes](../proc
 
 ## Releases
 
+- [v0.29.2 — Ariad Builder Flow Refinement](v0.29.2.md) — patch release that refines Ariad Builder surfaces, RS/CR display codes, Project Position orientation, artifact materialization reporting, and Delivery Done handoffs after dogfooding.
 - [v0.29.1 — Windows Compatibility Hardening](v0.29.1.md) — patch release that preserves Windows-safe Claude/plugin skill paths, UTF-8 console output, explicit mojibake repair, and cross-platform path rendering.
 - [v0.29.0 — Ariad Refinement Workbench](v0.29.0.md) — minor release that makes Refinement a first-class Builder Mode work field with Workbench storage, Refinement Stories, Change Requests, CR cycles, and RS review/coherence/close.
 - [v0.28.0 — Ariad Delivery Story Lifecycle](v0.28.0.md) — minor release that makes Delivery Story flow a first-class Ariad Builder path with aggregate DS Plan/Validation/Review/Coherence/Done, canonical checkpoint artifacts, and visual surfaces.

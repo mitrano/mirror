@@ -9,6 +9,11 @@ from collections.abc import Callable
 from pathlib import Path
 
 from memory.builder.ariad_method import get_ariad_method
+from memory.builder.artifact_surfaces import (
+    MaterializedArtifact,
+    materialized_artifact,
+    render_artifacts_materialized_surface,
+)
 from memory.builder.delivery_cursor import (
     get_delivery_cursor,
     render_delivery_cursor_sync_report,
@@ -24,15 +29,20 @@ from memory.builder.delivery_story_closure import (
 from memory.builder.delivery_story_plan import (
     approve_delivery_story_plan,
     plan_delivery_story_checkpoint,
+    render_delivery_story_implementation_started,
     render_delivery_story_plan_report,
 )
 from memory.builder.flow_unit import (
     ALLOWED_FLOW_UNITS,
     inspect_navigator_flow_unit,
+    render_flow_unit_scope_confirmation_report,
     render_navigator_flow_unit_report,
     set_navigator_flow_unit,
 )
-from memory.builder.home_surface import inspect_refinement_field, render_builder_home_surface
+from memory.builder.home_surface import (
+    inspect_refinement_field,
+    render_builder_orientation_surface,
+)
 from memory.builder.lifecycle import (
     BuilderLifecycleItem,
     approve_plan_checkpoint,
@@ -44,8 +54,8 @@ from memory.builder.lifecycle import (
     prepare_lifecycle_item,
     pull_lifecycle_item,
     render_coherence_checkpoint,
+    render_delivery_story_ready_report,
     render_done_checkpoint,
-    render_expand_report,
     render_implementation_guard_allowed,
     render_implementation_guard_blocked,
     render_plan_approval,
@@ -68,12 +78,14 @@ from memory.builder.method_inspection import (
 from memory.builder.pull_candidates import (
     inspect_pull_candidates,
     inspect_roadmap_snapshot,
+    render_project_position_report,
     render_pull_candidates_report,
     render_roadmap_snapshot_report,
 )
 from memory.builder.resume_state import read_builder_resume_state
 from memory.builder.resume_surface import render_builder_resume_surface
 from memory.builder.roadmap_position import resolve_roadmap_position
+from memory.builder.surface_protocol import wrap_ariad_surface
 from memory.builder.template_generation import (
     prepare_method_templates,
     render_template_preparation_report,
@@ -87,18 +99,23 @@ from memory.builder.workbench import (
     complete_change_request,
     confirm_change_request,
     create_refinement_story,
+    discard_change_request,
     get_refinement_story_overview,
     mark_change_request_implemented,
     plan_change_request,
     pull_refinement_story,
+    recommend_next_change_request,
     review_refinement_story,
     select_change_request,
     validate_change_request,
 )
 from memory.builder.workbench_surfaces import (
     render_change_request_captured_surface,
+    render_change_request_discarded_surface,
+    render_next_change_request_recommendation,
     render_refinement_flow_event_surface,
     render_refinement_story_overview_surface,
+    render_refinement_story_progress_surface,
     render_refinement_story_pulled_surface,
 )
 from memory.cli.conversation_logger import switch_conversation
@@ -276,21 +293,15 @@ def _print_builder_entry_surface(
             journey=slug,
             method=adopted_method,
         )
+        roadmap = inspect_roadmap_snapshot(project_root, journey=slug, method=adopted_method)
+        print(render_project_position_report(roadmap, candidates=candidates_report.candidates))
         print(
-            render_builder_home_surface(
-                journey=slug,
-                method=adopted_method,
+            render_builder_orientation_surface(
+                roadmap=roadmap,
                 candidates_report=candidates_report,
                 refinement=inspect_refinement_field(project_root, store=mem.store, journey=slug),
             )
         )
-        print(
-            render_roadmap_snapshot_report(
-                inspect_roadmap_snapshot(project_root, journey=slug, method=adopted_method),
-                candidates=candidates_report.candidates,
-            )
-        )
-        print(render_pull_candidates_report(candidates_report))
         return
     print(
         render_builder_resume_surface(
@@ -584,7 +595,6 @@ def cmd_pull_item(
     except ValueError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
-    print(render_pull_report(report))
     project_path = mem.journeys.get_project_path(resolved_journey)
     prepare_report = prepare_lifecycle_item(
         mem.store,
@@ -592,7 +602,6 @@ def cmd_pull_item(
         method=method,
         project_path=Path(project_path) if project_path else None,
     )
-    print(render_prepare_report(prepare_report))
     if item_level == "delivery_story":
         if not project_path:
             print("Error: Delivery Story expansion requires project_path.", file=sys.stderr)
@@ -603,7 +612,22 @@ def cmd_pull_item(
             method=method,
             project_path=Path(project_path),
         )
-        print(render_expand_report(expand_report))
+        print(
+            render_delivery_story_ready_report(
+                pull=report,
+                prepare=prepare_report,
+                expand=expand_report,
+            )
+        )
+        _print_artifacts_materialized(
+            context=f"Expand — {expand_report.delivery_story}",
+            artifacts=expand_report.materialized_artifacts,
+            project_path=project_path,
+            boundary="Files were materialized only. No Plan or implementation was executed.",
+        )
+        return
+    print(render_pull_report(report))
+    print(render_prepare_report(prepare_report))
 
 
 _MIRROR_LOCAL_IMPLEMENTATION_RULES = (
@@ -611,6 +635,97 @@ _MIRROR_LOCAL_IMPLEMENTATION_RULES = (
     "Do not use git add .; commit only story-scoped files.",
     "Use descriptive English commit messages explaining why.",
 )
+
+
+def _mini_card_text(text: str) -> str:
+    width = 54
+    return f"│ {text[:width]:<{width}} │"
+
+
+def _mini_card_wrapped(text: str) -> list[str]:
+    words = text.split()
+    lines: list[str] = []
+    current = ""
+    for word in words:
+        candidate = f"{current} {word}".strip()
+        if len(candidate) > 54 and current:
+            lines.append(current)
+            current = word
+        else:
+            current = candidate
+    if current:
+        lines.append(current)
+    return [_mini_card_text(line) for line in (lines or ["none"])]
+
+
+def _render_debt_review_handoff(*, active_item: str | None) -> str:
+    body = "\n".join(
+        [
+            "Delivery",
+            "Delivery Flow: ✓ Pull → ✓ Prepare → ✓ Expand → ✓ Plan → ✓ Implement → ✓ Validate → ◉ Debt Review → ○ Done",
+            "",
+            "╭────────────────────────────────────────────────────────╮",
+            "│        🔎  DEBT REVIEW STARTED                        │",
+            "│                                                        │",
+            _mini_card_text("What changed?"),
+            *_mini_card_wrapped(
+                "Validation was accepted. Before closure, review whether any relevant technical debt remains."
+            ),
+            "│                                                        │",
+            _mini_card_text("Active item"),
+            _mini_card_text(active_item or "active item"),
+            "│                                                        │",
+            _mini_card_text("Navigator check"),
+            *_mini_card_wrapped(
+                "If there is no relevant debt to address now, I can record this as sem ação necessária and continue toward closure."
+            ),
+            "╰────────────────────────────────────────────────────────╯",
+        ]
+    )
+    return wrap_ariad_surface("debt_review_started", body + "\n")
+
+
+def _render_done_closure_confirmation(*, active_item: str | None) -> str:
+    body = "\n".join(
+        [
+            "Delivery",
+            "Delivery Flow: ✓ Pull → ✓ Prepare → ✓ Expand → ✓ Plan → ✓ Implement → ✓ Validate → ✓ Debt Review → ◉ Done",
+            "",
+            "╭────────────────────────────────────────────────────────╮",
+            "│        🧭  DONE CLOSURE CONFIRMATION                  │",
+            "│                                                        │",
+            _mini_card_text("My understanding"),
+            *_mini_card_wrapped(
+                "Debt review found no relevant action to take now. The story is ready to close."
+            ),
+            "│                                                        │",
+            _mini_card_text("Active item"),
+            _mini_card_text(active_item or "active item"),
+            "│                                                        │",
+            _mini_card_text("Before I close"),
+            *_mini_card_wrapped("Is there anything else to do in this story before Done?"),
+            "╰────────────────────────────────────────────────────────╯",
+        ]
+    )
+    return wrap_ariad_surface("done_closure_confirmation", body + "\n")
+
+
+def _print_roadmap_snapshot_at_done_end(
+    project_path: Path | str | None,
+    *,
+    journey: str,
+    method: str,
+    just_moved: str | None = None,
+) -> None:
+    root = Path(project_path) if isinstance(project_path, str) else project_path
+    candidates_report = inspect_pull_candidates(root, journey=journey, method=method)
+    print(
+        render_project_position_report(
+            inspect_roadmap_snapshot(root, journey=journey, method=method),
+            candidates=candidates_report.candidates,
+            just_moved=just_moved,
+        )
+    )
 
 
 def cmd_validate_delivery_story(
@@ -632,9 +747,9 @@ def cmd_validate_delivery_story(
     _require_adopted_method(mem, resolved_journey, method)
     try:
         cursor = get_delivery_cursor(mem.store, resolved_journey)
-        artifact_path = _checkpoint_artifact_path(
-            mem.journeys.get_project_path(resolved_journey), cursor, "validation.md"
-        )
+        project_path = mem.journeys.get_project_path(resolved_journey)
+        artifact_path = _checkpoint_artifact_path(project_path, cursor, "validation.md")
+        existed_before = artifact_path.exists() if artifact_path else False
         report = validate_delivery_story(
             mem.store,
             journey=resolved_journey,
@@ -647,6 +762,14 @@ def cmd_validate_delivery_story(
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
     print(render_delivery_story_closure_report(report))
+    _print_artifacts_materialized(
+        context=f"Delivery Story Validation — {report.cursor.active_item or 'active item'}",
+        artifacts=_single_artifact("validation", artifact_path, existed_before=existed_before),
+        project_path=project_path,
+        boundary="Validation artifact was materialized.",
+    )
+    if report.status == "passed":
+        print(_render_debt_review_handoff(active_item=report.cursor.active_item))
 
 
 def cmd_review_delivery_story(
@@ -668,9 +791,9 @@ def cmd_review_delivery_story(
     _require_adopted_method(mem, resolved_journey, method)
     try:
         cursor = get_delivery_cursor(mem.store, resolved_journey)
-        artifact_path = _checkpoint_artifact_path(
-            mem.journeys.get_project_path(resolved_journey), cursor, "review.md"
-        )
+        project_path = mem.journeys.get_project_path(resolved_journey)
+        artifact_path = _checkpoint_artifact_path(project_path, cursor, "review.md")
+        existed_before = artifact_path.exists() if artifact_path else False
         report = review_delivery_story(
             mem.store,
             journey=resolved_journey,
@@ -683,6 +806,14 @@ def cmd_review_delivery_story(
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
     print(render_delivery_story_closure_report(report))
+    _print_artifacts_materialized(
+        context=f"Delivery Story Review — {report.cursor.active_item or 'active item'}",
+        artifacts=_single_artifact("review", artifact_path, existed_before=existed_before),
+        project_path=project_path,
+        boundary="Review artifact was materialized.",
+    )
+    if decision == "no_action":
+        print(_render_done_closure_confirmation(active_item=report.cursor.active_item))
 
 
 def cmd_coherence_delivery_story(
@@ -703,9 +834,9 @@ def cmd_coherence_delivery_story(
     _require_adopted_method(mem, resolved_journey, method)
     try:
         cursor = get_delivery_cursor(mem.store, resolved_journey)
-        artifact_path = _checkpoint_artifact_path(
-            mem.journeys.get_project_path(resolved_journey), cursor, "coherence.md"
-        )
+        project_path = mem.journeys.get_project_path(resolved_journey)
+        artifact_path = _checkpoint_artifact_path(project_path, cursor, "coherence.md")
+        existed_before = artifact_path.exists() if artifact_path else False
         report = coherence_delivery_story(
             mem.store,
             journey=resolved_journey,
@@ -717,6 +848,12 @@ def cmd_coherence_delivery_story(
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
     print(render_delivery_story_closure_report(report))
+    _print_artifacts_materialized(
+        context=f"Delivery Story Coherence — {report.cursor.active_item or 'active item'}",
+        artifacts=_single_artifact("coherence", artifact_path, existed_before=existed_before),
+        project_path=project_path,
+        boundary="Coherence artifact was materialized.",
+    )
 
 
 def cmd_done_delivery_story(
@@ -737,9 +874,9 @@ def cmd_done_delivery_story(
     _require_adopted_method(mem, resolved_journey, method)
     try:
         cursor = get_delivery_cursor(mem.store, resolved_journey)
-        artifact_path = _checkpoint_artifact_path(
-            mem.journeys.get_project_path(resolved_journey), cursor, "done.md"
-        )
+        project_path = mem.journeys.get_project_path(resolved_journey)
+        artifact_path = _checkpoint_artifact_path(project_path, cursor, "done.md")
+        existed_before = artifact_path.exists() if artifact_path else False
         report = done_delivery_story(
             mem.store,
             journey=resolved_journey,
@@ -751,6 +888,18 @@ def cmd_done_delivery_story(
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
     print(render_delivery_story_closure_report(report))
+    _print_artifacts_materialized(
+        context=f"Delivery Story Done — {report.cursor.active_item or 'active item'}",
+        artifacts=_single_artifact("done", artifact_path, existed_before=existed_before),
+        project_path=project_path,
+        boundary="Done artifact was materialized.",
+    )
+    _print_roadmap_snapshot_at_done_end(
+        project_path,
+        journey=resolved_journey,
+        method=method,
+        just_moved=f"🟩[{report.delivery_story}] {report.delivery_story_title or 'Delivery Story'} closed",
+    )
 
 
 def cmd_plan_delivery_story(
@@ -772,9 +921,9 @@ def cmd_plan_delivery_story(
     _require_adopted_method(mem, resolved_journey, method)
     try:
         cursor = get_delivery_cursor(mem.store, resolved_journey)
-        plan_artifact_path = _checkpoint_artifact_path(
-            mem.journeys.get_project_path(resolved_journey), cursor, "plan.md"
-        )
+        project_path = mem.journeys.get_project_path(resolved_journey)
+        plan_artifact_path = _checkpoint_artifact_path(project_path, cursor, "plan.md")
+        artifact_existence = _artifact_existence(plan_artifact_path)
         report = plan_delivery_story_checkpoint(
             mem.store,
             journey=resolved_journey,
@@ -787,6 +936,12 @@ def cmd_plan_delivery_story(
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
     print(render_delivery_story_plan_report(report))
+    _print_artifacts_materialized(
+        context=f"Delivery Story Plan — {report.cursor.active_item or 'active item'}",
+        artifacts=_plan_package_artifacts(plan_artifact_path, artifact_existence),
+        project_path=project_path,
+        boundary="Plan artifacts were materialized. Implementation remains blocked until approval.",
+    )
 
 
 def cmd_approve_delivery_story_plan(
@@ -806,9 +961,9 @@ def cmd_approve_delivery_story_plan(
     _require_adopted_method(mem, resolved_journey, method)
     try:
         cursor = get_delivery_cursor(mem.store, resolved_journey)
-        plan_artifact_path = _checkpoint_artifact_path(
-            mem.journeys.get_project_path(resolved_journey), cursor, "plan.md"
-        )
+        project_path = mem.journeys.get_project_path(resolved_journey)
+        plan_artifact_path = _checkpoint_artifact_path(project_path, cursor, "plan.md")
+        artifact_existence = _artifact_existence(plan_artifact_path)
         report = approve_delivery_story_plan(
             mem.store,
             journey=resolved_journey,
@@ -819,6 +974,13 @@ def cmd_approve_delivery_story_plan(
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
     print(render_delivery_story_plan_report(report))
+    _print_artifacts_materialized(
+        context=f"Delivery Story Plan Approval — {report.cursor.active_item or 'active item'}",
+        artifacts=_plan_package_artifacts(plan_artifact_path, artifact_existence),
+        project_path=project_path,
+        boundary="Plan approval artifacts were materialized. Implementation may proceed under the approved plan.",
+    )
+    print(render_delivery_story_implementation_started(report))
 
 
 def cmd_set_flow_unit(
@@ -854,7 +1016,10 @@ def cmd_set_flow_unit(
     except ValueError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
-    print(render_navigator_flow_unit_report(report))
+    if unit is None:
+        print(render_navigator_flow_unit_report(report))
+    else:
+        print(render_flow_unit_scope_confirmation_report(report))
 
 
 def cmd_set_cadence(
@@ -934,6 +1099,8 @@ def cmd_plan_item(
     try:
         project_path = mem.journeys.get_project_path(resolved_journey)
         cursor = get_delivery_cursor(mem.store, resolved_journey)
+        plan_artifact_path = _plan_artifact_path(project_path, cursor)
+        artifact_existence = _artifact_existence(plan_artifact_path)
         context = _roadmap_plan_context(project_path, cursor)
         report = plan_lifecycle_item(
             mem.store,
@@ -946,12 +1113,19 @@ def cmd_plan_item(
             validation_route=tuple(context["validation_route"]),
             e2e_decision=str(context["e2e_decision"]),
             local_rules=_MIRROR_LOCAL_IMPLEMENTATION_RULES,
-            plan_artifact_path=_plan_artifact_path(project_path, cursor),
+            plan_artifact_path=plan_artifact_path,
         )
     except ValueError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
     print(render_plan_checkpoint(report))
+    plan_artifact_path = report.plan_artifact_path
+    _print_artifacts_materialized(
+        context=f"Plan — {report.active_item}",
+        artifacts=_plan_package_artifacts(plan_artifact_path, artifact_existence),
+        project_path=project_path,
+        boundary="Plan artifacts were materialized. Implementation remains blocked until approval.",
+    )
 
 
 def _roadmap_plan_context(
@@ -997,6 +1171,70 @@ def _roadmap_plan_context(
         ),
         "e2e_decision": "required unless Navigator explicitly accepts a narrower fixture-level validation route",
     }
+
+
+def _print_artifacts_materialized(
+    *,
+    context: str,
+    artifacts: tuple[MaterializedArtifact, ...],
+    project_path: str | Path | None,
+    boundary: str,
+) -> None:
+    if not artifacts:
+        return
+    print(
+        render_artifacts_materialized_surface(
+            context=context,
+            artifacts=artifacts,
+            project_path=Path(project_path) if project_path else None,
+            boundary=boundary,
+        )
+    )
+
+
+def _artifact_existence(path: Path | None) -> dict[Path, bool]:
+    if path is None:
+        return {}
+    paths = (path.parent / "index.md", path, path.parent / "test-guide.md")
+    return {item: item.exists() for item in paths}
+
+
+def _plan_package_artifacts(
+    plan_artifact_path: Path | None,
+    existed_before: dict[Path, bool],
+) -> tuple[MaterializedArtifact, ...]:
+    if plan_artifact_path is None:
+        return ()
+    index_path = plan_artifact_path.parent / "index.md"
+    test_guide_path = plan_artifact_path.parent / "test-guide.md"
+    return (
+        materialized_artifact(
+            "story index",
+            index_path,
+            existed_before=existed_before.get(index_path, False),
+        ),
+        materialized_artifact(
+            "plan",
+            plan_artifact_path,
+            existed_before=existed_before.get(plan_artifact_path, False),
+        ),
+        materialized_artifact(
+            "test guide",
+            test_guide_path,
+            existed_before=existed_before.get(test_guide_path, False),
+        ),
+    )
+
+
+def _single_artifact(
+    kind: str,
+    path: Path | None,
+    *,
+    existed_before: bool,
+) -> tuple[MaterializedArtifact, ...]:
+    if path is None:
+        return ()
+    return (materialized_artifact(kind, path, existed_before=existed_before),)
 
 
 def _plan_artifact_path(
@@ -1175,21 +1413,7 @@ def cmd_continue_lifecycle(
         sys.exit(1)
     project_path = mem.journeys.get_project_path(resolved_journey)
     plan_path = _plan_artifact_path(project_path, cursor)
-    if cursor.last_delivery_event == "review_complete":
-        coherence_report = coherence_lifecycle_item(
-            mem.store,
-            journey=resolved_journey,
-            method=get_ariad_method(),
-            process_alignment=process_alignment,
-            project_alignment=project_alignment,
-            product_alignment=product_alignment,
-            local_differences=local_differences,
-            coherence_artifact_path=(plan_path.parent / "coherence.md") if plan_path else None,
-        )
-        print(render_coherence_checkpoint(coherence_report))
-        if not (history_action and roadmap_update and next_recommendation):
-            return
-    elif cursor.last_delivery_event != "coherence_complete":
+    if cursor.last_delivery_event not in {"review_complete", "coherence_complete"}:
         print(
             render_implementation_guard_blocked(
                 f"No bypassable continuation is available after {cursor.last_delivery_event or 'none'}."
@@ -1299,6 +1523,12 @@ def cmd_done_item(
         print(render_implementation_guard_blocked(str(exc)))
         sys.exit(1)
     print(render_done_checkpoint(report))
+    _print_roadmap_snapshot_at_done_end(
+        project_path,
+        journey=resolved_journey,
+        method=method,
+        just_moved=f"🟩[{report.active_item}] {report.active_item_title or 'Story'} closed",
+    )
 
 
 def cmd_review_item(
@@ -1343,6 +1573,8 @@ def cmd_review_item(
         print(render_implementation_guard_blocked(str(exc)))
         sys.exit(1)
     print(render_review_checkpoint(report))
+    if report.debt_decision == "no_action" and not report.missing_decision:
+        print(_render_done_closure_confirmation(active_item=report.cursor.active_item))
 
 
 def cmd_validate_item(
@@ -1399,6 +1631,8 @@ def cmd_validate_item(
         print(render_implementation_guard_blocked(str(exc)))
         sys.exit(1)
     print(render_validation_checkpoint(report))
+    if not report.missing_evidence:
+        print(_render_debt_review_handoff(active_item=report.cursor.active_item))
 
 
 def _resolve_workbench_journey(
@@ -1493,13 +1727,14 @@ def cmd_change_request_capture(
     print(f"change_request_id={change_request.id}")
 
 
-def _print_refinement_event(action: Callable[[], RefinementFlowEvent]) -> None:
+def _print_refinement_event(action: Callable[[], RefinementFlowEvent]) -> RefinementFlowEvent:
     try:
         event = action()
     except ValueError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
     print(render_refinement_flow_event_surface(event))
+    return event
 
 
 def cmd_change_request_flow(
@@ -1511,6 +1746,8 @@ def cmd_change_request_flow(
     summary: str | None = None,
     evidence: str | None = None,
     notes: str | None = None,
+    plan: str | None = None,
+    close: bool = False,
 ) -> None:
     mem = MemoryClient()
     resolved_journey = _resolve_workbench_journey(
@@ -1544,19 +1781,23 @@ def cmd_change_request_flow(
                 journey=resolved_journey,
                 change_request_id=change_request_id,
                 evidence=evidence or "",
+                plan=plan,
             )
         )
     elif action == "validate":
-        _print_refinement_event(
+        event = _print_refinement_event(
             lambda: validate_change_request(
                 mem.store,
                 journey=resolved_journey,
                 change_request_id=change_request_id,
                 evidence=evidence or "",
+                close=close,
+                notes=notes,
             )
         )
+        _print_next_cr_recommendation(mem, event)
     elif action == "done":
-        _print_refinement_event(
+        event = _print_refinement_event(
             lambda: complete_change_request(
                 mem.store,
                 journey=resolved_journey,
@@ -1564,6 +1805,30 @@ def cmd_change_request_flow(
                 notes=notes or "",
             )
         )
+        _print_next_cr_recommendation(mem, event)
+
+
+def _print_next_cr_recommendation(mem: MemoryClient, event: RefinementFlowEvent) -> None:
+    if event.event != "change_request_done" or event.change_request is None:
+        return
+    overview = get_refinement_story_overview(
+        mem.store,
+        journey=event.journey,
+        refinement_story_id=event.refinement_story.id,
+    )
+    recommendation = recommend_next_change_request(
+        mem.store,
+        journey=event.journey,
+        refinement_story_id=event.refinement_story.id,
+    )
+    print(
+        render_refinement_story_progress_surface(
+            story=overview.story,
+            change_requests=overview.change_requests,
+            next_change_request=recommendation,
+        )
+    )
+    print(render_next_change_request_recommendation(recommendation))
 
 
 def cmd_refinement_story_flow(
@@ -1605,6 +1870,30 @@ def cmd_refinement_story_flow(
                 summary=summary,
             )
         )
+
+
+def cmd_change_request_discard(
+    *,
+    journey: str | None = None,
+    session_id: str | None = None,
+    change_request_id: str,
+    reason: str,
+) -> None:
+    mem = MemoryClient()
+    resolved_journey = _resolve_workbench_journey(
+        mem, journey=journey, session_id=session_id, action="discard change request"
+    )
+    try:
+        discard = discard_change_request(
+            mem.store,
+            journey=resolved_journey,
+            change_request_id=change_request_id,
+            reason=reason,
+        )
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    print(render_change_request_discarded_surface(discard))
 
 
 def cmd_change_request_attach(
@@ -2188,6 +2477,13 @@ def main(argv: list[str] | None = None) -> None:
     p_cr_attach.add_argument("--session-id", default=None, help="Runtime session id")
     p_cr_attach.add_argument("--change-request-id", required=True, help="Change Request id")
     p_cr_attach.add_argument("--refinement-story-id", required=True, help="Refinement Story id")
+    p_cr_discard = change_request_sub.add_parser(
+        "discard", help="Discard an accidental captured Change Request"
+    )
+    p_cr_discard.add_argument("--journey", default=None, help="Journey slug")
+    p_cr_discard.add_argument("--session-id", default=None, help="Runtime session id")
+    p_cr_discard.add_argument("--change-request-id", required=True, help="Change Request id")
+    p_cr_discard.add_argument("--reason", required=True, help="Why this captured CR is discarded")
     for action_name in ("select", "confirm"):
         p_cr_flow = change_request_sub.add_parser(
             action_name, help=f"{action_name} a Change Request"
@@ -2206,12 +2502,21 @@ def main(argv: list[str] | None = None) -> None:
     p_cr_impl.add_argument("--journey", default=None, help="Journey slug")
     p_cr_impl.add_argument("--session-id", default=None, help="Runtime session id")
     p_cr_impl.add_argument("--change-request-id", required=True, help="Change Request id")
+    p_cr_impl.add_argument("--plan", default=None, help="Optional compact implementation plan")
     p_cr_impl.add_argument("--evidence", required=True, help="Implementation evidence")
     p_cr_validate = change_request_sub.add_parser("validate", help="Validate a Change Request")
     p_cr_validate.add_argument("--journey", default=None, help="Journey slug")
     p_cr_validate.add_argument("--session-id", default=None, help="Runtime session id")
     p_cr_validate.add_argument("--change-request-id", required=True, help="Change Request id")
     p_cr_validate.add_argument("--evidence", required=True, help="Validation evidence")
+    p_cr_validate.add_argument(
+        "--close",
+        action="store_true",
+        help="Close the Change Request as done after recording validation",
+    )
+    p_cr_validate.add_argument(
+        "--notes", default=None, help="Optional done note when --close is used"
+    )
     p_cr_done = change_request_sub.add_parser("done", help="Record Change Request done note")
     p_cr_done.add_argument("--journey", default=None, help="Journey slug")
     p_cr_done.add_argument("--session-id", default=None, help="Runtime session id")
@@ -2443,6 +2748,13 @@ def main(argv: list[str] | None = None) -> None:
                 change_request_id=args.change_request_id,
                 refinement_story_id=args.refinement_story_id,
             )
+        elif args.change_request_action == "discard":
+            cmd_change_request_discard(
+                journey=args.journey,
+                session_id=args.session_id,
+                change_request_id=args.change_request_id,
+                reason=args.reason,
+            )
         elif args.change_request_action in {
             "select",
             "confirm",
@@ -2459,6 +2771,8 @@ def main(argv: list[str] | None = None) -> None:
                 summary=getattr(args, "summary", None),
                 evidence=getattr(args, "evidence", None),
                 notes=getattr(args, "notes", None),
+                plan=getattr(args, "plan", None),
+                close=getattr(args, "close", False),
             )
     elif args.command == "prepare-item":
         cmd_prepare_item(args.method, journey=args.journey, session_id=args.session_id)

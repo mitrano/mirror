@@ -135,26 +135,26 @@ Candidate Delivery Stories:
     build.cmd_load("sandbox-pet-store")
 
     out = capsys.readouterr().out
-    assert "BUILDER HOME" in out
-    assert "🟪 Delivery field" in out
-    assert "🧰 Refinement field" in out
-    assert "workbench storage: implemented" in out
-    assert "stored RSs: 0" in out
-    assert "stored CRs: 0" in out
-    assert "unassigned CRs: 0" in out
-    assert "seed CRs: 2" in out
-    assert "next refinement move: compose or capture Refinement" in out
-    assert "Work when requested" in out
-    assert "pull recommended Delivery item" in out
-    assert "compose or capture Refinement Work when requested" in out
-    assert "implement Workbench Storage Model before durable" not in out
-    assert "ROADMAP SNAPSHOT" in out
-    assert "Ariad: ◉ Pull | ○ Prepare | ○ Expand | ○ Plan" in out
-    assert "🟪[CV2]  Checkout Flow" in out
-    assert "PULL CANDIDATES" in out
-    assert "CV2.DS1 — Checkout Flow / Checkout entry" in out
+    assert "BUILDER ORIENTATION" in out
+    assert "BUILDER HOME" not in out
+    assert "ROADMAP SNAPSHOT" not in out
+    assert "PULL CANDIDATES" not in out
+    assert "Where are we in the roadmap?" in out
+    assert "What can be pulled next?" in out
+    assert "What is open for refinement?" in out
+    assert "What can we do now?" in out
+    assert "Delivery Flow:" not in out
+    assert "Ariad:" not in out
+    assert "🟪[CV2] Checkout Flow" in out
+    assert "└─ 🟦[DS1] Checkout entry" in out
+    assert "▸ CV2.DS1 Checkout entry" in out
+    assert "Checkout entry and address capture" in out
+    assert "no active Refinement Story" in out
+    assert "no captured Change Requests" in out
+    assert "pull CV2.DS1" in out
+    assert "capture Refinement Work" in out
     assert "BUILDER RESUME" not in out
-    assert "No item was pulled" in out
+    assert "Choose a move when ready." in out
 
 
 def test_build_load_renders_resume_surface_when_adopted_journey_has_active_item(
@@ -288,7 +288,7 @@ Candidate Delivery Stories:
     assert cursor.pending_confirmation == "navigator_approval"
     assert cursor.last_delivery_event == "plan"
     assert "PLAN CHECKPOINT" in out
-    assert "Ariad: ✓ Pull | ✓ Prepare | ✓ Expand | ◉ Plan" in out
+    assert "Delivery Flow: ✓ Pull → ✓ Prepare → ✓ Expand → ◉ Plan" in out
     assert "🟦[CV2.DS1]" in out
     assert "story package" in out
     assert "index_artifact_path=" in out
@@ -344,9 +344,16 @@ def test_build_plan_delivery_story_records_aggregate_checkpoint(mocker, tmp_path
     assert cursor.aggregate_checkpoint_status == ("plan:pending",)
     out = capsys.readouterr().out
     assert "<<<ARIAD:DELIVERY_STORY_PLAN_CHECKPOINT>>>" in out
+    assert "│        🧭  DELIVERY STORY PLAN                          │" in out
     assert "│ - CV20.DS5.US1                                         │" in out
+    assert "Flow unit" not in out
+    assert "Navigator gate" not in out
     assert package.joinpath("plan.md").exists()
-    assert "│ plan artifact                                          │" in out
+    assert "│ plan artifact                                          │" not in out
+    assert "<<<ARIAD:ARTIFACTS_MATERIALIZED>>>" in out
+    assert "index.md" in out
+    assert "plan.md" in out
+    assert "test-guide.md" in out
 
 
 def test_build_approve_delivery_story_plan_records_approval(mocker, tmp_path, capsys):
@@ -375,8 +382,20 @@ def test_build_approve_delivery_story_plan_records_approval(mocker, tmp_path, ca
     assert cursor is not None
     assert cursor.aggregate_checkpoint_status == ("plan:approved",)
     out = capsys.readouterr().out
-    assert "│ status                                                 │" in out
-    assert "│ approved                                               │" in out
+    assert "│        🧭  DELIVERY STORY PLAN APPROVED                 │" in out
+    assert "Delivery Flow: ✓ Pull → ✓ Prepare → ✓ Expand → ✓ DS Plan → ◉ Implement" in out
+    assert "What was approved?" in out
+    assert "Approved work packages" in out
+    assert "What is being planned?" not in out
+    assert "Plan objective" not in out
+    assert "Delivery Story Plan approved." not in out
+    assert "Begin implementation under the approved plan." in out
+    assert "Choose the next move when ready." not in out
+    assert "<<<ARIAD:IMPLEMENTATION_STARTED>>>" in out
+    assert "│        🟧  IMPLEMENTATION STARTED                     │" in out
+    assert "The approved Delivery Story Plan now authorizes" in out
+    assert "Push, release, deploy, purchase" in out
+    assert "Begin implementing the approved plan now." in out
 
 
 def test_build_set_flow_unit_records_delivery_story_choice(mocker, tmp_path, capsys):
@@ -394,10 +413,15 @@ def test_build_set_flow_unit_records_delivery_story_choice(mocker, tmp_path, cap
     assert cursor is not None
     assert cursor.navigator_flow_unit == "delivery_story"
     out = capsys.readouterr().out
-    assert "<<<ARIAD:NAVIGATOR_FLOW_UNIT>>>" in out
-    assert "│        🧭■  NAVIGATOR FLOW UNIT                        │" in out
-    assert "│ effective flow unit                                    │" in out
-    assert "│ delivery_story                                         │" in out
+    assert "<<<ARIAD:NAVIGATOR_FLOW_UNIT>>>" not in out
+    assert "<<<ARIAD:DELIVERY_STORY_SCOPE_CONFIRMATION>>>" in out
+    assert "Delivery Flow:" not in out
+    assert "My understanding" in out
+    assert "Selected flow unit" not in out
+    assert "Before I create the DS Plan, correct or add anything:" in out
+    assert "1. Is this the right scope?" in out
+    assert "What is out of scope?" not in out
+    assert "validation evidence" not in out
 
 
 def test_build_set_flow_unit_inspects_default(mocker, tmp_path, capsys):
@@ -412,10 +436,11 @@ def test_build_set_flow_unit_inspects_default(mocker, tmp_path, capsys):
     build.cmd_set_flow_unit("ariad", journey="sandbox-pet-store")
 
     out = capsys.readouterr().out
-    assert "│ effective flow unit                                    │" in out
+    assert "Selected flow unit" in out
     assert "│ story_by_story                                         │" in out
-    assert "│ source                                                 │" in out
-    assert "│ default                                                │" in out
+    assert "source" not in out
+    assert "default" not in out
+    assert "SCOPE_CONFIRMATION" not in out
 
 
 def test_build_set_cadence_accepts_accelerated(mocker, tmp_path, capsys):
@@ -594,7 +619,7 @@ def test_build_check_implementation_refuses_pending_approval(mocker, tmp_path, c
     assert "blocked" in out
 
 
-def test_build_continue_lifecycle_accelerated_runs_coherence_and_done(mocker, tmp_path, capsys):
+def test_build_continue_lifecycle_accelerated_runs_done_after_review(mocker, tmp_path, capsys):
     mirror_home = tmp_path / ".mirror" / "pati"
     db_path = default_db_path_for_home(mirror_home)
     mem = MemoryClient(env="test", db_path=db_path)
@@ -626,7 +651,7 @@ def test_build_continue_lifecycle_accelerated_runs_coherence_and_done(mocker, tm
     cursor = get_delivery_cursor(mem.store, "sandbox-pet-store")
     assert cursor is not None
     assert cursor.last_delivery_event == "done_complete"
-    assert "<<<ARIAD:COHERENCE_CHECKPOINT>>>" in out
+    assert "<<<ARIAD:COHERENCE_CHECKPOINT>>>" not in out
     assert "<<<ARIAD:DONE_CHECKPOINT>>>" in out
 
 
@@ -719,6 +744,58 @@ def test_build_done_item_completes_after_coherence(mocker, tmp_path, capsys):
     assert cursor.last_delivery_event == "done_complete"
     assert "<<<ARIAD:DONE_CHECKPOINT>>>" in out
     assert "Story closure is complete" in out
+    assert "<<<ARIAD:PROJECT_POSITION>>>" in out
+    assert out.rstrip().endswith("<<<END:PROJECT_POSITION>>>")
+
+
+def test_build_done_delivery_story_renders_project_position_last(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    project_path = tmp_path / "project"
+    roadmap = project_path / "docs/project/roadmap/index.md"
+    roadmap.parent.mkdir(parents=True)
+    roadmap.write_text(
+        """# Roadmap
+
+| Code | Capability Value | Status |
+|------|------------------|--------|
+| CV2 | Checkout Flow | In Progress |
+""",
+        encoding="utf-8",
+    )
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    mem.journeys.set_project_path("sandbox-pet-store", str(project_path))
+    set_adopted_method(mem.store, "sandbox-pet-store", "ariad")
+    set_delivery_cursor(
+        mem.store,
+        journey="sandbox-pet-store",
+        method="ariad",
+        active_item="CV2.DS1",
+        active_item_title="Checkout entry and address capture",
+        active_item_level="delivery_story",
+        navigator_flow_unit="delivery_story",
+        child_work_items=("CV2.DS1.US1",),
+        aggregate_checkpoint_status=(
+            "plan:approved",
+            "validation:passed",
+            "debt_review:review:no_action",
+        ),
+    )
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    build.cmd_done_delivery_story(
+        "ariad",
+        journey="sandbox-pet-store",
+        summary="Closed checkout entry and address capture.",
+    )
+
+    out = capsys.readouterr().out
+    assert "<<<ARIAD:DELIVERY_STORY_CLOSURE_CHECKPOINT>>>" in out
+    assert "<<<ARIAD:ARTIFACTS_MATERIALIZED>>>" in out
+    assert "<<<ARIAD:PROJECT_POSITION>>>" in out
+    assert "What just moved?" in out
+    assert out.rstrip().endswith("<<<END:PROJECT_POSITION>>>")
 
 
 def test_build_coherence_item_requires_review_complete(mocker, tmp_path, capsys):
@@ -1479,7 +1556,8 @@ Candidate Delivery Stories:
 
     out = capsys.readouterr().out
     assert "ROADMAP SNAPSHOT" in out
-    assert "Ariad: ◉ Pull | ○ Prepare | ○ Expand | ○ Plan" in out
+    assert "Delivery Flow:" not in out
+    assert "Ariad:" not in out
     assert "🟪[CV2]  Checkout Flow" in out
     assert "view                         overview" in out
     assert "PULL CANDIDATES" in out
@@ -1514,10 +1592,25 @@ def test_build_pull_delivery_story_prepares_and_expands(mocker, tmp_path, capsys
     assert cursor.last_delivery_event == "expand"
     assert cursor.active_checkpoint == "next_story_confirmation"
     assert cursor.pending_confirmation == "navigator_story_confirmation"
-    assert "<<<ARIAD:DELIVERY_STORY_IDENTIFIED>>>" in out
-    assert "<<<ARIAD:PREPARE_FIELD_READING>>>" in out
-    assert "<<<ARIAD:EXPAND_DECISION>>>" in out
-    assert "CV2.DS1.US1" in out
+    assert "<<<ARIAD:DELIVERY_STORY_READY>>>" in out
+    assert "<<<ARIAD:ARTIFACTS_MATERIALIZED>>>" in out
+    assert "Expand — CV2.DS1" in out
+    assert "created DS package" in out
+    assert "created US1 package" in out
+    assert "<<<ARIAD:DELIVERY_STORY_IDENTIFIED>>>" not in out
+    assert "<<<ARIAD:PREPARE_FIELD_READING>>>" not in out
+    assert "<<<ARIAD:EXPAND_DECISION>>>" not in out
+    assert "What was pulled?" in out
+    assert "Where are we in the roadmap?" in out
+    assert "What did Prepare find?" in out
+    assert "What was materialized?" in out
+    assert "What is recommended next?" in out
+    assert "Recommended flow unit" in out
+    assert "delivery_story" in out
+    assert "Why this recommendation?" in out
+    assert "Navigator-facing unit" in out
+    assert "Choose the next flow unit when ready." in out
+    assert "🟩[US1] Checkout entry and address capture" in out
     assert (
         project_path
         / "docs/project/roadmap/cv2-checkout-flow/cv2-ds1-checkout-entry-and-address-capture/index.md"
@@ -1547,7 +1640,7 @@ def test_build_pull_item_updates_cursor(mocker, tmp_path, capsys):
     )
 
     out = capsys.readouterr().out
-    assert "Ariad: ◉ Pull | ○ Prepare | ○ Expand | ○ Plan" in out
+    assert "Delivery Flow: ◉ Pull → ○ Prepare → ○ Expand → ○ Plan" in out
     assert "DELIVERY STORY ACTIVATED" in out
     assert "roadmap candidate" in out
     assert "active item: CHECKOUT-FLOW" in out
@@ -1580,7 +1673,7 @@ def test_build_prepare_item_updates_cursor(mocker, tmp_path, capsys):
     build.cmd_prepare_item("ariad", journey="sandbox-pet-store")
 
     out = capsys.readouterr().out
-    assert "Ariad: ✓ Pull | ◉ Prepare | ○ Expand | ○ Plan" in out
+    assert "Delivery Flow: ✓ Pull → ◉ Prepare → ○ Expand → ○ Plan" in out
     assert "PREPARE FIELD READING" in out
     assert "🟦[CHECKOUT-FLOW]" in out
     assert "✓ docs/process/development-guide.md: present" in out
@@ -1712,7 +1805,8 @@ def test_change_request_capture_command_renders_surface_and_preserves_delivery_c
     assert len(change_requests) == 1
     assert change_requests[0].title == "Clarify checkout state"
     assert "<<<ARIAD:CHANGE_REQUEST_CAPTURED>>>" in out
-    assert story.id in out
+    assert "RS001: RS-001 — Sandbox checkout refinements" in out
+    assert story.id not in out
     assert "change_request_id=" in out
     assert mem.store.get_refinement_cursor("sandbox-pet-store") is None
     delivery_cursor = get_delivery_cursor(mem.store, "sandbox-pet-store")
@@ -1754,8 +1848,8 @@ def test_change_request_attach_and_overview_commands_render_ordered_overview(
     assert attached is not None
     assert attached.refinement_story_id == story.id
     assert out.count("<<<ARIAD:REFINEMENT_STORY_OVERVIEW>>>") == 2
-    assert "Clarify checkout state" in out
-    assert "pull RS later (not implemented in this story)" in out
+    assert "CR001: Clarify checkout state [captured]" in out
+    assert "available next moves" not in out
 
 
 def test_refinement_story_pull_command_sets_cursor_and_preserves_delivery_cursor(
@@ -1800,8 +1894,10 @@ def test_refinement_story_pull_command_sets_cursor_and_preserves_delivery_cursor
     assert delivery_cursor is not None
     assert delivery_cursor.active_item == "CV2.DS1"
     assert "<<<ARIAD:REFINEMENT_STORY_PULLED>>>" in out
-    assert "active CR: none" in out
-    assert "Validate RS pull" in out
+    assert "RS001: RS-002" in out
+    assert "change requests (#1)" in out
+    assert "CR001: Validate RS pull [captured]" in out
+    assert "active CR: none" not in out
 
 
 def test_builder_home_shows_active_refinement_story_after_pull(mocker, tmp_path, capsys):
@@ -1851,11 +1947,37 @@ def test_builder_home_shows_active_refinement_story_after_pull(mocker, tmp_path,
     build.cmd_load("sandbox-pet-store")
 
     out = capsys.readouterr().out
-    assert "BUILDER HOME" in out
-    assert f"active RS: {story.id} — RS-002" in out
-    assert "next refinement move: continue active Refinement" in out
+    assert "BUILDER ORIENTATION" in out
+    assert "active RS: RS001: RS-002" in out
     assert "continue active Refinement Story" in out
-    assert "No item was pulled" in out
+    assert "Choose a move when ready." in out
+
+
+def test_change_request_discard_command_removes_captured_cr(mocker, tmp_path, capsys):
+    mirror_home = tmp_path / ".mirror" / "pati"
+    db_path = default_db_path_for_home(mirror_home)
+    mem = MemoryClient(env="test", db_path=db_path)
+    mem.set_identity("journey", "sandbox-pet-store", JOURNEY_CONTENT)
+    story = mem.store.create_refinement_story(journey="sandbox-pet-store", title="RS flow")
+    cr = mem.store.create_change_request(
+        journey="sandbox-pet-store",
+        refinement_story_id=story.id,
+        title="Duplicate CR",
+        body="Duplicate.",
+    )
+    mocker.patch("memory.cli.build.MemoryClient", return_value=mem)
+
+    build.cmd_change_request_discard(
+        journey="sandbox-pet-store",
+        change_request_id=cr.id,
+        reason="Duplicate capture",
+    )
+
+    out = capsys.readouterr().out
+    assert "<<<ARIAD:CHANGE_REQUEST_DISCARDED>>>" in out
+    assert "CR001: Duplicate CR" in out
+    assert "Duplicate capture" in out
+    assert mem.store.get_change_request(cr.id) is None
 
 
 def test_change_request_flow_commands_update_state_and_render_surfaces(mocker, tmp_path, capsys):
@@ -1869,6 +1991,12 @@ def test_change_request_flow_commands_update_state_and_render_surfaces(mocker, t
         refinement_story_id=story.id,
         title="Validate CR flow",
         body="State only.",
+    )
+    mem.store.create_change_request(
+        journey="sandbox-pet-store",
+        refinement_story_id=story.id,
+        title="Next CR flow",
+        body="Next state.",
     )
     mem.store.update_refinement_story_status(story.id, "active")
     mem.store.set_refinement_cursor(
@@ -1902,6 +2030,13 @@ def test_change_request_flow_commands_update_state_and_render_surfaces(mocker, t
 
     out = capsys.readouterr().out
     assert out.count("<<<ARIAD:REFINEMENT_FLOW_EVENT>>>") == 6
+    assert "<<<ARIAD:REFINEMENT_STORY_PROGRESS>>>" in out
+    assert "RS001 PROGRESS" in out
+    assert "🟩🟥 1/2 done" in out
+    assert "🟩 CR001: Validate CR flow" in out
+    assert "🟦 CR002: Next CR flow" in out
+    assert "Next CR recommendation: CR002 — Next CR flow [captured]" in out
+    assert "Await Navigator confirmation before selecting it." in out
     assert mem.store.get_change_request(cr.id).status == "done"
     assert mem.store.get_refinement_cursor("sandbox-pet-store").active_change_request_id is None
     assert get_delivery_cursor(mem.store, "sandbox-pet-store").active_item == "CV2.DS1"
@@ -1934,9 +2069,15 @@ def test_refinement_story_flow_commands_review_coherence_close(mocker, tmp_path,
 
     out = capsys.readouterr().out
     assert out.count("<<<ARIAD:REFINEMENT_FLOW_EVENT>>>") == 3
-    assert "current RS phase" in out
-    assert "does not mutate files" in out
-    assert "notes remain stored" in out
+    assert "RS Flow:" in out
+    assert "🔎 RS001 REVIEW" in out
+    assert "◉ RS001 COHERENCE" in out
+    assert "◻ RS001 CLOSED" in out
+    assert "RS001: RS flow" not in out
+    assert "Review only" in out
+    assert "Coherent" in out
+    assert "Closed" in out
+    assert "current RS phase" not in out
     assert mem.store.get_refinement_story(story.id).status == "closed"
     assert mem.store.get_refinement_cursor("sandbox-pet-store").active_refinement_story_id is None
 

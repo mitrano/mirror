@@ -145,53 +145,105 @@ def render_delivery_story_plan_report(report: DeliveryStoryPlanReport) -> str:
     body = "\n".join(
         [
             "Delivery",
-            "Ariad: ✓ Pull | ✓ Prepare | ✓ Expand | ◉ DS Plan | ○ Implement | ○ Validate | ○ Debt Review | ○ Coherence | ○ Done",
+            _plan_ribbon(report),
             "",
             "╭────────────────────────────────────────────────────────╮",
-            "│        🧭■  DELIVERY STORY PLAN CHECKPOINT             │",
+            _card_text(_plan_title(report)),
             "│                                                        │",
-            _card_text("journey"),
-            _card_text(report.journey),
+            *_plan_body(report),
             "│                                                        │",
-            _card_text("delivery story"),
-            _card_text(report.delivery_story),
-            "│                                                        │",
-            _card_text("delivery story title"),
-            *_card_wrapped(report.delivery_story_title or "none"),
-            "│                                                        │",
-            _card_text("navigator flow unit"),
-            _card_text(FLOW_UNIT_DELIVERY_STORY),
-            "│                                                        │",
-            _card_text("child work packages"),
-            *_card_prefixed(report.child_work_items, "-"),
-            "│                                                        │",
-            _card_text("objective"),
-            *_card_wrapped(report.objective),
-            "│                                                        │",
-            _card_text("status"),
-            _card_text(report.status),
-            "│                                                        │",
-            _card_text("plan artifact"),
-            *_card_wrapped(
-                str(report.plan_artifact_path) if report.plan_artifact_path else "not materialized"
-            ),
-            "│                                                        │",
-            _card_text("approval gate"),
-            *_card_wrapped(
-                "checkpoint: after_delivery_story_plan" if report.status != "approved" else "none"
-            ),
-            *_card_wrapped(
-                "pending: navigator_delivery_story_plan_approval"
-                if report.status != "approved"
-                else "none"
-            ),
-            "│                                                        │",
-            _card_text("boundary"),
-            *_card_wrapped(_boundary(report)),
+            _card_text("Next movement"),
+            *_card_wrapped(_next_movement(report)),
+            *_plan_closing_lines(report),
             "╰────────────────────────────────────────────────────────╯",
         ]
     )
     return wrap_ariad_surface("delivery_story_plan_checkpoint", body + "\n")
+
+
+def render_delivery_story_implementation_started(report: DeliveryStoryPlanReport) -> str:
+    """Render the handoff from Plan approval into implementation cadence."""
+    body = "\n".join(
+        [
+            "Delivery",
+            "Delivery Flow: ✓ Pull → ✓ Prepare → ✓ Expand → ✓ DS Plan → ◉ Implement → ○ Validate → ○ Debt Review → ○ Done",
+            "",
+            "╭────────────────────────────────────────────────────────╮",
+            "│        🟧  IMPLEMENTATION STARTED                     │",
+            "│                                                        │",
+            _card_text("What changed?"),
+            *_card_wrapped("The approved Delivery Story Plan now authorizes implementation work."),
+            "│                                                        │",
+            _card_text("Active delivery"),
+            *_card_wrapped(_active_delivery(report)),
+            "│                                                        │",
+            _card_text("Work packages"),
+            *_card_prefixed(report.child_work_items, "-"),
+            "│                                                        │",
+            _card_text("Boundary"),
+            *_card_wrapped(
+                "Implementation may mutate local project files under the approved plan. Push, release, deploy, purchase, or externally irreversible actions still require explicit Navigator authorization."
+            ),
+            "│                                                        │",
+            _card_text("Driver action"),
+            *_card_wrapped("Begin implementing the approved plan now."),
+            "╰────────────────────────────────────────────────────────╯",
+        ]
+    )
+    return wrap_ariad_surface("implementation_started", body + "\n")
+
+
+def _plan_ribbon(report: DeliveryStoryPlanReport) -> str:
+    if report.status == "approved":
+        return "Delivery Flow: ✓ Pull → ✓ Prepare → ✓ Expand → ✓ DS Plan → ◉ Implement → ○ Validate → ○ Debt Review → ○ Done"
+    return "Delivery Flow: ✓ Pull → ✓ Prepare → ✓ Expand → ◉ DS Plan → ○ Implement → ○ Validate → ○ Debt Review → ○ Done"
+
+
+def _plan_title(report: DeliveryStoryPlanReport) -> str:
+    if report.status == "approved":
+        return "       🧭  DELIVERY STORY PLAN APPROVED"
+    return "       🧭  DELIVERY STORY PLAN"
+
+
+def _plan_body(report: DeliveryStoryPlanReport) -> list[str]:
+    if report.status == "approved":
+        return [
+            _card_text("What was approved?"),
+            *_card_wrapped(_active_delivery(report)),
+            "│                                                        │",
+            _card_text("Approved work packages"),
+            *_card_prefixed(report.child_work_items, "-"),
+        ]
+    return [
+        _card_text("What is being planned?"),
+        *_card_wrapped(_active_delivery(report)),
+        "│                                                        │",
+        _card_text("Plan objective"),
+        *_card_wrapped(report.objective),
+        "│                                                        │",
+        _card_text("Work packages"),
+        *_card_prefixed(report.child_work_items, "-"),
+    ]
+
+
+def _plan_closing_lines(report: DeliveryStoryPlanReport) -> list[str]:
+    if report.status == "approved":
+        return []
+    return [
+        "│                                                        │",
+        *_card_wrapped("Choose the next move when ready."),
+    ]
+
+
+def _active_delivery(report: DeliveryStoryPlanReport) -> str:
+    title = f" — {report.delivery_story_title}" if report.delivery_story_title else ""
+    return f"🟦[{report.delivery_story}]{title}"
+
+
+def _next_movement(report: DeliveryStoryPlanReport) -> str:
+    if report.status == "approved":
+        return "Begin implementation under the approved plan."
+    return "Review the plan artifact, then approve or revise."
 
 
 def _boundary(report: DeliveryStoryPlanReport) -> str:

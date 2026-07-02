@@ -40,6 +40,8 @@ Ariad governs the first implementation. The architecture must remain open enough
 | [CV20.DS8](cv20-ds8-debt-ledger-refactor-loop/index.md) | Debt Ledger And Refactor Loop | Review records technical debt in a versioned ledger, requires defer rationale and revisit trigger, and routes pay-now decisions through Refactor back to Validation | 🟡 Planned |
 | [CV20.DS9](cv20-ds9-method-preferences-and-overrides/index.md) | Method Preferences And Overrides | Builder resolves Ariad defaults, project-local config, and Navigator overrides into inspectable effective preferences | 🟡 Planned |
 | [CV20.DS10](cv20-ds10-builder-documentation-migration/index.md) | Builder Documentation And Migration | User-facing docs, process docs, and journey guidance explain Ariad Builder adoption, DSL overrides, lifecycle, and operational boundaries | 🟡 Planned |
+| [CV20.DS11](cv20-ds11-refinement-lifecycle-dsl-governance/index.md) | Refinement Lifecycle DSL Governance | Refinement Stories, Change Requests, CR-cycle gates, transition prompts, and Refinement surfaces are governed by Ariad method data like Delivery Work | 🟡 Planned |
+| [CV20.DS12](cv20-ds12-refinement-work-artifacts/index.md) | Refinement Work Artifacts | Refinement Stories and Change Requests produce durable project artifacts for scope, plan, evidence, validation, review, coherence, and closure | 🟡 Planned |
 
 ---
 
@@ -77,6 +79,8 @@ Refinement Lifecycle
   → RS Review records patterns and debt candidates without direct mutation
   → RS Coherence checks workbench, docs, tests, roadmap, and product alignment
   → RS Close records CR outcomes and exits active refinement
+  → DS11 moves this lifecycle from runtime convention to effective method DSL governance
+  → DS12 materializes meaningful Refinement outputs as durable project artifacts
 ```
 
 ---
@@ -87,6 +91,8 @@ Refinement Lifecycle
 - No implementation of additional delivery methods beyond Ariad in this CV.
 - No operational-update lifecycle beyond the scoped Ariad Refinement Workbench path.
 - No redesign of Ariad visual grammar before implementation pressure requires it.
+- No claim that Refinement Work is fully DSL-governed until CV20.DS11 is delivered.
+- No claim that Refinement Work has a durable project artifact trail until CV20.DS12 is delivered.
 - No silent state transitions without method checks.
 - No autonomous Navigator decisions.
 - No remote push or release publication without the effective policy allowing it.

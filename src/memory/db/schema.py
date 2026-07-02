@@ -70,6 +70,7 @@ CREATE INDEX IF NOT EXISTS idx_runtime_sessions_active ON runtime_sessions(activ
 CREATE TABLE IF NOT EXISTS builder_refinement_stories (
     id TEXT PRIMARY KEY,
     journey TEXT NOT NULL,
+    display_code TEXT NOT NULL,
     title TEXT NOT NULL,
     description TEXT,
     status TEXT NOT NULL DEFAULT 'draft',
@@ -85,10 +86,13 @@ CREATE TABLE IF NOT EXISTS builder_refinement_stories (
 
 CREATE INDEX IF NOT EXISTS idx_builder_refinement_stories_journey_status
     ON builder_refinement_stories(journey, status, position, updated_at);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_builder_refinement_stories_journey_display_code
+    ON builder_refinement_stories(journey, display_code);
 
 CREATE TABLE IF NOT EXISTS builder_change_requests (
     id TEXT PRIMARY KEY,
     journey TEXT NOT NULL,
+    display_code TEXT NOT NULL,
     refinement_story_id TEXT REFERENCES builder_refinement_stories(id),
     title TEXT NOT NULL,
     body TEXT NOT NULL,
@@ -110,6 +114,8 @@ CREATE INDEX IF NOT EXISTS idx_builder_change_requests_story_status
     ON builder_change_requests(journey, refinement_story_id, status, position, updated_at);
 CREATE INDEX IF NOT EXISTS idx_builder_change_requests_journey_status
     ON builder_change_requests(journey, status, updated_at);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_builder_change_requests_journey_display_code
+    ON builder_change_requests(journey, display_code);
 
 CREATE TABLE IF NOT EXISTS builder_refinement_cursors (
     journey TEXT PRIMARY KEY,

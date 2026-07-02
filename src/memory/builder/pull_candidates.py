@@ -6,7 +6,6 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from memory.builder.lifecycle_ribbon import render_lifecycle_ribbon
 from memory.builder.surface_protocol import wrap_ariad_surface
 
 _CANDIDATE_STATUSES = ("Planned", "Active", "Blocked", "Candidate")
@@ -86,10 +85,15 @@ def inspect_pull_candidates(
     if not roadmap_root.is_dir():
         return PullCandidatesReport(journey=journey, method=method, candidates=(), recommended=None)
 
-    candidates = tuple(
+    raw_candidates = tuple(
         candidate
         for path in sorted(roadmap_root.rglob("index.md"))
         for candidate in _candidates_from_file(root, path)
+    )
+    candidates = tuple(
+        candidate
+        for candidate in raw_candidates
+        if not _candidate_has_done_artifact(root, candidate)
     )
     return PullCandidatesReport(
         journey=journey,
@@ -97,6 +101,48 @@ def inspect_pull_candidates(
         candidates=candidates,
         recommended=_recommend(candidates),
     )
+
+
+def render_project_position_report(
+    report: RoadmapSnapshotReport,
+    *,
+    candidates: tuple[PullCandidate, ...] = (),
+    just_moved: str | None = None,
+) -> str:
+    """Render a compact Navigator-facing project position surface."""
+    focus = _focus_item(report.items, candidates=candidates)
+    recommended = _recommend(candidates) if candidates else None
+    lines = [
+        "Roadmap",
+        "",
+        "╭────────────────────────────────────────────────────────╮",
+        "│        🧭  PROJECT POSITION                           │",
+        "│                                                        │",
+        _card_text("Where are we now?"),
+        *_project_focus_lines(focus, candidates),
+        "│                                                        │",
+    ]
+    if just_moved:
+        lines.extend(
+            [
+                _card_text("What just moved?"),
+                *_card_wrapped(just_moved),
+                "│                                                        │",
+            ]
+        )
+    lines.extend(
+        [
+            _card_text("What looks next?"),
+            *_card_wrapped(_format_project_recommendation(recommended)),
+            "│                                                        │",
+            _card_text("Available path"),
+            *_card_prefixed(_candidate_lines(candidates), "-"),
+            "│                                                        │",
+            *_card_wrapped("Choose a pull when ready."),
+            "╰────────────────────────────────────────────────────────╯",
+        ]
+    )
+    return wrap_ariad_surface("project_position", "\n".join(lines) + "\n")
 
 
 def render_roadmap_snapshot_report(
@@ -110,7 +156,6 @@ def render_roadmap_snapshot_report(
     lines = [
         "ROADMAP SNAPSHOT",
         "Delivery field overview",
-        render_lifecycle_ribbon("pull"),
         "",
         "view                         overview",
         f"result of roadmap-snapshot      {result}",
@@ -184,11 +229,32 @@ def render_roadmap_snapshot_report(
     return wrap_ariad_surface("roadmap_snapshot", "\n".join(lines) + "\n")
 
 
+def _project_focus_lines(
+    focus: RoadmapSnapshotItem | None,
+    candidates: tuple[PullCandidate, ...],
+) -> list[str]:
+    if focus is None:
+        return [_card_text("no roadmap focus")]
+    marker = _status_marker(focus.status)
+    lines = _card_wrapped(f"🟪[{focus.code}] {focus.title}")
+    lines.extend(
+        _card_wrapped(f"progress: {marker.replace('◉ ', '').replace('○ ', '').replace('✓ ', '')}")
+    )
+    if not candidates:
+        lines.extend(_card_wrapped("available candidates: none"))
+    return lines
+
+
+def _format_project_recommendation(candidate: PullCandidate | None) -> str:
+    if candidate is None:
+        return "No pull candidate is available."
+    return f"🟦[{candidate.code}] {candidate.title.split('/')[-1].strip()} — recommended next pull"
+
+
 def render_pull_candidates_report(report: PullCandidatesReport) -> str:
     """Render Ariad pull candidates using the method visual grammar."""
     lines = [
         "Delivery",
-        render_lifecycle_ribbon("pull"),
         "",
         "╭────────────────────────────────────────────────────────╮",
         "│        🟪■  PULL CANDIDATES                            │",
@@ -338,6 +404,40 @@ def _candidate_delivery_stories_from_content(
         if in_candidate_delivery_stories and line and not line.startswith("- "):
             in_candidate_delivery_stories = False
     return candidates
+
+
+def _candidate_has_done_artifact(root: Path, candidate: PullCandidate) -> bool:
+    roadmap_root = root / "docs" / "project" / "roadmap"
+    candidate_path = root / candidate.path
+    search_paths = []
+    if candidate_path.name == "index.md" and _index_code(candidate_path) == candidate.code:
+        search_paths.append(candidate_path)
+    if not search_paths:
+        search_paths = [
+            path for path in roadmap_root.rglob("index.md") if _index_code(path) == candidate.code
+        ]
+    for index_path in search_paths:
+        if _has_done_artifact(index_path.parent, roadmap_root=roadmap_root):
+            return True
+    return False
+
+
+def _has_done_artifact(path: Path, *, roadmap_root: Path) -> bool:
+    for current in (path, *path.parents):
+        if (current / "done.md").is_file():
+            return True
+        if current == roadmap_root:
+            return False
+    return False
+
+
+def _index_code(path: Path) -> str | None:
+    try:
+        content = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    heading = _HEADING_RE.search(content)
+    return heading.group("code").strip() if heading else None
 
 
 def _level_for(code: str, content: str) -> str:

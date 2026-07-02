@@ -429,6 +429,7 @@ def _migrate_create_builder_workbench(conn: sqlite3.Connection) -> None:
         CREATE TABLE IF NOT EXISTS builder_refinement_stories (
             id TEXT PRIMARY KEY,
             journey TEXT NOT NULL,
+            display_code TEXT NOT NULL,
             title TEXT NOT NULL,
             description TEXT,
             status TEXT NOT NULL DEFAULT 'draft',
@@ -443,10 +444,13 @@ def _migrate_create_builder_workbench(conn: sqlite3.Connection) -> None:
         );
         CREATE INDEX IF NOT EXISTS idx_builder_refinement_stories_journey_status
             ON builder_refinement_stories(journey, status, position, updated_at);
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_builder_refinement_stories_journey_display_code
+            ON builder_refinement_stories(journey, display_code);
 
         CREATE TABLE IF NOT EXISTS builder_change_requests (
             id TEXT PRIMARY KEY,
             journey TEXT NOT NULL,
+            display_code TEXT NOT NULL,
             refinement_story_id TEXT REFERENCES builder_refinement_stories(id),
             title TEXT NOT NULL,
             body TEXT NOT NULL,
@@ -467,6 +471,8 @@ def _migrate_create_builder_workbench(conn: sqlite3.Connection) -> None:
             ON builder_change_requests(journey, refinement_story_id, status, position, updated_at);
         CREATE INDEX IF NOT EXISTS idx_builder_change_requests_journey_status
             ON builder_change_requests(journey, status, updated_at);
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_builder_change_requests_journey_display_code
+            ON builder_change_requests(journey, display_code);
 
         CREATE TABLE IF NOT EXISTS builder_refinement_cursors (
             journey TEXT PRIMARY KEY,
@@ -477,6 +483,59 @@ def _migrate_create_builder_workbench(conn: sqlite3.Connection) -> None:
         );
         """
     )
+
+
+def _migrate_builder_workbench_display_codes(conn: sqlite3.Connection) -> None:
+    """Add stable Navigator-facing RS###/CR### display codes."""
+    story_cols = {row[1] for row in conn.execute("PRAGMA table_info(builder_refinement_stories)")}
+    if "display_code" not in story_cols:
+        conn.execute("ALTER TABLE builder_refinement_stories ADD COLUMN display_code TEXT")
+    cr_cols = {row[1] for row in conn.execute("PRAGMA table_info(builder_change_requests)")}
+    if "display_code" not in cr_cols:
+        conn.execute("ALTER TABLE builder_change_requests ADD COLUMN display_code TEXT")
+
+    _backfill_display_codes(
+        conn,
+        table="builder_refinement_stories",
+        prefix="RS",
+        order_by="position ASC, created_at ASC, id ASC",
+    )
+    _backfill_display_codes(
+        conn,
+        table="builder_change_requests",
+        prefix="CR",
+        order_by="created_at ASC, position ASC, id ASC",
+    )
+
+    conn.executescript(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_builder_refinement_stories_journey_display_code
+            ON builder_refinement_stories(journey, display_code);
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_builder_change_requests_journey_display_code
+            ON builder_change_requests(journey, display_code);
+        """
+    )
+
+
+def _backfill_display_codes(
+    conn: sqlite3.Connection, *, table: str, prefix: str, order_by: str
+) -> None:
+    journeys = [
+        row[0]
+        for row in conn.execute(
+            f"SELECT DISTINCT journey FROM {table} WHERE display_code IS NULL ORDER BY journey"
+        ).fetchall()
+    ]
+    for journey in journeys:
+        rows = conn.execute(
+            f"SELECT id FROM {table} WHERE journey = ? ORDER BY {order_by}",
+            (journey,),
+        ).fetchall()
+        for index, row in enumerate(rows, start=1):
+            conn.execute(
+                f"UPDATE {table} SET display_code = COALESCE(display_code, ?) WHERE id = ?",
+                (f"{prefix}{index:03d}", row[0]),
+            )
 
 
 MigrationApply = Callable[[sqlite3.Connection], None]
@@ -498,6 +557,7 @@ MIGRATIONS: list[tuple[str, MigrationApply]] = [
     ("013_create_exploratory_stories", _migrate_create_exploratory_stories),
     ("014_create_identity_integrations", _migrate_create_identity_integrations),
     ("015_create_builder_workbench", _migrate_create_builder_workbench),
+    ("016_builder_workbench_display_codes", _migrate_builder_workbench_display_codes),
 ]
 
 

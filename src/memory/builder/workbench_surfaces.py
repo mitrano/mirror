@@ -2,10 +2,43 @@
 
 from __future__ import annotations
 
-from memory.builder.lifecycle_ribbon import render_lifecycle_ribbon
+from memory.builder.lifecycle_ribbon import (
+    render_change_request_lifecycle_ribbon,
+    render_refinement_lifecycle_ribbon,
+)
 from memory.builder.surface_protocol import wrap_ariad_surface
-from memory.builder.workbench import RefinementFlowEvent, RefinementStoryOverview
+from memory.builder.workbench import (
+    ChangeRequestDiscard,
+    RefinementFlowEvent,
+    RefinementStoryOverview,
+)
 from memory.storage.builder_workbench import ChangeRequestRecord, RefinementStoryRecord
+
+
+def render_change_request_discarded_surface(discard: ChangeRequestDiscard) -> str:
+    lines = [
+        "Refinement Work",
+        "",
+        "╭────────────────────────────────────────────────────────╮",
+        "│        🧹  CHANGE REQUEST DISCARDED                    │",
+        "│                                                        │",
+        *_card_wrapped(format_cr_ref(discard.change_request)),
+        "│                                                        │",
+        _card_text("Discarded"),
+        *_card_wrapped(
+            "This captured Change Request was removed before entering the active CR cycle."
+        ),
+        "│                                                        │",
+        _card_text("Reason"),
+        *_card_wrapped(discard.reason),
+        "│                                                        │",
+        _card_text("Refinement Story"),
+        *_card_wrapped(
+            format_rs_ref(discard.refinement_story) if discard.refinement_story else "unassigned"
+        ),
+    ]
+    lines.append("╰────────────────────────────────────────────────────────╯")
+    return wrap_ariad_surface("change_request_discarded", "\n".join(lines) + "\n")
 
 
 def render_change_request_captured_surface(
@@ -16,44 +49,20 @@ def render_change_request_captured_surface(
 ) -> str:
     """Render a Navigator-facing surface for captured Change Requests."""
     lines = [
-        "Refinement",
-        render_lifecycle_ribbon("pull"),
+        "Refinement Work",
         "",
         "╭────────────────────────────────────────────────────────╮",
         "│        🧰■  CHANGE REQUEST CAPTURED                    │",
         "│                                                        │",
-        _card_text("journey"),
-        _card_text(journey),
+        *_card_wrapped(format_cr_ref(change_request)),
         "│                                                        │",
-        _card_text("change request"),
-        _card_text(change_request.id),
-        *_card_wrapped(change_request.title),
+        _card_text("Requested change"),
+        *_card_wrapped(change_request.body),
         "│                                                        │",
-        _card_text("status"),
-        _card_text(change_request.status),
-        "│                                                        │",
-        _card_text("source"),
-        _card_text(change_request.source),
+        _card_text("Refinement Story"),
+        *_card_wrapped(format_rs_ref(refinement_story) if refinement_story else "unassigned"),
+        "╰────────────────────────────────────────────────────────╯",
     ]
-    if change_request.provenance:
-        lines.extend([_card_text("provenance"), *_card_wrapped(change_request.provenance)])
-    lines.extend(
-        [
-            "│                                                        │",
-            _card_text("refinement story"),
-            *_card_wrapped(
-                f"{refinement_story.id} — {refinement_story.title}"
-                if refinement_story
-                else "unassigned"
-            ),
-            "│                                                        │",
-            _card_text("boundary"),
-            *_card_wrapped(
-                "Change Request was captured only; no Refinement Story was pulled and no CR lifecycle work was executed."
-            ),
-            "╰────────────────────────────────────────────────────────╯",
-        ]
-    )
     return wrap_ariad_surface("change_request_captured", "\n".join(lines) + "\n")
 
 
@@ -64,43 +73,21 @@ def render_refinement_story_pulled_surface(
 ) -> str:
     """Render a Navigator-facing surface for pulled Refinement Stories."""
     lines = [
-        "Refinement",
-        render_lifecycle_ribbon("pull"),
+        "Refinement Work",
+        render_refinement_lifecycle_ribbon("pull"),
         "",
         "╭────────────────────────────────────────────────────────╮",
         "│        🧰■  REFINEMENT STORY PULLED                    │",
         "│                                                        │",
-        _card_text("journey"),
-        _card_text(journey),
+        *_card_wrapped(format_rs_ref(overview.story)),
         "│                                                        │",
-        _card_text("refinement story"),
-        _card_text(overview.story.id),
-        *_card_wrapped(overview.story.title),
+        _card_text("Pulled"),
+        *_card_wrapped("This Refinement Story entered active Refinement Work."),
         "│                                                        │",
-        _card_text("status"),
-        _card_text(overview.story.status),
-        "│                                                        │",
-        _card_text("active refinement cursor"),
-        _card_text(f"active RS: {overview.story.id}"),
-        _card_text("active CR: none"),
-        "│                                                        │",
-        _card_text("change requests"),
-        _card_text(str(len(overview.change_requests))),
+        _card_text(f"change requests (#{len(overview.change_requests)})"),
     ]
-    lines.extend(_render_change_requests(overview.change_requests))
-    lines.extend(
-        [
-            "│                                                        │",
-            _card_text("next refinement move"),
-            *_card_wrapped("select or confirm first CR later (not implemented in this story)"),
-            "│                                                        │",
-            _card_text("boundary"),
-            *_card_wrapped(
-                "Refinement Story was pulled into active Refinement Work; no CR lifecycle work was executed and no Delivery Work was pulled or executed."
-            ),
-            "╰────────────────────────────────────────────────────────╯",
-        ]
-    )
+    lines.extend(_render_overview_change_requests(overview.change_requests))
+    lines.append("╰────────────────────────────────────────────────────────╯")
     return wrap_ariad_surface("refinement_story_pulled", "\n".join(lines) + "\n")
 
 
@@ -111,138 +98,231 @@ def render_refinement_story_overview_surface(
 ) -> str:
     """Render a Navigator-facing overview of one Refinement Story."""
     lines = [
-        "Refinement",
-        render_lifecycle_ribbon("pull"),
+        "Refinement Work",
         "",
         "╭────────────────────────────────────────────────────────╮",
         "│        🧰■  REFINEMENT STORY OVERVIEW                  │",
         "│                                                        │",
-        _card_text("journey"),
-        _card_text(journey),
-        "│                                                        │",
-        _card_text("refinement story"),
-        _card_text(overview.story.id),
         *_card_wrapped(overview.story.title),
         "│                                                        │",
-        _card_text("status"),
-        _card_text(overview.story.status),
-        "│                                                        │",
-        _card_text("change requests"),
-        _card_text(str(len(overview.change_requests))),
+        _card_text(f"change requests (#{len(overview.change_requests)})"),
     ]
-    lines.extend(_render_change_requests(overview.change_requests))
-    lines.extend(
-        [
-            "│                                                        │",
-            _card_text("available next moves"),
-            *_card_prefixed(
-                (
-                    "add another CR",
-                    "attach an existing CR",
-                    "pull RS later (not implemented in this story)",
-                ),
-                "-",
-            ),
-            "│                                                        │",
-            _card_text("boundary"),
-            *_card_wrapped(
-                "Overview only; no Refinement Story was pulled and no CR lifecycle work was executed."
-            ),
-            "╰────────────────────────────────────────────────────────╯",
-        ]
-    )
+    lines.extend(_render_overview_change_requests(overview.change_requests))
+    lines.append("╰────────────────────────────────────────────────────────╯")
     return wrap_ariad_surface("refinement_story_overview", "\n".join(lines) + "\n")
 
 
 def render_refinement_flow_event_surface(event: RefinementFlowEvent) -> str:
     """Render a Navigator-facing Refinement flow transition surface."""
     lines = [
-        "Refinement",
-        render_lifecycle_ribbon("implement"),
+        "Refinement Work",
+        _event_lifecycle_ribbon(event),
         "",
         "╭────────────────────────────────────────────────────────╮",
-        "│        🧰■  REFINEMENT FLOW EVENT                      │",
+        _event_header(event),
         "│                                                        │",
-        _card_text("event"),
-        _card_text(event.event),
-        "│                                                        │",
-        _card_text("journey"),
-        _card_text(event.journey),
-        "│                                                        │",
-        _card_text("refinement story"),
-        _card_text(event.refinement_story.id),
-        *_card_wrapped(event.refinement_story.title),
+        *_event_body_lines(event),
     ]
     if event.change_request is not None:
         lines.extend(
             [
                 "│                                                        │",
-                _card_text("change request"),
-                _card_text(event.change_request.id),
-                *_card_wrapped(event.change_request.title),
+                _card_text("Refinement Story"),
+                *_card_wrapped(format_rs_ref(event.refinement_story)),
             ]
         )
-    lines.extend(
-        [
-            "│                                                        │",
-            _card_text(_phase_label(event)),
-            _card_text(_current_phase(event)),
-            "│                                                        │",
-            _card_text("status transition"),
-            *_card_wrapped(f"{event.previous_status or 'none'} → {event.new_status or 'none'}"),
-            "│                                                        │",
-            _card_text("active cursor"),
-            _card_text(
-                f"active RS: {event.refinement_story.id if event.event != 'refinement_story_closed' else 'none'}"
-            ),
-            _card_text(f"active CR: {event.active_change_request_id or 'none'}"),
-            "│                                                        │",
-            _card_text("implementation files changed"),
-            _card_text("no"),
-            "│                                                        │",
-            _card_text("next conversational move"),
-            *_card_wrapped(_next_conversational_move(event)),
-        ]
-    )
-    if event.detail:
-        lines.extend(
-            [
-                "│                                                        │",
-                _card_text("detail"),
-                *_card_wrapped(event.detail),
-            ]
-        )
-    if event.event in {"refinement_story_reviewed", "refinement_story_coherent"}:
-        lines.extend(
-            [
-                "│                                                        │",
-                _card_text("review/coherence boundary"),
-                *_card_wrapped(
-                    "This checkpoint does not mutate files; required changes must become Change Requests or future work."
-                ),
-            ]
-        )
-    if event.event == "refinement_story_closed":
-        lines.extend(
-            [
-                "│                                                        │",
-                _card_text("closure record"),
-                *_card_wrapped(
-                    "RS was closed after coherence; CR outcomes and done notes remain stored."
-                ),
-            ]
-        )
-    lines.extend(
-        [
-            "│                                                        │",
-            _card_text("boundary"),
-            *_card_wrapped(
-                "Runtime state transition only; no files were mutated and no Delivery Work was pulled or executed."
-            ),
-            "╰────────────────────────────────────────────────────────╯",
-        ]
-    )
+    lines.append("╰────────────────────────────────────────────────────────╯")
     return wrap_ariad_surface("refinement_flow_event", "\n".join(lines) + "\n")
+
+
+def _event_header(event: RefinementFlowEvent) -> str:
+    subject = (
+        event.change_request.display_code
+        if event.change_request is not None
+        else event.refinement_story.display_code
+    )
+    return _card_text(f"{_event_icon(event)} {subject} {_human_event_phase(event).upper()}")
+
+
+def _event_icon(event: RefinementFlowEvent) -> str:
+    return {
+        "change_request_selected": "🟪",
+        "change_request_confirmed": "🧭",
+        "change_request_planned": "🟦",
+        "change_request_implemented": "🟧",
+        "change_request_validated": "🟩",
+        "change_request_done": "◻",
+        "refinement_story_reviewed": "🔎",
+        "refinement_story_coherent": "◉",
+        "refinement_story_closed": "◻",
+    }.get(event.event, "⬜")
+
+
+def _human_event_phase(event: RefinementFlowEvent) -> str:
+    return {
+        "change_request_selected": "Selected",
+        "change_request_confirmed": "Confirmed",
+        "change_request_planned": "Planned",
+        "change_request_implemented": "Implemented",
+        "change_request_validated": "Validated",
+        "change_request_done": "Done",
+        "refinement_story_reviewed": "Review",
+        "refinement_story_coherent": "Coherence",
+        "refinement_story_closed": "Closed",
+    }.get(event.event, "Updated")
+
+
+def _event_body_lines(event: RefinementFlowEvent) -> list[str]:
+    if event.event == "change_request_selected" and event.change_request is not None:
+        return _scope_confirmation_lines(event.change_request)
+    return _card_wrapped(_event_body(event))
+
+
+def _scope_confirmation_lines(change_request: ChangeRequestRecord) -> list[str]:
+    return [
+        _card_text("Scope confirmation"),
+        _card_text("My understanding:"),
+        *_card_prefixed(
+            (
+                change_request.title,
+                change_request.body,
+            ),
+            "-",
+        ),
+        "│                                                        │",
+        _card_text("Before I plan or implement, confirm:"),
+        *_card_wrapped("1. Is this the right scope?"),
+        *_card_wrapped("2. Is anything out of scope?"),
+        *_card_wrapped("3. What validation evidence will satisfy you?"),
+    ]
+
+
+def _event_body(event: RefinementFlowEvent) -> str:
+    if event.detail:
+        return event.detail
+    return {
+        "change_request_selected": "This Change Request entered the active CR cycle.",
+        "change_request_confirmed": "The Change Request understanding was confirmed.",
+        "change_request_planned": "The Change Request implementation route was planned.",
+        "change_request_implemented": "Implementation evidence was recorded for this Change Request.",
+        "change_request_validated": "Validation evidence was recorded for this Change Request.",
+        "change_request_done": "The Change Request was closed with a done note.",
+        "refinement_story_reviewed": "The Refinement Story review was recorded.",
+        "refinement_story_coherent": "The Refinement Story coherence check was recorded.",
+        "refinement_story_closed": "The Refinement Story was closed.",
+    }.get(event.event, "The Refinement Work state was updated.")
+
+
+def render_refinement_story_progress_surface(
+    *,
+    story: RefinementStoryRecord,
+    change_requests: tuple[ChangeRequestRecord, ...],
+    next_change_request: ChangeRequestRecord | None,
+) -> str:
+    done_count = sum(1 for cr in change_requests if cr.status == "done")
+    total = len(change_requests)
+    lines = [
+        "Refinement Work",
+        "",
+        "╭────────────────────────────────────────────────────────╮",
+        _card_text(f"{story.display_code} PROGRESS"),
+        "│                                                        │",
+        *_card_wrapped(story.title),
+        *_card_wrapped(
+            f"{_progress_bar(change_requests, next_change_request)} {done_count}/{total} done"
+        ),
+        "│                                                        │",
+        _card_text("🟩 done   🟦 next   🟥 remaining"),
+        "│                                                        │",
+    ]
+    for cr in change_requests:
+        lines.extend(
+            _card_wrapped(f"{_progress_icon(cr, next_change_request)} {format_cr_ref(cr)}")
+        )
+    if next_change_request is None:
+        lines.extend(
+            [
+                "│                                                        │",
+                *_card_wrapped("No remaining actionable Change Requests in this Refinement Story."),
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                "│                                                        │",
+                *_card_wrapped(
+                    "Next CR recommendation: "
+                    f"{next_change_request.display_code}. Await Navigator confirmation before selecting it."
+                ),
+            ]
+        )
+    lines.append("╰────────────────────────────────────────────────────────╯")
+    return wrap_ariad_surface("refinement_story_progress", "\n".join(lines) + "\n")
+
+
+def render_next_change_request_recommendation(
+    change_request: ChangeRequestRecord | None,
+) -> str:
+    if change_request is None:
+        return "Next CR recommendation: no remaining actionable Change Requests in this RS."
+    return (
+        "Next CR recommendation: "
+        f"{change_request.display_code} — {change_request.title} "
+        f"[{change_request.status}]. Await Navigator confirmation before selecting it."
+    )
+
+
+def _progress_bar(
+    change_requests: tuple[ChangeRequestRecord, ...],
+    next_change_request: ChangeRequestRecord | None,
+) -> str:
+    del next_change_request
+    return "".join("🟩" if cr.status == "done" else "🟥" for cr in change_requests) or "none"
+
+
+def _progress_icon(
+    change_request: ChangeRequestRecord,
+    next_change_request: ChangeRequestRecord | None,
+) -> str:
+    if change_request.status == "done":
+        return "🟩"
+    if next_change_request is not None and change_request.id == next_change_request.id:
+        return "🟦"
+    return "🟥"
+
+
+def format_rs_ref(story: RefinementStoryRecord) -> str:
+    return f"{story.display_code}: {story.title}"
+
+
+def format_cr_ref(change_request: ChangeRequestRecord) -> str:
+    return f"{change_request.display_code}: {change_request.title}"
+
+
+def _event_lifecycle_ribbon(event: RefinementFlowEvent) -> str:
+    if event.event.startswith("change_request_"):
+        return render_change_request_lifecycle_ribbon(_change_request_ribbon_stage(event))
+    return render_refinement_lifecycle_ribbon(_refinement_story_ribbon_stage(event))
+
+
+def _change_request_ribbon_stage(event: RefinementFlowEvent) -> str:
+    return {
+        "change_request_selected": "confirm",
+        "change_request_confirmed": "confirm",
+        "change_request_planned": "plan",
+        "change_request_implemented": "implement",
+        "change_request_validated": "validate",
+        "change_request_done": "done_note",
+    }.get(event.event, "confirm")
+
+
+def _refinement_story_ribbon_stage(event: RefinementFlowEvent) -> str:
+    return {
+        "refinement_story_pulled": "pull",
+        "refinement_story_reviewed": "review",
+        "refinement_story_coherent": "coherence",
+        "refinement_story_closed": "close",
+    }.get(event.event, "cr_cycle")
 
 
 def _phase_label(event: RefinementFlowEvent) -> str:
@@ -284,7 +364,50 @@ def _render_change_requests(change_requests: tuple[ChangeRequestRecord, ...]) ->
         return [_card_text("none")]
     lines: list[str] = []
     for cr in change_requests:
-        lines.extend(_card_wrapped(f"- {cr.id} — {cr.title} [{cr.status}]"))
+        lines.extend(_card_wrapped(f"- {format_cr_ref(cr)} [{cr.status}]"))
+    return lines
+
+
+_STATUS_SORT_ORDER = {
+    "implemented": 0,
+    "validated": 1,
+    "planned": 2,
+    "active": 3,
+    "captured": 4,
+    "parked": 5,
+    "promoted": 6,
+    "rejected": 7,
+    "done": 8,
+}
+
+_STATUS_MARKS = {
+    "implemented": "🟧",
+    "validated": "🟩",
+    "planned": "🟦",
+    "active": "🟪",
+    "captured": "🟨",
+    "parked": "🟫",
+    "promoted": "🔷",
+    "rejected": "🟥",
+    "done": "🟩",
+}
+
+
+def _render_overview_change_requests(change_requests: tuple[ChangeRequestRecord, ...]) -> list[str]:
+    if not change_requests:
+        return [_card_text("none")]
+    lines: list[str] = []
+    for cr in sorted(
+        change_requests,
+        key=lambda item: (
+            _STATUS_SORT_ORDER.get(item.status, 99),
+            item.position,
+            item.created_at,
+            item.id,
+        ),
+    ):
+        mark = _STATUS_MARKS.get(cr.status, "⬜")
+        lines.extend(_card_wrapped(f"- {mark} {format_cr_ref(cr)} [{cr.status}]"))
     return lines
 
 

@@ -179,13 +179,14 @@ class TestRunMigrations:
         indexes = {
             row[1]
             for row in conn.execute(
-                "SELECT type, name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_builder_%'"
+                "SELECT type, name FROM sqlite_master WHERE type = 'index' AND (name LIKE 'idx_builder_%' OR name LIKE 'ux_builder_%')"
             )
         }
 
         assert {
             "id",
             "journey",
+            "display_code",
             "title",
             "description",
             "status",
@@ -200,6 +201,7 @@ class TestRunMigrations:
         assert {
             "id",
             "journey",
+            "display_code",
             "refinement_story_id",
             "title",
             "body",
@@ -222,3 +224,71 @@ class TestRunMigrations:
         assert "idx_builder_refinement_stories_journey_status" in indexes
         assert "idx_builder_change_requests_story_status" in indexes
         assert "idx_builder_change_requests_journey_status" in indexes
+        assert "ux_builder_refinement_stories_journey_display_code" in indexes
+        assert "ux_builder_change_requests_journey_display_code" in indexes
+
+    def test_builder_workbench_display_codes_backfilled_by_migration_016(self):
+        conn = _fresh_conn()
+        conn.execute("CREATE TABLE _migrations (id TEXT PRIMARY KEY, applied_at TEXT NOT NULL)")
+        for migration_id in MIGRATION_IDS[:15]:
+            conn.execute(
+                "INSERT INTO _migrations (id, applied_at) VALUES (?, ?)",
+                (migration_id, "2026-06-26T00:00:00Z"),
+            )
+        conn.executescript(
+            """
+            CREATE TABLE builder_refinement_stories (
+                id TEXT PRIMARY KEY,
+                journey TEXT NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT,
+                status TEXT NOT NULL DEFAULT 'draft',
+                position INTEGER NOT NULL DEFAULT 0,
+                source TEXT NOT NULL DEFAULT 'manual',
+                provenance TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                pulled_at TEXT,
+                closed_at TEXT
+            );
+            CREATE TABLE builder_change_requests (
+                id TEXT PRIMARY KEY,
+                journey TEXT NOT NULL,
+                refinement_story_id TEXT,
+                title TEXT NOT NULL,
+                body TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'captured',
+                position INTEGER NOT NULL DEFAULT 0,
+                source TEXT NOT NULL DEFAULT 'manual',
+                provenance TEXT,
+                outcome_notes TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                completed_at TEXT
+            );
+            INSERT INTO builder_refinement_stories
+                (id, journey, title, status, position, source, created_at, updated_at)
+                VALUES
+                ('rs-a', 'mirror', 'Second', 'draft', 1, 'manual', '2026-01-02', '2026-01-02'),
+                ('rs-b', 'mirror', 'First', 'draft', 0, 'manual', '2026-01-01', '2026-01-01');
+            INSERT INTO builder_change_requests
+                (id, journey, refinement_story_id, title, body, status, position, source, created_at, updated_at)
+                VALUES
+                ('cr-a', 'mirror', 'rs-b', 'First CR', 'Body', 'captured', 0, 'manual', '2026-01-01', '2026-01-01'),
+                ('cr-b', 'mirror', 'rs-b', 'Second CR', 'Body', 'captured', 1, 'manual', '2026-01-02', '2026-01-02');
+            """
+        )
+
+        run_migrations(conn)
+
+        stories = conn.execute(
+            "SELECT id, display_code FROM builder_refinement_stories ORDER BY position"
+        ).fetchall()
+        change_requests = conn.execute(
+            "SELECT id, display_code FROM builder_change_requests ORDER BY created_at"
+        ).fetchall()
+        assert [(row[0], row[1]) for row in stories] == [("rs-b", "RS001"), ("rs-a", "RS002")]
+        assert [(row[0], row[1]) for row in change_requests] == [
+            ("cr-a", "CR001"),
+            ("cr-b", "CR002"),
+        ]

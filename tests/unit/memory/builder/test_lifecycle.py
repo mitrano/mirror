@@ -47,7 +47,7 @@ def test_pull_lifecycle_item_updates_cursor_and_renders_report(tmp_path):
     rendered = render_pull_report(report)
     assert "<<<ARIAD:DELIVERY_STORY_IDENTIFIED>>>" in rendered
     assert "<<<END:DELIVERY_STORY_IDENTIFIED>>>" in rendered
-    assert "Ariad: ◉ Pull | ○ Prepare | ○ Expand | ○ Plan" in rendered
+    assert "Delivery Flow: ◉ Pull → ○ Prepare → ○ Expand → ○ Plan" in rendered
     assert "DELIVERY STORY ACTIVATED" in rendered
     assert "roadmap candidate" in rendered
     assert "roadmap placement" in rendered
@@ -151,7 +151,7 @@ def test_prepare_lifecycle_item_updates_cursor_and_renders_report(tmp_path):
     rendered = render_prepare_report(report)
     assert "<<<ARIAD:PREPARE_FIELD_READING>>>" in rendered
     assert "<<<END:PREPARE_FIELD_READING>>>" in rendered
-    assert "Ariad: ✓ Pull | ◉ Prepare | ○ Expand | ○ Plan" in rendered
+    assert "Delivery Flow: ✓ Pull → ◉ Prepare → ○ Expand → ○ Plan" in rendered
     assert "PREPARE FIELD READING" in rendered
     assert "🟦[CHECKOUT-FLOW]" in rendered
     assert "✓ README.md: present" in rendered
@@ -202,7 +202,7 @@ def test_plan_lifecycle_item_updates_cursor_and_renders_checkpoint(tmp_path):
     rendered = render_plan_checkpoint(report)
     assert "<<<ARIAD:PLAN_CHECKPOINT>>>" in rendered
     assert "<<<END:PLAN_CHECKPOINT>>>" in rendered
-    assert "Ariad: ✓ Pull | ✓ Prepare | ✓ Expand | ◉ Plan" in rendered
+    assert "Delivery Flow: ✓ Pull → ✓ Prepare → ✓ Expand → ◉ Plan" in rendered
     assert "PLAN CHECKPOINT" in rendered
     assert "🟦[CV2.DS1]" in rendered
     assert "Given the relevant starting state" in rendered

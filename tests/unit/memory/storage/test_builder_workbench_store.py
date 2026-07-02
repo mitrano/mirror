@@ -21,7 +21,9 @@ def test_create_and_list_refinement_stories_by_journey(store):
 
     assert [story.id for story in stories] == [first.id, second.id]
     assert stories[0].status == "draft"
+    assert stories[0].display_code == "RS001"
     assert stories[0].position == 0
+    assert stories[1].display_code == "RS002"
     assert stories[1].position == 1
     assert stories[1].description == "Protect plan artifacts"
     assert stories[1].source == "dogfood"
@@ -45,7 +47,9 @@ def test_create_and_attach_change_requests_with_stable_ordering(store):
 
     moved = store.attach_change_request_to_story(unassigned.id, story.id)
 
+    assert attached.display_code == "CR002"
     assert attached.position == 0
+    assert moved.display_code == "CR001"
     assert moved.refinement_story_id == story.id
     assert moved.position == 1
     assert [cr.id for cr in store.list_change_requests("mirror", refinement_story_id=story.id)] == [
@@ -58,6 +62,20 @@ def test_create_and_attach_change_requests_with_stable_ordering(store):
         attached,
         moved,
     )
+
+
+def test_delete_change_request_removes_record(store):
+    change_request = store.create_change_request(
+        journey="mirror",
+        title="Mistake",
+        body="Captured by mistake.",
+    )
+
+    deleted = store.delete_change_request(change_request.id)
+
+    assert deleted == change_request
+    assert store.get_change_request(change_request.id) is None
+    assert store.list_change_requests("mirror") == ()
 
 
 def test_change_request_association_rejects_cross_journey_story(store):

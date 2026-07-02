@@ -7,8 +7,11 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
-from memory.builder.lifecycle_ribbon import render_lifecycle_ribbon
-from memory.builder.pull_candidates import PullCandidatesReport
+from memory.builder.pull_candidates import (
+    PullCandidate,
+    PullCandidatesReport,
+    RoadmapSnapshotReport,
+)
 from memory.builder.surface_protocol import wrap_ariad_surface
 from memory.builder.workbench import WorkbenchSnapshot, get_workbench_snapshot
 from memory.storage.store import Store
@@ -66,6 +69,38 @@ def inspect_refinement_field(
     )
 
 
+def render_builder_orientation_surface(
+    *,
+    roadmap: RoadmapSnapshotReport,
+    candidates_report: PullCandidatesReport,
+    refinement: RefinementFieldSnapshot,
+) -> str:
+    """Render a single activation orientation surface for Ariad journeys."""
+    recommended = candidates_report.recommended
+    lines = [
+        "Builder Orientation",
+        "",
+        "╭────────────────────────────────────────────────────────╮",
+        "│        ■  BUILDER ORIENTATION                          │",
+        "│                                                        │",
+        _card_text("Where are we in the roadmap?"),
+        *_roadmap_placement_lines(roadmap, recommended),
+        "│                                                        │",
+        _card_text("What can be pulled next?"),
+        *_pull_candidate_lines(candidates_report),
+        "│                                                        │",
+        _card_text("What is open for refinement?"),
+        *_refinement_orientation_lines(refinement),
+        "│                                                        │",
+        _card_text("What can we do now?"),
+        *_card_prefixed(_available_refinement_moves(refinement, recommended), "-"),
+        "│                                                        │",
+        *_card_wrapped("Choose a move when ready."),
+        "╰────────────────────────────────────────────────────────╯",
+    ]
+    return wrap_ariad_surface("builder_orientation", "\n".join(lines) + "\n")
+
+
 def render_builder_home_surface(
     *,
     journey: str,
@@ -77,7 +112,6 @@ def render_builder_home_surface(
     recommended = candidates_report.recommended
     lines = [
         "Builder Home",
-        render_lifecycle_ribbon("pull"),
         "",
         "╭────────────────────────────────────────────────────────╮",
         "│        ■  BUILDER HOME                                 │",
@@ -111,7 +145,7 @@ def render_builder_home_surface(
             *_card_wrapped(f"next refinement move: {refinement.next_move}"),
             "│                                                        │",
             _card_text("available moves"),
-            *_card_prefixed(_available_refinement_moves(refinement), "-"),
+            *_card_prefixed(_available_refinement_moves(refinement, recommended), "-"),
             "│                                                        │",
             _card_text("boundary"),
             *_card_wrapped(
@@ -123,12 +157,66 @@ def render_builder_home_surface(
     return wrap_ariad_surface("builder_home", "\n".join(lines) + "\n")
 
 
-def _available_refinement_moves(refinement: RefinementFieldSnapshot) -> tuple[str, ...]:
+def _roadmap_placement_lines(
+    roadmap: RoadmapSnapshotReport,
+    recommended: PullCandidate | None,
+) -> list[str]:
+    if recommended is None:
+        return [_card_text("no recommended Delivery item")]
+    cv_code = recommended.code.split(".", 1)[0]
+    cv_item = next((item for item in roadmap.items if item.code == cv_code), None)
+    lines: list[str] = []
+    if cv_item is not None:
+        lines.extend(_card_wrapped(f"🟪[{cv_item.code}] {cv_item.title}"))
+    else:
+        lines.extend(_card_wrapped(f"🟪[{cv_code}] roadmap focus"))
+    child_code = recommended.code.split(".")[-1]
+    lines.extend(_card_wrapped(f"  └─ 🟦[{child_code}] {_candidate_short_title(recommended)}"))
+    return lines
+
+
+def _pull_candidate_lines(report: PullCandidatesReport) -> list[str]:
+    if not report.candidates:
+        return [_card_text("none")]
+    lines: list[str] = []
+    for candidate in report.candidates:
+        marker = "▸" if report.recommended and candidate.code == report.recommended.code else "·"
+        lines.extend(
+            _card_wrapped(f"{marker} {candidate.code} {_candidate_short_title(candidate)}")
+        )
+    return lines
+
+
+def _refinement_orientation_lines(refinement: RefinementFieldSnapshot) -> list[str]:
+    if refinement.active_refinement_story:
+        lines = _card_wrapped(f"active RS: {refinement.active_refinement_story}")
+        if refinement.active_change_request:
+            lines.extend(_card_wrapped(f"active CR: {refinement.active_change_request}"))
+        else:
+            lines.append(_card_text("active CR: none"))
+        return lines
+    if refinement.change_request_count:
+        return [
+            _card_text("no active Refinement Story"),
+            _card_text(f"{refinement.change_request_count} captured Change Requests"),
+        ]
+    return [_card_text("no active Refinement Story"), _card_text("no captured Change Requests")]
+
+
+def _candidate_short_title(candidate: PullCandidate) -> str:
+    return candidate.title.split("/")[-1].strip()
+
+
+def _available_refinement_moves(
+    refinement: RefinementFieldSnapshot,
+    recommended: PullCandidate | None = None,
+) -> tuple[str, ...]:
     moves = [
-        "pull recommended Delivery item",
-        "inspect roadmap further",
-        "review seed Change Requests",
+        f"pull {recommended.code}" if recommended else "pull recommended Delivery item",
+        "inspect roadmap",
     ]
+    if refinement.seed_change_requests:
+        moves.append("review seed Change Requests")
     if refinement.active_refinement_story:
         moves.append("continue active Refinement Story")
     elif refinement.storage_state == "implemented":
@@ -164,12 +252,12 @@ def _refinement_snapshot(
         )
     return RefinementFieldSnapshot(
         active_refinement_story=(
-            f"{workbench.active_refinement_story.id} — {workbench.active_refinement_story.title}"
+            f"{workbench.active_refinement_story.display_code}: {workbench.active_refinement_story.title}"
             if workbench.active_refinement_story
             else None
         ),
         active_change_request=(
-            f"{workbench.active_change_request.id} — {workbench.active_change_request.title}"
+            f"{workbench.active_change_request.display_code}: {workbench.active_change_request.title}"
             if workbench.active_change_request
             else None
         ),

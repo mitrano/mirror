@@ -13,6 +13,8 @@ from memory.storage.store import Store
 class RefinementStoryOverview:
     story: RefinementStoryRecord
     change_requests: tuple[ChangeRequestRecord, ...]
+    active_change_request: ChangeRequestRecord | None = None
+    last_refinement_event: str | None = None
 
 
 @dataclass(frozen=True)
@@ -32,9 +34,18 @@ class WorkbenchSnapshot:
     storage_state: str
     active_refinement_story: RefinementStoryRecord | None
     active_change_request: ChangeRequestRecord | None
+    last_refinement_event: str | None
     refinement_story_count: int
     change_request_count: int
     unassigned_change_request_count: int
+
+
+@dataclass(frozen=True)
+class ChangeRequestDiscard:
+    journey: str
+    change_request: ChangeRequestRecord
+    refinement_story: RefinementStoryRecord | None
+    reason: str
 
 
 def create_refinement_story(
@@ -89,6 +100,37 @@ def attach_change_request_to_story(
 ) -> ChangeRequestRecord:
     """Associate an existing Change Request to a Refinement Story."""
     return store.attach_change_request_to_story(change_request_id, refinement_story_id)
+
+
+def discard_change_request(
+    store: Store,
+    *,
+    journey: str,
+    change_request_id: str,
+    reason: str,
+) -> ChangeRequestDiscard:
+    """Delete an accidental captured CR before it enters the active cycle."""
+    normalized_reason = reason.strip()
+    if not normalized_reason:
+        raise ValueError("discard reason is required")
+    cr = store.get_change_request(change_request_id)
+    if cr is None:
+        raise ValueError("change_request_id does not exist")
+    if cr.journey != journey:
+        raise ValueError("change_request_id belongs to a different journey")
+    if cr.status != "captured":
+        raise ValueError("only captured Change Requests can be discarded")
+    cursor = store.get_refinement_cursor(journey)
+    if cursor is not None and cursor.active_change_request_id == cr.id:
+        raise ValueError("active Change Request cannot be discarded")
+    story = store.get_refinement_story(cr.refinement_story_id) if cr.refinement_story_id else None
+    store.delete_change_request(cr.id)
+    return ChangeRequestDiscard(
+        journey=journey,
+        change_request=cr,
+        refinement_story=story,
+        reason=normalized_reason,
+    )
 
 
 def pull_refinement_story(
@@ -163,27 +205,56 @@ def plan_change_request(
 
 
 def mark_change_request_implemented(
-    store: Store, *, journey: str, change_request_id: str, evidence: str
+    store: Store,
+    *,
+    journey: str,
+    change_request_id: str,
+    evidence: str,
+    plan: str | None = None,
 ) -> RefinementFlowEvent:
     story, cr = _require_active_story_and_cr(store, journey, change_request_id)
     _require_active_cr(store, journey, cr.id)
-    _require_status(cr.status, {"planned"}, "mark implemented")
-    updated = store.update_change_request_status(cr.id, "implemented", outcome_notes=evidence)
+    _require_status(cr.status, {"active", "planned"}, "mark implemented")
+    if cr.status == "active":
+        _require_confirmed_cr(store, journey, cr.id)
+    detail = _implementation_detail(plan=plan, evidence=evidence)
+    updated = store.update_change_request_status(cr.id, "implemented", outcome_notes=detail)
     store.set_refinement_cursor(
         journey=journey,
         active_refinement_story_id=story.id,
         active_change_request_id=updated.id,
         last_refinement_event="change_request_implemented",
     )
-    return _flow_event(journey, "change_request_implemented", story, updated, cr.status, evidence)
+    return _flow_event(journey, "change_request_implemented", story, updated, cr.status, detail)
 
 
 def validate_change_request(
-    store: Store, *, journey: str, change_request_id: str, evidence: str
+    store: Store,
+    *,
+    journey: str,
+    change_request_id: str,
+    evidence: str,
+    close: bool = False,
+    notes: str | None = None,
 ) -> RefinementFlowEvent:
     story, cr = _require_active_story_and_cr(store, journey, change_request_id)
     _require_active_cr(store, journey, cr.id)
     _require_status(cr.status, {"implemented"}, "validate")
+    if close:
+        detail = _validation_closure_detail(evidence=evidence, notes=notes)
+        updated = store.update_change_request_status(
+            cr.id,
+            "done",
+            outcome_notes=detail,
+            completed_at=_now(),
+        )
+        store.set_refinement_cursor(
+            journey=journey,
+            active_refinement_story_id=story.id,
+            active_change_request_id=None,
+            last_refinement_event="change_request_done",
+        )
+        return _flow_event(journey, "change_request_done", story, updated, cr.status, detail)
     updated = store.update_change_request_status(cr.id, "validated", outcome_notes=evidence)
     store.set_refinement_cursor(
         journey=journey,
@@ -277,6 +348,42 @@ def close_refinement_story(
     )
 
 
+def recommend_next_change_request(
+    store: Store, *, journey: str, refinement_story_id: str
+) -> ChangeRequestRecord | None:
+    """Recommend the next unfinished CR in a Refinement Story, without selecting it."""
+    overview = get_refinement_story_overview(
+        store,
+        journey=journey,
+        refinement_story_id=refinement_story_id,
+    )
+    candidates = [
+        cr
+        for cr in overview.change_requests
+        if cr.status not in {"done", "parked", "rejected", "promoted"}
+    ]
+    if not candidates:
+        return None
+    return sorted(
+        candidates,
+        key=lambda cr: (
+            _NEXT_CR_STATUS_ORDER.get(cr.status, 99),
+            cr.position,
+            cr.created_at,
+            cr.id,
+        ),
+    )[0]
+
+
+_NEXT_CR_STATUS_ORDER = {
+    "implemented": 0,
+    "validated": 1,
+    "planned": 2,
+    "active": 3,
+    "captured": 4,
+}
+
+
 def get_active_refinement_story_overview(
     store: Store, journey: str
 ) -> RefinementStoryOverview | None:
@@ -300,12 +407,21 @@ def get_refinement_story_overview(
         raise ValueError("refinement_story_id does not exist")
     if story.journey != journey:
         raise ValueError("refinement_story_id belongs to a different journey")
+    cursor = store.get_refinement_cursor(journey)
+    active_change_request = None
+    last_refinement_event = None
+    if cursor and cursor.active_refinement_story_id == story.id:
+        last_refinement_event = cursor.last_refinement_event
+        if cursor.active_change_request_id is not None:
+            active_change_request = store.get_change_request(cursor.active_change_request_id)
     return RefinementStoryOverview(
         story=story,
         change_requests=store.list_change_requests(
             journey,
             refinement_story_id=refinement_story_id,
         ),
+        active_change_request=active_change_request,
+        last_refinement_event=last_refinement_event,
     )
 
 
@@ -355,6 +471,32 @@ def _require_active_cr(store: Store, journey: str, change_request_id: str) -> No
         raise ValueError("active Change Request is required")
 
 
+def _require_confirmed_cr(store: Store, journey: str, change_request_id: str) -> None:
+    cursor = store.get_refinement_cursor(journey)
+    if (
+        cursor is None
+        or cursor.active_change_request_id != change_request_id
+        or cursor.last_refinement_event != "change_request_confirmed"
+    ):
+        raise ValueError("confirmed Change Request is required to mark implemented")
+
+
+def _implementation_detail(*, plan: str | None, evidence: str) -> str:
+    normalized_plan = plan.strip() if plan else ""
+    normalized_evidence = evidence.strip()
+    if normalized_plan:
+        return f"Implementation plan: {normalized_plan}\nImplementation evidence: {normalized_evidence}"
+    return normalized_evidence
+
+
+def _validation_closure_detail(*, evidence: str, notes: str | None) -> str:
+    normalized_evidence = evidence.strip()
+    normalized_notes = notes.strip() if notes else ""
+    if normalized_notes:
+        return f"Validation evidence: {normalized_evidence}\nDone note: {normalized_notes}"
+    return f"Validation evidence: {normalized_evidence}\nDone note: Navigator accepted the change and authorized closure."
+
+
 def _require_status(actual: str, allowed: set[str], action: str) -> None:
     if actual not in allowed:
         expected = ", ".join(sorted(allowed))
@@ -397,6 +539,7 @@ def get_workbench_snapshot(store: Store, journey: str) -> WorkbenchSnapshot:
         storage_state="implemented",
         active_refinement_story=active_story,
         active_change_request=active_change_request,
+        last_refinement_event=cursor.last_refinement_event if cursor else None,
         refinement_story_count=len(stories),
         change_request_count=len(change_requests),
         unassigned_change_request_count=len(unassigned),

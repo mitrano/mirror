@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from memory.builder.artifact_surfaces import MaterializedArtifact, existing_artifact
 from memory.builder.delivery_cursor import (
     BuilderDeliveryCursor,
     get_delivery_cursor,
@@ -59,6 +60,7 @@ class BuilderExpandReport:
     delivery_story: str
     delivery_story_title: str
     materialized_paths: tuple[Path, ...]
+    materialized_artifacts: tuple[MaterializedArtifact, ...]
     recommended_story: str
     recommended_story_title: str
     cursor: BuilderDeliveryCursor
@@ -419,14 +421,16 @@ def expand_delivery_story(
     us_dir.mkdir(parents=True, exist_ok=True)
     ds_index = ds_dir / "index.md"
     us_index = us_dir / "index.md"
-    if not ds_index.exists():
+    ds_exists = ds_index.exists()
+    us_exists = us_index.exists()
+    if not ds_exists:
         ds_index.write_text(
             _render_delivery_story_index(
                 existing.active_item, title, recommended_code, recommended_title
             ),
             encoding="utf-8",
         )
-    if not us_index.exists():
+    if not us_exists:
         us_index.write_text(
             _render_user_story_index(recommended_code, recommended_title), encoding="utf-8"
         )
@@ -453,6 +457,16 @@ def expand_delivery_story(
         delivery_story=existing.active_item,
         delivery_story_title=title,
         materialized_paths=(ds_index, us_index),
+        materialized_artifacts=(
+            existing_artifact("DS package", ds_index)
+            if ds_exists
+            else MaterializedArtifact("DS package", ds_index, "created"),
+            existing_artifact(f"{recommended_code.split('.')[-1]} package", us_index)
+            if us_exists
+            else MaterializedArtifact(
+                f"{recommended_code.split('.')[-1]} package", us_index, "created"
+            ),
+        ),
         recommended_story=recommended_code,
         recommended_story_title=recommended_title,
         cursor=cursor,
@@ -576,7 +590,7 @@ def render_coherence_checkpoint(report: BuilderCoherenceReport) -> str:
     body = "\n".join(
         [
             "Delivery",
-            render_lifecycle_ribbon("coherence"),
+            render_lifecycle_ribbon("done"),
             "",
             "╭────────────────────────────────────────────────────────╮",
             "│        ◉■  COHERENCE CHECKPOINT                        │",
@@ -630,7 +644,7 @@ def done_lifecycle_item(
     next_recommendation: str | None = None,
     done_artifact_path: Path | None = None,
 ) -> BuilderDoneReport:
-    """Render and persist the Ariad Done checkpoint after Coherence."""
+    """Render and persist the Ariad Done checkpoint after Debt Review."""
     normalized_journey = _normalize_required(journey, "journey")
     existing = get_delivery_cursor(store, normalized_journey)
     if existing is None:
@@ -639,8 +653,8 @@ def done_lifecycle_item(
         raise ValueError("active item is required before done")
     if existing.pending_confirmation:
         raise ValueError(f"Done is blocked: pending confirmation {existing.pending_confirmation}.")
-    if existing.last_delivery_event != "coherence_complete":
-        raise ValueError("Done requires completed Coherence")
+    if existing.last_delivery_event not in {"review_complete", "coherence_complete"}:
+        raise ValueError("Done requires completed Debt Review")
     history = (history_action or "History action recorded according to project policy.").strip()
     roadmap = (roadmap_update or "Roadmap/story package reflects the closed story.").strip()
     next_step = (
@@ -816,7 +830,7 @@ def render_review_checkpoint(report: BuilderReviewReport) -> str:
     boundary = (
         "Do not move past Debt Review until the Navigator debt decision is resolved."
         if report.missing_decision
-        else "Debt Review is complete; Builder may proceed to Coherence."
+        else "Debt Review is complete; Builder may proceed to Done."
     )
     body = "\n".join(
         [
@@ -1115,6 +1129,102 @@ def _has_approved_delivery_story_plan(cursor: BuilderDeliveryCursor) -> bool:
     )
 
 
+def _delivery_story_flow_ribbon(current: str) -> str:
+    stages = (
+        ("pull", "Pull"),
+        ("prepare", "Prepare"),
+        ("expand", "Expand"),
+        ("plan", "DS Plan"),
+        ("implement", "Implement"),
+        ("validate", "Validate"),
+        ("debt_review", "Debt Review"),
+        ("done", "Done"),
+    )
+    stage_ids = tuple(stage for stage, _label in stages)
+    if current not in stage_ids:
+        raise ValueError(f"unknown Delivery Story lifecycle stage: {current}")
+    current_index = stage_ids.index(current)
+    parts = []
+    for index, (_stage, label) in enumerate(stages):
+        marker = "✓" if index < current_index else "◉" if index == current_index else "○"
+        parts.append(f"{marker} {label}")
+    return "Delivery Flow: " + " → ".join(parts)
+
+
+def render_delivery_story_ready_report(
+    *,
+    pull: BuilderPullReport,
+    prepare: BuilderPrepareReport,
+    expand: BuilderExpandReport,
+) -> str:
+    """Render the compact post-pull orientation for a Delivery Story."""
+    code_parts = pull.item.code.split(".")
+    cv_code = code_parts[0] if code_parts else pull.item.code
+    ds_code = code_parts[-1] if len(code_parts) > 1 else pull.item.code
+    title = _title_leaf(pull.item.title)
+    body = "\n".join(
+        [
+            "Delivery",
+            _delivery_story_flow_ribbon("expand"),
+            "",
+            "╭────────────────────────────────────────────────────────╮",
+            _card_text(f"🧭 {pull.item.code} READY"),
+            "│                                                        │",
+            _card_text("What was pulled?"),
+            *_card_wrapped(title),
+            "│                                                        │",
+            _card_text("Where are we in the roadmap?"),
+            _card_text(f"🟪[{cv_code}] {_cv_title(pull.item.title)}"),
+            _card_text(f"  └─ 🟦[{ds_code}] {title}"),
+            "│                                                        │",
+            _card_text("What did Prepare find?"),
+            *_card_wrapped(_prepare_finding(prepare)),
+            "│                                                        │",
+            _card_text("What was materialized?"),
+            *_card_prefixed(_materialized_summary(expand), "✓"),
+            "│                                                        │",
+            _card_text("What is recommended next?"),
+            _card_text(
+                f"🟩[{expand.recommended_story.split('.')[-1]}] {expand.recommended_story_title}"
+            ),
+            "│                                                        │",
+            _card_text("Recommended flow unit"),
+            *_card_wrapped(_flow_unit_recommendation(expand)),
+            "│                                                        │",
+            _card_text("Why this recommendation?"),
+            *_card_wrapped(_flow_unit_recommendation_rationale(expand)),
+            "│                                                        │",
+            _card_text("What can we do now?"),
+            *_card_prefixed(
+                (
+                    f"confirm {expand.recommended_story.split('.')[-1]} and continue story_by_story",
+                    "choose delivery_story as the flow unit",
+                    "inspect generated story packages",
+                ),
+                "-",
+            ),
+            "│                                                        │",
+            *_card_wrapped("Choose the next flow unit when ready."),
+            "╰────────────────────────────────────────────────────────╯",
+        ]
+    )
+    return wrap_ariad_surface("delivery_story_ready", body + "\n")
+
+
+def _flow_unit_recommendation(expand: BuilderExpandReport) -> str:
+    child_count = max(1, len(expand.materialized_artifacts) - 1)
+    if child_count <= 1:
+        return "delivery_story — recommended"
+    return "delivery_story — recommended unless you want separate Navigator validation for each child story"
+
+
+def _flow_unit_recommendation_rationale(expand: BuilderExpandReport) -> str:
+    child_count = max(1, len(expand.materialized_artifacts) - 1)
+    if child_count <= 1:
+        return "The Delivery Story appears coherent enough to plan, implement, and validate as one Navigator-facing unit while keeping the child story as a traceable work package."
+    return "The child work packages appear to support one Delivery Story outcome. Use story_by_story only if each child needs separate Navigator checkpoints."
+
+
 def render_pull_report(report: BuilderPullReport) -> str:
     """Render an Ariad Pull report using Delivery Story activation grammar."""
     code_parts = report.item.code.split(".")
@@ -1158,6 +1268,32 @@ def render_pull_report(report: BuilderPullReport) -> str:
         + "\n"
     )
     return wrap_ariad_surface("delivery_story_identified", body)
+
+
+def _prepare_finding(report: BuilderPrepareReport) -> str:
+    if report.granularity_decision_required:
+        return "Delivery Story requires a granularity decision before implementation."
+    return "Pulled story is implementable after Plan approval."
+
+
+def _materialized_summary(report: BuilderExpandReport) -> tuple[str, ...]:
+    if not report.materialized_paths:
+        return ("none",)
+    summaries: list[str] = []
+    for path in report.materialized_paths:
+        if path.parent.name == _slugify(report.delivery_story.lower()):
+            summaries.append("DS package")
+        elif path.parent.name.endswith(_slugify(report.recommended_story.split(".")[-1].lower())):
+            summaries.append(f"{report.recommended_story.split('.')[-1]} package")
+        elif report.delivery_story.lower().replace(".", "-") in str(path):
+            summaries.append("DS package")
+        else:
+            summaries.append(path.parent.name)
+    deduped: list[str] = []
+    for summary in summaries:
+        if summary not in deduped:
+            deduped.append(summary)
+    return tuple(deduped)
 
 
 def render_plan_checkpoint(report: BuilderPlanReport) -> str:
@@ -1725,7 +1861,7 @@ def _review_missing_decision(
         if not (revisit_trigger and revisit_trigger.strip()):
             missing.append("deferred debt requires a revisit trigger")
     if debt_decision == "pay_now":
-        missing.append("pay-now debt must route through Refactor before Coherence")
+        missing.append("pay-now debt must route through Refactor before Done")
     return tuple(missing)
 
 
