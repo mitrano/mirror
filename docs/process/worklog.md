@@ -12,6 +12,12 @@ Scaling rule: keep this as a single file through the 1.0 readiness cycle. After
 
 ## Done
 
+### 2026-07-04 — v0.29.3 Pi External-Skill Discovery Fix prepared
+
+Prepared the patch release boundary for the Pi external-skill discovery fix. On the `~/.mirror-minds` home layout the Pi logger extension hardcoded the legacy `~/.mirror` root and never loaded the per-workspace `.env`, so it read a non-existent catalog and — because runtime extensions fail quietly — silently exposed zero installed external skills. The extension now replicates the Python core's `resolve_mirror_home` contract (shell env > upward `.env` walk > single-catalog auto-scan, `~/.mirror-minds` preferred with legacy `~/.mirror` fallback), returning null on multi-home ambiguity instead of guessing. The resulting cross-language resolution duplication is recorded as accepted, tracked debt (TD-001) with an explicit revisit trigger, and the Gemini smoke test's production-DB guard was hardened to resolve the DB path through the core so it protects the database the workspace actually uses.
+
+Validation: CI green on `main` at the fix commit (`ed81ed9`); Claude plugin regenerated from the bumped version and drift check clean. Stable promotion, tag creation, push, and GitHub Release publication remain separate explicit gates.
+
 ### 2026-07-02 — v0.29.2 Ariad Builder Flow Refinement prepared
 
 Prepared the patch release boundary for Ariad Builder flow refinement after closing RS001 Refinement Surfaces Improvements and RS003 Ariad Delivery Builder Experience Adjustments. The release adds persisted RS/CR display codes, simplifies Refinement and Delivery surfaces, separates raw `ROADMAP_SNAPSHOT` from narrative `PROJECT_POSITION`, centralizes artifact materialization reporting, folds Delivery Coherence into Done, clarifies validation/debt/Done handoffs, and includes development/test status-line environment orientation.
