@@ -124,6 +124,7 @@ under Product when they describe product-owned Mirror Core interfaces.
 
 - [Command Reference](../REFERENCE.md) — CLI behavior, configuration, runtime self-update, and operational details
 - [Getting Started](getting-started.md) — prerequisites, installation, first session
+- [Journey Drafts](guides/journey-drafts/index.md) — reviewable pre-opening documents before creating real journeys
 - [Architecture](product/architecture.md) — system design, layers, schema, and runtime model
 - [Python API](product/api.md) — programmatic interface for developers
 - [Releases](releases/index.md) — narrative release notes from CV9.E5 onward
