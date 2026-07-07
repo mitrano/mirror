@@ -25,6 +25,7 @@ Codex uses the `$mm-` prefix. All runtimes call the same Python core.
 | `/mm-consult` | `$mm-consult` | `/mm:consult` | Asks other LLMs through OpenRouter with Mirror context | `<family> [tier] "prompt"`, `credits` |
 | `/mm-journeys` | `$mm-journeys` | `/mm:journeys` | Lists journeys with status | no arguments |
 | `/mm-journey` | `$mm-journey` | `/mm:journey` | Shows detailed journey identity, journey path, memories, and conversations | `[journey]`, `update <journey> <content>` |
+| `/mm-journey-draft` | `$mm-journey-draft` | `/mm:journey-draft` | Creates a reviewable Markdown draft before opening a real journey, then promotes the approved draft | `start --name N [--slug S]`, `path <slug>`, `promote <slug>` |
 | `/mm-memories` | `$mm-memories` | `/mm:memories` | Lists or searches memories by type, layer, and journey | `--type T`, `--layer L`, `--journey J`, `--search "Q"`, `--limit N` |
 | `/mm-tasks` | `$mm-tasks` | `/mm:tasks` | Manages tasks by journey | `list`, `add "title"`, `done <id>`, `doing <id>`, `block <id>`, `delete <id>`, `import`, `sync` |
 | `/mm-week` | `$mm-week` | `/mm:week` | Weekly planning | `view`, `plan "text"`, `save` |
@@ -46,6 +47,31 @@ Codex uses the `$mm-` prefix. All runtimes call the same Python core.
 | `python -m memory conversation-logger` | — | — | Runtime conversation logging and repair utilities | `discard-current [--interface pi] [--session-id ID]`, `repair-journeys [--limit N] [--apply]` |
 | `python -m memory web` | — | — | Runs the local Mirror Web Console — Identity and Workspace perspectives, conversation intelligence, bulk conversation maintenance (assign/delete), and allowlisted operation runs | `[--host 127.0.0.1] [--port 8765]` |
 | `ext-review-copy` | — | `ext:review-copy` | External multi-LLM copy review skill; install and expose it before use | skill-driven workflow |
+
+## Journey Drafts
+
+Journey drafts create a reviewable pre-opening document before a real journey is
+created. The draft lives outside the journey database until explicit promotion.
+
+```bash
+uv run python -m memory journey-draft start --name "Camera POC" --slug camera-poc
+uv run python -m memory journey-draft path camera-poc
+uv run python -m memory journey-draft promote camera-poc
+```
+
+Default file layout:
+
+```text
+journeys/_drafts/<slug>-draft/00-termo-abertura-draft.md
+journeys/<slug>/00-termo-abertura.md
+journeys/<slug>/01-journey-path.md
+```
+
+The intended conversational flow is: interview and refine the project with
+Mirror, write or update the draft Markdown, review it, then promote only after
+explicit approval. Promotion creates the journey identity, copies the approved
+opening term into the final folder, creates the initial journey path file, and
+sets that file as the journey sync file.
 
 ## Operating Mode Lifecycle
 

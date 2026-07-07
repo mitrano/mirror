@@ -62,6 +62,8 @@ Commands:
                        Usage: python -m memory journal [--journey SLUG] [--mirror-home PATH] <text>
   journey              Inspect or update a journey
                        Usage: python -m memory journey [status [SLUG]] | update <slug> <content> | set-path <slug> <path> [--mirror-home PATH]
+  journey-draft        Create draft opening documents and promote approved drafts to journeys
+                       Usage: python -m memory journey-draft start|path|promote [args]
   build                Builder Mode DB context loader
                        Usage: python -m memory build load <slug>
   explore              Explorer Mode context loader
@@ -213,6 +215,11 @@ def main() -> None:
         from memory.cli.journey import main as _journey_main
 
         _journey_main()
+
+    elif command == "journey-draft":
+        from memory.cli.journey_draft import main as _journey_draft_main
+
+        sys.exit(_journey_draft_main(sys.argv[2:]))
 
     elif command == "memories":
         sys.argv = [sys.argv[0], *sys.argv[2:]]

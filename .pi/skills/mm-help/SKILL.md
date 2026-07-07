@@ -24,6 +24,7 @@ Show the user the available commands (same on Pi and Gemini CLI):
 |---------|-------------|
 | `/mm-journeys` | Lists journeys with status and current stage |
 | `/mm-journey [slug]` | Shows detailed status for one or all journeys |
+| `/mm-journey-draft` | Interviews, drafts, reviews, and promotes a future journey |
 
 ## Memories & Journal
 
