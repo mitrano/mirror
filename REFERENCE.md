@@ -44,9 +44,46 @@ Codex uses the `$mm-` prefix. All runtimes call the same Python core.
 | `/mm-update` | `$mm-update` | `/mm:update` | Updates the local Mirror runtime through the safe updater | no arguments |
 | `/mm-help` | `$mm-help` | `/mm:help` | Lists available commands | no arguments |
 | `python -m memory runtime` | — | — | Inspects Mirror runtime status, version, drift, backups, release notes, release promotion readiness, plans updates, and executes safe updates | `status [--mirror-home PATH] [--channel stable|main]`, `version [--start PATH] [--channel stable|main]`, `diagnose [--mirror-home PATH]`, `backup [--mirror-home PATH]`, `backup --verify PATH`, `release-notes [latest|vX.Y.Z]`, `release-notes pending [--from vX.Y.Z] [--ref REF] [--no-fetch]`, `release-doctor --target vX.Y.Z [--stable REF]`, `release-promote --target vX.Y.Z [--stable BRANCH] [--remote REMOTE] [--dry-run] [--push]`, `update --dry-run [--mirror-home PATH] [--channel stable|main]`, `update --check [--channel stable|main]`, `update [--no-fetch] [--skip-migrations] [--mirror-home PATH] [--channel stable|main]`, `update --repair-updater [--no-fetch] [--mirror-home PATH] [--channel stable|main]` |
+| `python -m memory ytmusic-importer` | — | — | Proof-of-viability importer for YouTube Music playlists using `ytmusicapi` | `--songs songs.txt --playlist "Name" --auth browser.json [--apply]` |
 | `python -m memory conversation-logger` | — | — | Runtime conversation logging and repair utilities | `discard-current [--interface pi] [--session-id ID]`, `repair-journeys [--limit N] [--apply]` |
 | `python -m memory web` | — | — | Runs the local Mirror Web Console — Identity and Workspace perspectives, conversation intelligence, bulk conversation maintenance (assign/delete), and allowlisted operation runs | `[--host 127.0.0.1] [--port 8765]` |
 | `ext-review-copy` | — | `ext:review-copy` | External multi-LLM copy review skill; install and expose it before use | skill-driven workflow |
+
+## YouTube Music Importer PoC
+
+The `ytmusic-importer` command is a proof-of-viability tool for the
+`ytmusic-importer` journey. It reads a UTF-8 text file with one song per line,
+searches YouTube Music through `ytmusicapi`, finds or creates the target
+playlist, and prints a report of matched, ambiguous, duplicate, and not-found
+items.
+
+Install the optional dependency before live use:
+
+```bash
+uv pip install ytmusicapi
+```
+
+Prepare a `ytmusicapi` browser headers auth file using the library's documented
+authentication flow, then run a dry run first:
+
+```bash
+uv run python -m memory ytmusic-importer \
+  --songs songs.txt \
+  --playlist "Mirror Test" \
+  --auth browser.json
+```
+
+The command is safe by default: without `--apply`, it does not create playlists
+or add songs. To execute the playlist mutation after reviewing the dry-run
+report:
+
+```bash
+uv run python -m memory ytmusic-importer \
+  --songs songs.txt \
+  --playlist "Mirror Test" \
+  --auth browser.json \
+  --apply
+```
 
 ## Journey Drafts
 

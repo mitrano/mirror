@@ -126,6 +126,8 @@ Commands:
                               python -m memory runtime release-promote --target vX.Y.Z [--stable BRANCH] [--remote REMOTE] [--dry-run] [--push]
   welcome              Render the state-aware welcome card for the current Mirror home
                        Usage: python -m memory welcome [--mirror-home PATH]
+  ytmusic-importer     Proof-of-viability importer for YouTube Music playlists
+                       Usage: python -m memory ytmusic-importer --songs songs.txt --playlist "Name" --auth browser.json [--apply]
 """
 
 
@@ -323,6 +325,11 @@ def main() -> None:
         from memory.cli.welcome import main as _welcome_main
 
         _welcome_main(sys.argv[2:])
+
+    elif command == "ytmusic-importer":
+        from memory.tools.ytmusic_importer import main as _ytmusic_importer_main
+
+        sys.exit(_ytmusic_importer_main(sys.argv[2:]))
 
     else:
         print(f"Unknown command: {command}\n")
