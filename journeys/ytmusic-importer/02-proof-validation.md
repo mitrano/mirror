@@ -54,6 +54,32 @@ O experimento passa se:
 - duplicatas já presentes não forem reinseridas;
 - o relatório final mostrar adicionadas, ambíguas e não encontradas.
 
+## Resultado parcial do primeiro teste real
+
+Data: 2026-07-22
+
+Resultado confirmado:
+
+- `ytmusicapi` instalou e carregou corretamente no ambiente local;
+- busca pública no YouTube Music funcionou para as 10 músicas de teste;
+- os matches retornados foram majoritariamente corretos e suficientes para validar a hipótese de matching inicial.
+
+Resultado ainda não confirmado:
+
+- autenticação de biblioteca/playlist;
+- localização/criação de playlist;
+- adição real das músicas.
+
+Bloqueio encontrado:
+
+- o dry-run autenticado falhou ao consultar playlists com `JSONDecodeError` dentro de `ytmusicapi`, indicando que a resposta recebida não veio como JSON esperado. A causa provável é autenticação `browser` inválida/incompleta ou instabilidade do fluxo browser, que a própria CLI do `ytmusicapi` marca como deprecated.
+
+Próxima tentativa recomendada:
+
+- gerar autenticação via OAuth, se disponível para a conta/ambiente, ou refazer cuidadosamente o fluxo `browser` copiando os request headers corretos do YouTube Music;
+- repetir primeiro o dry-run;
+- só usar `--apply` depois de um dry-run autenticado bem-sucedido.
+
 ## Limitações conscientes
 
 - `ytmusicapi` é biblioteca não oficial.

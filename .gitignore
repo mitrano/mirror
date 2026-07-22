@@ -23,6 +23,11 @@ docs/project/explorations/
 # Local recovery/backup notes and patches (Windows compat workflow)
 tmp/
 
+# Local YouTube Music authentication files
+journeys/*/browser.json
+journeys/*/oauth.json
+journeys/*/*auth*.json
+
 # Windows installer build artifacts
 dist/
 *.exe
