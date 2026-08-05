@@ -1,12 +1,12 @@
 # md2pdf — Journey Path
 
 **Status:** active
-**Stage:** Baseline importada e validada
+**Stage:** Orientação e Ofício implementados
 **Created:** 2026-08-04
 
 ## Current status
 
-O projeto v1.0.0 foi importado para `/home/ricardoalvares/repos/md2pdf`, preparado com `uv` e validado localmente. Os 5 testes automatizados passaram e `exemplos/relatorio-exemplo.md` foi convertido com sucesso em `pdfs/relatorio-exemplo.pdf`.
+O projeto v1.1.0 suporta formato Ofício/Legal e orientação Retrato/Paisagem. A implementação foi validada com 9 testes automatizados e uma conversão real de `exemplos/relatorio-exemplo.md` usando `--formato Oficio --orientacao paisagem`.
 
 ## Source document
 
@@ -14,4 +14,4 @@ O projeto v1.0.0 foi importado para `/home/ricardoalvares/repos/md2pdf`, prepara
 
 ## Next movement
 
-Usar a baseline validada para definir e implementar as próximas alterações desejadas no conversor.
+Usar a versão 1.1.0 validada para conversões locais e decidir as próximas melhorias do conversor.
